@@ -1,0 +1,20 @@
+# 노트북에서 실제 임베딩 모델로 재는 설정
+#   pip install -e ".[chroma,st]"   (bge-m3 약 2.3GB, 첫 실행 때 한 번 내려받음)
+# 기준선과 같은 문서·질문·청킹이라 두 리포트를 나란히 비교할 수 있다.
+name: retrieval_bge
+gate_label: hybrid(bm25+bge-m3)
+chunking: {max_chars: 600, overlap: 80}
+defaults:
+  embedder: {kind: sentence-transformers, model: BAAI/bge-m3}
+scenarios:
+  - {name: ops, docs: data/ops, questions: eval/questions_ops.jsonl}
+  - {name: cs,  docs: data/cs,  questions: eval/questions_cs.jsonl}
+retrievers:
+  - {label: bm25, kind: bm25}
+  - {label: dense(bge-m3·memory), kind: dense, store: {kind: memory}}
+  - {label: dense(bge-m3·chroma), kind: dense, store: {kind: chroma}}
+  - label: hybrid(bm25+bge-m3)
+    kind: hybrid
+    parts:
+      - {kind: bm25}
+      - {kind: dense, store: {kind: memory}}

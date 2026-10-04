@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-and-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: 설치
+        run: pip install -e ".[chroma,dev]"
+      - name: 단위 테스트
+        run: pytest -q
+      - name: 데이터가 생성 스크립트와 일치하는지 확인
+        run: |
+          python scripts/make_data.py
+          git diff --exit-code data eval
+      - name: 검색 회귀 검사 (기준 갈래 Recall@3 >= 0.80)
+        run: python scripts/eval_retrieval.py configs/retrieval_baseline.yaml --min-recall3 0.80
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retrieval-report
+          path: reports/

@@ -1,0 +1,31 @@
+{"id": "cs-c01", "type": "code", "question": "PLN-LT33 월 요금이 얼마예요?", "gold": ["CS-PLN-LT33"]}
+{"id": "cs-c02", "type": "code", "question": "PLN-LT49 요금제 데이터 얼마나 줘요?", "gold": ["CS-PLN-LT49"]}
+{"id": "cs-c03", "type": "code", "question": "PLN-5G39 요금제 데이터 얼마나 줘요?", "gold": ["CS-PLN-5G39"]}
+{"id": "cs-c04", "type": "code", "question": "PLN-5G55 선택약정하면 얼마예요?", "gold": ["CS-PLN-5G55"]}
+{"id": "cs-c05", "type": "code", "question": "PLN-5G59 요금제 데이터 얼마나 줘요?", "gold": ["CS-PLN-5G59"]}
+{"id": "cs-c06", "type": "code", "question": "PLN-5G89 요금제 데이터 얼마나 줘요?", "gold": ["CS-PLN-5G89"]}
+{"id": "cs-c07", "type": "code", "question": "PLN-5T34 요금제 데이터 얼마나 줘요?", "gold": ["CS-PLN-5T34"]}
+{"id": "cs-c08", "type": "code", "question": "PLN-LS25 월 요금이 얼마예요?", "gold": ["CS-PLN-LS25"]}
+{"id": "cs-p01", "type": "paraphrase", "question": "약정 중간에 해지하면 돈을 물어내야 하나요?", "gold": ["CS-CNT"]}
+{"id": "cs-p02", "type": "paraphrase", "question": "해외 여행 가서 데이터 쓰려면 어떻게 해요?", "gold": ["CS-ROAM"]}
+{"id": "cs-p03", "type": "paraphrase", "question": "폰을 잃어버렸어요", "gold": ["CS-LOST"]}
+{"id": "cs-p04", "type": "paraphrase", "question": "요금을 못 냈더니 전화가 안 걸려요", "gold": ["CS-UNPAID"]}
+{"id": "cs-p05", "type": "paraphrase", "question": "태블릿이랑 데이터 나눠 쓰고 싶어요", "gold": ["CS-SHARE"]}
+{"id": "cs-p06", "type": "paraphrase", "question": "초등학생 아이한테 맞는 요금제 있나요?", "gold": ["FAQ-02", "CS-PLN-5T34"]}
+{"id": "cs-p07", "type": "paraphrase", "question": "군대 가는 동안 번호 유지하려면?", "gold": ["CS-PAUSE"]}
+{"id": "cs-p08", "type": "paraphrase", "question": "데이터 다 쓰면 추가 요금 나와요?", "gold": ["CS-OVR"]}
+{"id": "cs-p09", "type": "paraphrase", "question": "요금제를 이번 달에 또 바꿀 수 있어요?", "gold": ["CS-CHG"]}
+{"id": "cs-p10", "type": "paraphrase", "question": "이번 달 청구서가 평소보다 많이 나왔어요", "gold": ["FAQ-01"]}
+{"id": "cs-p11", "type": "paraphrase", "question": "다른 통신사로 옮기면 남은 할부금은요?", "gold": ["CS-TRANS"]}
+{"id": "cs-p12", "type": "paraphrase", "question": "부모님 요금 제일 싸게 하는 방법", "gold": ["FAQ-03", "CS-PLN-LS25"]}
+{"id": "cs-p13", "type": "paraphrase", "question": "가입하고 일주일 됐는데 취소돼요?", "gold": ["CS-JOIN"]}
+{"id": "cs-p14", "type": "paraphrase", "question": "휴대폰 보험은 언제까지 가입할 수 있어요?", "gold": ["CS-ADD"]}
+{"id": "cs-p15", "type": "paraphrase", "question": "상담원이 주민번호 전체를 물어봐도 되나요?", "gold": ["CS-PRIV"]}
+{"id": "cs-h01", "type": "hard", "question": "계약 기간 안 채우고 끊으면 불이익 있어?", "gold": ["CS-CNT"]}
+{"id": "cs-h02", "type": "hard", "question": "출국하는데 현지에서 인터넷 쓰는 상품 있어?", "gold": ["CS-ROAM"]}
+{"id": "cs-h03", "type": "hard", "question": "휴대전화를 도둑맞았어", "gold": ["CS-LOST"]}
+{"id": "cs-h04", "type": "hard", "question": "청구 금액을 연체했더니 통화가 막혔어", "gold": ["CS-UNPAID"]}
+{"id": "cs-h05", "type": "hard", "question": "입대 기간 동안 회선을 보관하고 싶어", "gold": ["CS-PAUSE"]}
+{"id": "cs-h06", "type": "hard", "question": "제공량을 넘겨 쓰면 돈이 더 나가?", "gold": ["CS-OVR"]}
+{"id": "cs-h07", "type": "hard", "question": "통신사를 갈아타면 기기값 남은 건 어떻게 돼?", "gold": ["CS-TRANS"]}
+{"id": "cs-h08", "type": "hard", "question": "어르신이 쓰기 좋은 저렴한 상품", "gold": ["FAQ-03", "CS-PLN-LS25"]}

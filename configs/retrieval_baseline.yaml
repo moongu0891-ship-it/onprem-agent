@@ -1,0 +1,19 @@
+# 1주차 기준선: 모델 다운로드 없이 어디서나 도는 설정 (CI 회귀 검사용)
+# hash 임베더는 '뜻'을 모르는 글자 해시라서, 바꿔 말하기 점수는 낮게 나오는 게 정상이다.
+name: retrieval_baseline
+gate_label: hybrid(bm25+hash)
+chunking: {max_chars: 600, overlap: 80}
+defaults:
+  embedder: {kind: hash, dim: 512}
+scenarios:
+  - {name: ops, docs: data/ops, questions: eval/questions_ops.jsonl}
+  - {name: cs,  docs: data/cs,  questions: eval/questions_cs.jsonl}
+retrievers:
+  - {label: bm25, kind: bm25}
+  - {label: dense(hash·memory), kind: dense, store: {kind: memory}}
+  - {label: dense(hash·chroma), kind: dense, store: {kind: chroma}}
+  - label: hybrid(bm25+hash)
+    kind: hybrid
+    parts:
+      - {kind: bm25}
+      - {kind: dense, store: {kind: memory}}

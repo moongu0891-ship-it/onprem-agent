@@ -1,0 +1,27 @@
+[project]
+name = "onprem-agent"
+version = "0.1.0"
+description = "폐쇄망에서 도는 엔터프라이즈 에이전트 레퍼런스 구현 — 서빙·검색·에이전트·평가를 같은 기준으로 비교"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "pyyaml>=6.0",
+  "kiwipiepy>=0.18",
+]
+
+[project.optional-dependencies]
+chroma = ["chromadb>=0.5"]
+st = ["sentence-transformers>=3.0"]
+openai = ["httpx>=0.27"]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

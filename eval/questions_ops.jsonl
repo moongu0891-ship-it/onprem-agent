@@ -1,0 +1,37 @@
+{"id": "ops-c01", "type": "code", "question": "CRB-01 조치 순서 알려줘", "gold": ["OPS-CRB-01"]}
+{"id": "ops-c02", "type": "code", "question": "CRB-06 경보가 떴습니다. 무엇을 점검해야 하나요?", "gold": ["OPS-CRB-06"]}
+{"id": "ops-c03", "type": "code", "question": "CRB-07 조치 순서 알려줘", "gold": ["OPS-CRB-07"]}
+{"id": "ops-c04", "type": "code", "question": "CRB-08 뜨면 뭐부터 봐야 해?", "gold": ["OPS-CRB-08"]}
+{"id": "ops-c05", "type": "code", "question": "DRF-01 조치 순서 알려줘", "gold": ["OPS-DRF-01"]}
+{"id": "ops-c06", "type": "code", "question": "LVL-01 경보가 떴습니다. 무엇을 점검해야 하나요?", "gold": ["OPS-LVL-01"]}
+{"id": "ops-c07", "type": "code", "question": "LVL-02 경보가 떴습니다. 무엇을 점검해야 하나요?", "gold": ["OPS-LVL-02"]}
+{"id": "ops-c08", "type": "code", "question": "LVL-04 경보가 떴습니다. 무엇을 점검해야 하나요?", "gold": ["OPS-LVL-04"]}
+{"id": "ops-c09", "type": "code", "question": "LVL-05 경보가 떴습니다. 무엇을 점검해야 하나요?", "gold": ["OPS-LVL-05"]}
+{"id": "ops-c10", "type": "code", "question": "SPK-02 경보가 떴습니다. 무엇을 점검해야 하나요?", "gold": ["OPS-SPK-02"]}
+{"id": "ops-c11", "type": "code", "question": "SPK-05 조치 순서 알려줘", "gold": ["OPS-SPK-05"]}
+{"id": "ops-c12", "type": "code", "question": "SPK-07 조치 순서 알려줘", "gold": ["OPS-SPK-07"]}
+{"id": "ops-c13", "type": "code", "question": "ERR-302 에러 발생 시 압력 밸브 점검 순서는?", "gold": ["ERR-302"]}
+{"id": "ops-p01", "type": "paraphrase", "question": "설비 만지기 전에 뭘 먼저 해야 하나요?", "gold": ["OPS-SAFE"]}
+{"id": "ops-p02", "type": "paraphrase", "question": "작업 전에 전원 내리고 자물쇠 거는 절차 알려줘", "gold": ["OPS-SAFE"]}
+{"id": "ops-p03", "type": "paraphrase", "question": "화면이랑 PLC 연결이 끊겼다고 나와요", "gold": ["ERR-301"]}
+{"id": "ops-p04", "type": "paraphrase", "question": "밸브에 열라고 명령했는데 반응이 없어서 설비가 섰어요", "gold": ["ERR-302"]}
+{"id": "ops-p05", "type": "paraphrase", "question": "비상정지 눌린 거 어떻게 풀어요?", "gold": ["ERR-303"]}
+{"id": "ops-p06", "type": "paraphrase", "question": "주 배관 압력이 유량이랑 같이 움직이던 게 따로 놀아요", "gold": ["OPS-CRB-03"]}
+{"id": "ops-p07", "type": "paraphrase", "question": "구동부 떨림이 며칠째 조금씩 계속 커지고 있어요", "gold": ["OPS-DRF-08"]}
+{"id": "ops-p08", "type": "paraphrase", "question": "모터 전류 값이 갑자기 한 번 확 뛰었다가 돌아왔어요", "gold": ["OPS-SPK-07"]}
+{"id": "ops-p09", "type": "paraphrase", "question": "보조 배관 유량이 어느 순간부터 한 단계 낮은 값으로 고정됐어요", "gold": ["OPS-LVL-06"]}
+{"id": "ops-p10", "type": "paraphrase", "question": "2차 가열부 온도가 범위 안인데 평소 패턴이랑 다르게 움직여요", "gold": ["OPS-CRB-02"]}
+{"id": "ops-p11", "type": "paraphrase", "question": "베어링 새로 끼우는 방법", "gold": ["OPS-BRG"]}
+{"id": "ops-p12", "type": "paraphrase", "question": "센서 값 다시 맞추는 건 몇 달마다 해요?", "gold": ["OPS-CAL"]}
+{"id": "ops-p13", "type": "paraphrase", "question": "점검 끝나고 설비 다시 켜는 순서", "gold": ["OPS-RST"]}
+{"id": "ops-p14", "type": "paraphrase", "question": "스트레이너 언제 청소해야 해?", "gold": ["OPS-STR"]}
+{"id": "ops-p15", "type": "paraphrase", "question": "30분 넘게 원인 못 찾으면 누구한테 연락해요?", "gold": ["OPS-ESC"]}
+{"id": "ops-p16", "type": "paraphrase", "question": "경보 코드 이름은 어떻게 읽는 거예요?", "gold": ["OPS-CODE"]}
+{"id": "ops-h01", "type": "hard", "question": "작업자가 감전되지 않게 하려면 정비 전에 어떤 조치가 필요해?", "gold": ["OPS-SAFE"]}
+{"id": "ops-h02", "type": "hard", "question": "모니터 화면과 컨트롤러가 서로 신호를 못 주고받아", "gold": ["ERR-301"]}
+{"id": "ops-h03", "type": "hard", "question": "기계가 비상으로 멈춰서 다시 못 돌리고 있어", "gold": ["ERR-303"]}
+{"id": "ops-h04", "type": "hard", "question": "회전체 쪽 떨림이 날마다 조금씩 심해져", "gold": ["OPS-DRF-08"]}
+{"id": "ops-h05", "type": "hard", "question": "구동 쪽 부하가 순간적으로 치솟았다가 원래대로 돌아왔어", "gold": ["OPS-SPK-07"]}
+{"id": "ops-h06", "type": "hard", "question": "필터가 막혀서 앞뒤 압력 차이가 벌어졌어", "gold": ["OPS-STR"]}
+{"id": "ops-h07", "type": "hard", "question": "측정기 기준점을 다시 잡는 작업은 얼마나 자주 해?", "gold": ["OPS-CAL"]}
+{"id": "ops-h08", "type": "hard", "question": "수리 마치고 기계를 다시 돌리기 전에 확인할 것", "gold": ["OPS-RST"]}
