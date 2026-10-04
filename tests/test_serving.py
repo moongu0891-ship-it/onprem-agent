@@ -120,3 +120,23 @@ def test_score_case_wildcard_and_numbers():
     assert score_case(case, msg)["args_ok"]
     msg["tool_calls"][0]["function"]["arguments"] = '{"line": 1, "priority": "high", "summary": ""}'
     assert not score_case(case, msg)["args_ok"]
+
+
+def test_failover_helpers():
+    from onprem_agent.serving.failover import classify_backend, parse_metric, summarize_phase, to_markdown
+    assert classify_backend({"X-LiteLLM-Model-Api-Base": "http://sglang-g16:30000/v1"}) == "SGLang"
+    assert classify_backend({"x-litellm-model-api-base": "http://llamacpp-cpu:8080/v1"}) == "llama.cpp(CPU)"
+    assert classify_backend({}) == "알 수 없음"
+    assert classify_backend({"x-litellm-model-group": "agent-llm-backup", "x-litellm-attempted-fallbacks": "1"}) == "llama.cpp(CPU)"
+    assert classify_backend({"x-litellm-model-group": "agent-llm"}) == "SGLang"
+    m = "# HELP x\nllamacpp:prompt_tokens_total 120\nllamacpp:tokens_predicted_total 48\n"
+    assert parse_metric(m, "llamacpp:tokens_predicted_total") == 48
+    recs = [{"t": 9.0, "ok": True, "ms": 100, "backend": "SGLang", "error": None},
+            {"t": 10.2, "ok": False, "ms": 5, "backend": None, "error": "boom"},
+            {"t": 11.5, "ok": True, "ms": 900, "backend": "llama.cpp(CPU)", "error": None}]
+    s = summarize_phase(recs, t_event=10.0)
+    assert s["failed_after_event"] == 1 and s["first_ok_after_event_s"] == 1.5
+    assert s["backends"] == {"SGLang": 1, "llama.cpp(CPU)": 1}
+    md = to_markdown({"started_at": "x", "primary": "SGLang", "backup": "llama.cpp", "max_tokens": 16, "workers": 2,
+                      "phases": [{"name": "2 장애", "event": "멈춤", "summary": s, "backup_tokens_delta": 16}]})
+    assert "첫 성공까지 1.5 초" in md

@@ -94,12 +94,28 @@ services:
     <<: *gpu
     image: ${LLAMACPP_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-cuda}
     profiles: [llamacpp]
-    volumes: ["${LLAMA_CACHE_HOST:-~/.cache/llama.cpp}:/root/.cache/llama.cpp"]
+    # 최근 llama.cpp 는 -hf 로 받은 모델을 Hugging Face 캐시(/root/.cache/huggingface)에 둔다 → 그 자리도 호스트에 연결해 매번 다시 받지 않게.
+    volumes:
+      - "${LLAMA_CACHE_HOST:-~/.cache/llama.cpp}:/root/.cache/llama.cpp"
+      - "${HF_HOME_HOST:-~/.cache/huggingface}:/root/.cache/huggingface"
     command: >
       -hf Qwen/Qwen3-1.7B-GGUF:Q8_0 --alias qwen3-1.7b --host 0.0.0.0 --port 8080
       -c 32768 -np 8 -ngl 99 --jinja --metrics
     ports: ["127.0.0.1:18081:8080"]
     healthcheck: {test: ["CMD", "curl", "-sf", "http://localhost:8080/health"], interval: 10s, retries: 90}
+
+  # 장애 대체용: GPU 없이 CPU 로만 도는 llama.cpp. GPU 하나뿐인 서버에서 GPU 엔진이 죽어도 느리게나마 서비스를 잇는다.
+  # 8GB GPU 에는 SGLang 과 llama.cpp 를 동시에 올릴 수 없어서, 대체 엔진은 CPU 에 둔다.
+  llamacpp-cpu:
+    image: ${LLAMACPP_CPU_IMAGE:-ghcr.io/ggml-org/llama.cpp:server}
+    profiles: [llamacpp-cpu]
+    volumes:
+      - "${LLAMA_CACHE_HOST:-~/.cache/llama.cpp}:/root/.cache/llama.cpp"
+      - "${HF_HOME_HOST:-~/.cache/huggingface}:/root/.cache/huggingface"
+    command: >
+      -hf Qwen/Qwen3-1.7B-GGUF:Q8_0 --alias qwen3-1.7b --host 0.0.0.0 --port 8080
+      -c 8192 -np 2 --jinja --metrics
+    ports: ["127.0.0.1:18082:8080"]
 
   # 게이트웨이: 에이전트는 엔진 주소를 모르고 'agent-llm' 이라는 이름만 안다.
   # 엔진 교체·장애 시 대체 엔진으로 넘기기(fallback)·요청 기록을 여기서 한다.

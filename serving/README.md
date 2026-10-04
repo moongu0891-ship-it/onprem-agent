@@ -126,6 +126,20 @@ cat results/serving_laptop.md
 
 ---
 
+### 장애 대체 시험
+
+1순위 엔진을 멈췄을 때 게이트웨이가 대체 엔진으로 넘기는지 본다. 8GB GPU 에는 엔진 두 개가 동시에 올라가지 않으므로 **대체 엔진은 CPU 에서 도는 llama.cpp**(`llamacpp-cpu` 프로필)다 — GPU 서버가 한 대뿐인 사내 환경에서 "GPU 엔진이 죽어도 느리게나마 서비스는 이어진다"를 보이는 구성.
+
+```bash
+python scripts/failover_test.py      # 5~10분. SGLang(GPU)·llama.cpp(CPU)·LiteLLM 을 함께 띄우고 끝나면 내린다
+cat results/failover.md
+```
+
+단계: ① 정상 15초 → ② 요청을 계속 보내는 도중 1순위(SGLang) 컨테이너를 멈추고 30초 → ③ 1순위를 다시 띄우고 준비된 뒤 20초.
+어느 엔진이 답했는지는 게이트웨이 응답 헤더(`x-litellm-model-group`)와 llama.cpp 의 처리 토큰 누계 증가, 두 가지로 확인한다.
+
+---
+
 ## 4. 결과와 해석
 
 ### 4.1 동작 확인 (`--quick`: 동시 1·4명, 단계당 요청 8개, 노트북)
