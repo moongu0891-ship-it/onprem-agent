@@ -1,0 +1,103 @@
+# 서빙 엔진 3종 + LiteLLM 게이트웨이.
+#
+# 8GB GPU 에는 엔진이 하나씩만 올라간다. 측정 스크립트(scripts/bench_serving.py --manage)가
+# 프로필을 하나씩 올리고 → 재고 → 내린다. 손으로 할 때:
+#   docker compose -f serving/compose.yml --profile vllm up -d
+#   docker compose -f serving/compose.yml --profile vllm down
+#
+# 세 엔진 모두 같은 모델(Qwen3-1.7B)을 같은 이름(qwen3-1.7b)·같은 최대 길이(8192)로 띄운다.
+#   - vLLM, SGLang: BF16 원본 가중치
+#   - llama.cpp:     GGUF Q8_0 (llama.cpp 는 GGUF 만 읽는다. 비교표에 이 차이를 함께 적는다)
+# '-nopc' 프로필은 접두사 캐시(prefix caching / radix cache)를 끈 같은 엔진 — 캐시 효과를 따로 재기 위함.
+# 모든 포트는 127.0.0.1 에만 연다.
+
+x-gpu: &gpu
+  deploy:
+    resources:
+      reservations:
+        devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+x-vllm: &vllm
+  <<: *gpu
+  image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
+  ipc: host
+  volumes: ["${HF_HOME_HOST:-~/.cache/huggingface}:/root/.cache/huggingface"]
+  ports: ["127.0.0.1:8000:8000"]
+  healthcheck: {test: ["CMD", "curl", "-sf", "http://localhost:8000/health"], interval: 10s, retries: 90}
+
+x-vllm-args: &vllm_args
+  - --model=Qwen/Qwen3-1.7B
+  - --served-model-name=qwen3-1.7b
+  - --max-model-len=8192
+  - --gpu-memory-utilization=0.85
+  - --enable-auto-tool-choice
+  - --tool-call-parser=hermes
+  - --enable-prompt-tokens-details      # 응답 usage 에 '캐시에서 재사용한 토큰 수'를 싣는다
+
+x-sglang: &sglang
+  <<: *gpu
+  image: ${SGLANG_IMAGE:-lmsysorg/sglang:latest}   # CUDA 13 전용 이미지 (드라이버 580+ 필요)
+  ipc: host
+  shm_size: 8g
+  volumes: ["${HF_HOME_HOST:-~/.cache/huggingface}:/root/.cache/huggingface"]
+  ports: ["127.0.0.1:30000:30000"]
+  healthcheck: {test: ["CMD", "curl", "-sf", "http://localhost:30000/health"], interval: 10s, retries: 90}
+
+services:
+  vllm:
+    <<: *vllm
+    profiles: [vllm]
+    command: *vllm_args
+
+  vllm-nopc:
+    <<: *vllm
+    profiles: [vllm-nopc]
+    command:
+      - --model=Qwen/Qwen3-1.7B
+      - --served-model-name=qwen3-1.7b
+      - --max-model-len=8192
+      - --gpu-memory-utilization=0.85
+      - --enable-auto-tool-choice
+      - --tool-call-parser=hermes
+      - --enable-prompt-tokens-details
+      - --no-enable-prefix-caching
+
+  sglang:
+    <<: *sglang
+    profiles: [sglang]
+    command: >
+      python3 -m sglang.launch_server --model-path Qwen/Qwen3-1.7B --served-model-name qwen3-1.7b
+      --host 0.0.0.0 --port 30000 --context-length 8192 --mem-fraction-static 0.80
+      --tool-call-parser ${SGLANG_TOOL_PARSER:-qwen25} ${SGLANG_EXTRA:-}
+
+  sglang-nopc:
+    <<: *sglang
+    profiles: [sglang-nopc]
+    command: >
+      python3 -m sglang.launch_server --model-path Qwen/Qwen3-1.7B --served-model-name qwen3-1.7b
+      --host 0.0.0.0 --port 30000 --context-length 8192 --mem-fraction-static 0.80
+      --tool-call-parser ${SGLANG_TOOL_PARSER:-qwen25} --disable-radix-cache ${SGLANG_EXTRA:-}
+
+  # CUDA 12 이미지를 쓴다. server-cuda13 은 호환 라이브러리가 최신 드라이버와 어긋나는 문제가 보고됨(llama.cpp #23111).
+  # -c 는 전체 KV 용량이고 슬롯(-np)들이 나눠 쓴다: 32768 / 8 = 슬롯당 4096 토큰.
+  llamacpp:
+    <<: *gpu
+    image: ${LLAMACPP_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-cuda}
+    profiles: [llamacpp]
+    volumes: ["${LLAMA_CACHE_HOST:-~/.cache/llama.cpp}:/root/.cache/llama.cpp"]
+    command: >
+      -hf Qwen/Qwen3-1.7B-GGUF:Q8_0 --alias qwen3-1.7b --host 0.0.0.0 --port 8080
+      -c 32768 -np 8 -ngl 99 --jinja --metrics
+    ports: ["127.0.0.1:18081:8080"]
+    healthcheck: {test: ["CMD", "curl", "-sf", "http://localhost:8080/health"], interval: 10s, retries: 90}
+
+  # 게이트웨이: 에이전트는 엔진 주소를 모르고 'agent-llm' 이라는 이름만 안다.
+  # 엔진 교체·장애 시 대체 엔진으로 넘기기(fallback)·요청 기록을 여기서 한다.
+  litellm:
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable}
+    profiles: [litellm]
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    volumes: ["./litellm.yaml:/app/config.yaml:ro"]
+    environment: {LITELLM_MASTER_KEY: "sk-local-dev"}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["127.0.0.1:4000:4000"]

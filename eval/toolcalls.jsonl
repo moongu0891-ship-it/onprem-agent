@@ -1,0 +1,20 @@
+{"id": "tc01", "question": "LVL-06 경보가 뜨면 어떻게 조치해야 하나요?", "tool": "search_manual", "args": {"query": "*"}}
+{"id": "tc02", "question": "CRB-03 경보 조치 순서 알려줘", "tool": "search_manual", "args": {"query": "*"}}
+{"id": "tc03", "question": "설비 점검 들어가기 전에 지켜야 할 안전 수칙이 뭐죠?", "tool": "search_manual", "args": {"query": "*"}}
+{"id": "tc04", "question": "ERR-302 오류는 무슨 뜻이야?", "tool": "search_manual", "args": {"query": "*"}}
+{"id": "tc05", "question": "ERR-301 은 어떤 상황에서 나오나요?", "tool": "search_manual", "args": {"query": "*"}}
+{"id": "tc06", "question": "2025년 7월 1호기 LVL-06 경보 이력 보여줘", "tool": "get_work_orders", "args": {"line": 1, "alarm_code": "LVL-06", "month": "2025-07"}}
+{"id": "tc07", "question": "3호기에서 2025년 3월에 CRB-03 경보 처리한 기록 있어?", "tool": "get_work_orders", "args": {"line": 3, "alarm_code": "CRB-03", "month": "2025-03"}}
+{"id": "tc08", "question": "2024년 11월 2호기 SPK-05 정비 기록 찾아줘", "tool": "get_work_orders", "args": {"line": 2, "alarm_code": "SPK-05", "month": "2024-11"}}
+{"id": "tc09", "question": "4호기 DRF-02 경보, 2025년 1월 작업 내역 조회", "tool": "get_work_orders", "args": {"line": 4, "alarm_code": "DRF-02", "month": "2025-01"}}
+{"id": "tc10", "question": "1호기 2025년 5월 LVL-03 기록 좀 볼게요", "tool": "get_work_orders", "args": {"line": 1, "alarm_code": "LVL-03", "month": "2025-05"}}
+{"id": "tc11", "question": "1호기 LVL-06 경보 조치 요청 티켓 만들어줘. 긴급이야.", "tool": "create_ticket", "args": {"line": 1, "alarm_code": "LVL-06", "priority": "high", "summary": "*"}}
+{"id": "tc12", "question": "2호기 CRB-01 센서 점검 요청 등록해줘. 급하지 않아요.", "tool": "create_ticket", "args": {"line": 2, "alarm_code": "CRB-01", "priority": "low", "summary": "*"}}
+{"id": "tc13", "question": "4호기 DRF-08 경보 조치 티켓 생성해 주세요. 우선순위는 보통.", "tool": "create_ticket", "args": {"line": 4, "alarm_code": "DRF-08", "priority": "normal", "summary": "*"}}
+{"id": "tc14", "question": "6호기 SPK-03 진동 경보 났어. 정비 작업 요청 올려줘, 최대한 빨리.", "tool": "create_ticket", "args": {"line": 6, "alarm_code": "SPK-03", "priority": "high", "summary": "*"}}
+{"id": "tc15", "question": "고객번호 C0012 고객 정보 조회해줘", "tool": "get_customer", "args": {"customer_id": "C0012"}}
+{"id": "tc16", "question": "C0045 고객은 미납 금액이 있나요?", "tool": "get_customer", "args": {"customer_id": "C0045"}}
+{"id": "tc17", "question": "PLN-5G59 요금제 상세 내용 알려줘", "tool": "get_plan", "args": {"plan_code": "PLN-5G59"}}
+{"id": "tc18", "question": "PLN-5G39 요금제는 한 달에 얼마예요?", "tool": "get_plan", "args": {"plan_code": "PLN-5G39"}}
+{"id": "tc19", "question": "안녕하세요, 오늘 처음 써 봐요.", "tool": null}
+{"id": "tc20", "question": "고마워요, 도움이 됐어요.", "tool": null}

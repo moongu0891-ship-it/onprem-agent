@@ -1,0 +1,29 @@
+# 노트북(RTX 5070 Laptop 8GB) 서빙 비교. 엔진을 하나씩 띄워 같은 요청 묶음으로 잰다.
+#   python scripts/bench_serving.py configs/serving_laptop.yaml --manage
+# 8GB 에서는 동시 사용자를 크게 못 올리므로 '경향 확인'용이다. 최종 수치는 24GB 이상 GPU 에서 다시 잰다.
+name: serving_laptop
+model_note: "Qwen3-1.7B · vLLM/SGLang BF16, llama.cpp GGUF Q8_0 · 최대 길이 8192"
+
+max_tokens: 128               # 출력 길이 고정 (ignore_eos 로 끝 토큰을 무시하고 128개를 다 만든다)
+requests_per_level: 48        # 동시 사용자 수 한 단계당 요청 수 (multiturn 은 3턴짜리 대화 16개)
+levels: [1, 4, 8, 16]         # 동시 사용자 수
+workloads: [chat, rag, multiturn]
+slo: {ttft_ms: 1000, tpot_ms: 50}   # 첫 토큰 1초 이내, 토큰당 50ms(초당 20토큰, 읽는 속도보다 빠름)
+extra:                        # 모든 요청에 붙는 엔진 옵션
+  ignore_eos: true
+  chat_template_kwargs: {enable_thinking: false}   # Qwen3 의 생각(think) 모드를 끈다
+toolcheck: eval/toolcalls.jsonl
+
+engines:
+  - {label: vLLM, profile: vllm, base_url: "http://localhost:8000/v1", model: qwen3-1.7b,
+     info_url: "http://localhost:8000/version"}
+  - {label: "vLLM 캐시 끔", profile: vllm-nopc, base_url: "http://localhost:8000/v1", model: qwen3-1.7b, toolcheck: false}
+  - {label: SGLang, profile: sglang, base_url: "http://localhost:30000/v1", model: qwen3-1.7b,
+     info_url: "http://localhost:30000/get_server_info"}
+  - {label: "SGLang 캐시 끔", profile: sglang-nopc, base_url: "http://localhost:30000/v1", model: qwen3-1.7b, toolcheck: false}
+  - {label: llama.cpp, profile: llamacpp, base_url: "http://localhost:18081/v1", model: qwen3-1.7b,
+     info_url: "http://localhost:18081/props"}
+  # 게이트웨이를 거칠 때 얼마나 느려지는지: 같은 vLLM 을 직접 부른 줄과 비교한다
+  - {label: "LiteLLM → vLLM", profile: [vllm, litellm], base_url: "http://localhost:4000/v1", model: vllm,
+     headers: {Authorization: "Bearer sk-local-dev"}, wait_for: ["http://localhost:8000/v1"],
+     workloads: [rag], toolcheck: false}

@@ -6,7 +6,7 @@
 |---|---|---|---|
 | 1 | 평가 하네스, 두 시나리오 데이터·질문셋, 검색 공통 인터페이스(memory·Chroma) | `reports/retrieval_baseline.md` | 완료 |
 | 2–3 | 벡터DB 어댑터: Qdrant · Milvus · Elasticsearch(Nori) · Weaviate · pgvector, 리랭커, 문서 규모 확대 | `reports/retrieval_vectordb*.md`, `reports/retrieval_filter_rerank.md` | 완료 |
-| 4 | 서빙: vLLM · SGLang · llama.cpp, LiteLLM 게이트웨이, 처리량·지연·prefix caching·양자화 벤치마크 | 서빙 리포트 | 다음 |
+| 4 | 서빙: vLLM · SGLang · llama.cpp, LiteLLM 게이트웨이, 처리량·지연·prefix caching·양자화 벤치마크 | 서빙 리포트 | 진행 중 (엔진 3종·게이트웨이 구성, 측정기·도구 호출 검사 완료, 노트북 측정 대기) |
 | 5–6 | 에이전트: LangGraph, 도구는 MCP 서버(SQL 조회·문서 검색·분석·승인 필요한 실행), PostgreSQL 상태 저장 | 두 시나리오 데모 | 예정 |
 | 7 | 가드레일(인젝션·개인정보·근거 없음 거절), Langfuse 추적, 과업 단위 평가 | 에이전트 리포트 | 예정 |
 | 8 | Docker Compose → K8s, CI/CD, 오프라인 설치 번들, 데모 영상 | 1쪽 요약 | 예정 |

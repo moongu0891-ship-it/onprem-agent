@@ -122,6 +122,10 @@
 - **pgvector 필터 검색의 함정:** HNSW 로 먼저 뽑고 나서 WHERE 로 거르므로, 소수 문서(매뉴얼 1.8%)를 찾으면 결과가 비어 R@3 0.77 → **0.32**.
   작은 표에선 플래너가 순차 스캔을 골라 숨어 있다가 데이터가 커지면 드러난다. `hnsw.iterative_scan`(0.8+)으로 0.77 회복. 다른 DB 는 모두 검색 중 필터라 상한과 같았다.
 
+## 3주차: 서빙 (진행 중)
+
+vLLM · SGLang · llama.cpp 를 같은 모델·같은 요청으로 비교하고 LiteLLM 게이트웨이 뒤에 둔다. 무엇을 어떻게 재는지: [serving/README.md](serving/README.md)
+
 ## 실행
 
 ```bash
