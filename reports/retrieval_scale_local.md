@@ -1,3 +1,5 @@
+> 측정 장소: Claude 클라우드 작업 환경(CPU, Python 3.13). 문서 규모를 키운 뒤 모델 없이(해시 임베더·BM25) 배선을 확인한 기록. 실제 임베딩 결과는 retrieval_vectordb.md.
+
 # 검색 평가: retrieval_scale_local
 
 - 실행: 2026-10-04T03:07:08+00:00 · Python 3.13.16 · x86_64
