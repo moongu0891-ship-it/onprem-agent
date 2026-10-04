@@ -69,4 +69,7 @@ jobs:
         env:
           ONPREM_LIVE_STORES: qdrant,pgvector,elasticsearch,weaviate
           ES_ANALYZER: standard
-        run: pytest -q tests/test_stores_live.py -v
+        run: |
+          set -o pipefail
+          pytest tests/test_stores_live.py -v --tb=line -p no:cacheprovider 2>&1 | tee pytest.log || {
+            grep -E "FAILED|Error|error|assert" pytest.log | head -20 | sed 's/^/::error::/'; exit 1; }
