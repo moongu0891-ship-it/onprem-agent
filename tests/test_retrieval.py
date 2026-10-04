@@ -100,3 +100,10 @@ def test_reranker_reorders_candidates():
     r.index(chunks)
     hits = r.search("베어링 교체", 3)
     assert len(hits) == 3 and hits[0].score >= hits[-1].score
+
+
+def test_dates_and_lines_normalize_to_same_token():
+    q = tokenize("2025년 7월 1호기 LVL-06 이력")
+    d = tokenize("2025-07-14 KX-200 1호기에서 LVL-06 경보 발생")
+    for t in ("2025-07", "1호기", "lvl-06"):
+        assert t in q and t in d

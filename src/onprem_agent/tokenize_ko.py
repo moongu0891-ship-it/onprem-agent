@@ -17,6 +17,13 @@ CODE_RE = re.compile(r"\b[A-Z]{2,5}-[A-Z0-9]{2,4}\b|\b[A-Z]\d{4}\b")
 
 _KEEP_TAGS = ("NN", "VV", "VA", "SL", "SN", "XR", "SH")
 
+# 3) 날짜·호기는 쓰는 방식이 달라도 같은 토큰이 되게 맞춘다.
+#    질문 "2025년 7월 1호기" ↔ 문서 "2025-07-14 … 1호기". 그대로 쪼개면 '7' 과 '07' 이 다른 낱말이 되어
+#    BM25 가 이력 질문을 한 개도 못 찾았다(이력 질문 R@3 0.00, 2주차 측정).
+_DATE_ISO = re.compile(r"\b(\d{4})-(\d{1,2})-\d{1,2}\b")
+_DATE_KO = re.compile(r"(\d{4})\s*년\s*(\d{1,2})\s*월")
+_LINE = re.compile(r"(\d+)\s*호기")
+
 
 @lru_cache(maxsize=1)
 def _kiwi():
@@ -25,7 +32,10 @@ def _kiwi():
 
 
 def tokenize(text: str) -> list[str]:
-    codes = [c.lower() for c in CODE_RE.findall(text)]
+    norm = [f"{y}-{int(m):02d}" for y, m in _DATE_ISO.findall(text) + _DATE_KO.findall(text)]
+    norm += [f"{n}호기" for n in _LINE.findall(text)]
+    text = _LINE.sub(" ", _DATE_KO.sub(" ", _DATE_ISO.sub(" ", text)))
+    codes = [c.lower() for c in CODE_RE.findall(text)] + norm
     rest = CODE_RE.sub(" ", text)
     tokens = [
         t.form.lower()
