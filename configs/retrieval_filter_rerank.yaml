@@ -3,7 +3,7 @@
 #   python scripts/eval_retrieval.py configs/retrieval_filter_rerank.yaml
 # 평가셋: 매뉴얼 질문 37개 + 정답이 작업 이력인 질문 10개(의도 구분이 필요하도록)
 name: retrieval_filter_rerank
-gate_label: "의도필터+리랭커+라우팅"
+gate_label: "의도필터+라우팅"
 chunking: {max_chars: 600, overlap: 80}
 defaults:
   embedder: {kind: sentence-transformers, model: BAAI/bge-m3}
