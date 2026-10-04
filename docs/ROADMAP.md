@@ -6,7 +6,7 @@
 |---|---|---|---|
 | 1 | 평가 하네스, 두 시나리오 데이터·질문셋, 검색 공통 인터페이스(memory·Chroma) | `reports/retrieval_baseline.md` | 완료 |
 | 2–3 | 벡터DB 어댑터: Qdrant · Milvus · Elasticsearch(Nori) · Weaviate · pgvector, 리랭커, 문서 규모 확대 | `reports/retrieval_vectordb*.md`, `reports/retrieval_filter_rerank.md` | 완료 |
-| 4 | 서빙: vLLM · SGLang · llama.cpp, LiteLLM 게이트웨이, 처리량·지연·prefix caching·양자화 벤치마크 | `reports/serving_laptop.md` | 노트북 측정 완료. 남은 것: SGLang 동시 16 급락 원인 확인, 게이트웨이 장애 대체 시험, 24GB GPU 재측정·양자화 비교 |
+| 4 | 서빙: vLLM · SGLang · llama.cpp, LiteLLM 게이트웨이, 처리량·지연·prefix caching·양자화 벤치마크 | `reports/serving_laptop.md` | 노트북 측정 완료. SGLang 급락 원인(CUDA 그래프 상한) 확인·해결. 남은 것: 게이트웨이 장애 대체 시험, 24GB GPU 재측정·양자화 비교 |
 | 5–6 | 에이전트: LangGraph, 도구는 MCP 서버(SQL 조회·문서 검색·분석·승인 필요한 실행), PostgreSQL 상태 저장 | 두 시나리오 데모 | 예정 |
 | 7 | 가드레일(인젝션·개인정보·근거 없음 거절), Langfuse 추적, 과업 단위 평가 | 에이전트 리포트 | 예정 |
 | 8 | Docker Compose → K8s, CI/CD, 오프라인 설치 번들, 데모 영상 | 1쪽 요약 | 예정 |
@@ -46,3 +46,5 @@
 - [노트북 측정] SGLang 은 동시 8명까지 vLLM 보다 18~25% 빠르지만 16명에서 글자 간격이 11.9 → 20.4 ms 로 뛴다(캐시를 꺼도 같음). 작은 GPU 에서 CUDA 그래프 배치 크기 상한을 낮게 잡는 것으로 추정, 확인 예정.
 - [노트북 측정] llama.cpp 는 혼자 쓸 때 가장 빠르지만 그건 Q8_0 양자화(가중치 절반) 덕이고, 긴 입력이 몰리면 동시 4명부터 무너진다. 1인용·장애 대체로 한정.
 - [노트북 측정] 도구 호출 오류는 엔진과 무관하게 같은 문항에서 같았다 → 모델 크기 문제. 에이전트 단계에서 4B·8B 를 같은 20문항으로 잰다.
+- [노트북 측정] SGLang 의 동시 16 급락은 디코드 CUDA 그래프를 8명분까지만 만든 탓이었다(작은 GPU 에서 엔진이 고른 기본값). 16명분으로 올리자 처리량 +22~53%, vLLM 보다 12~29% 앞서 게이트웨이 1순위를 SGLang 으로 바꿨다(잠정).
+  → 기본 설정 그대로의 엔진 비교는 '그 GPU 에서 엔진이 고른 기본값'의 비교다. 계단처럼 꺾이는 지점은 시작 로그부터 본다.

@@ -3,12 +3,13 @@
 # (처음엔 host.docker.internal:8000 으로 붙였는데, 엔진 포트를 호스트의 127.0.0.1 에만 열어 두어서 컨테이너에서 닿지 않았다.)
 #
 # 이름 규칙
-#   agent-llm        에이전트가 쓰는 이름. 1순위 vLLM, 실패하면 llama.cpp 로 넘긴다.
+#   agent-llm        에이전트가 쓰는 이름. 1순위 SGLang(CUDA 그래프 상한 16, sglang-g16 프로필), 실패하면 llama.cpp 로 넘긴다.
+#                    (노트북 측정 결과로 vLLM → SGLang 으로 바꿈. serving/README.md 4.2 ③-2)
 #   vllm / sglang / llamacpp   엔진을 직접 고르는 이름 (측정용)
 
 model_list:
   - model_name: agent-llm
-    litellm_params: {model: hosted_vllm/qwen3-1.7b, api_base: "http://vllm:8000/v1"}
+    litellm_params: {model: openai/qwen3-1.7b, api_base: "http://sglang-g16:30000/v1", api_key: none}
   - model_name: agent-llm-backup
     litellm_params: {model: openai/qwen3-1.7b, api_base: "http://llamacpp:8080/v1", api_key: none}
   - model_name: vllm
