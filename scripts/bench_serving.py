@@ -121,7 +121,8 @@ def main():
         # 동시 사용자 단계마다 다른 요청 묶음(시드)을 쓴다. 앞 단계가 남긴 캐시를 다음 단계가 공짜로 쓰지 않게.
         n = cfg["requests_per_level"]
         wl = build_workloads(ROOT, n, seed=1000 + lv, turns=turns)
-        wl["multiturn"] = wl["multiturn"][: max(1, n // turns)]
+        # 대화 수가 동시 사용자 수보다 적으면 일부 사용자가 놀게 된다 → 최소한 동시 사용자 수만큼 대화를 만든다
+        wl["multiturn"] = wl["multiturn"][: max(lv, n // turns)]
         jobs_by_level[lv] = wl
 
     res = {"config_name": cfg["name"], "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

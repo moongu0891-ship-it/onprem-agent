@@ -68,7 +68,7 @@ services:
     command: >
       python3 -m sglang.launch_server --model-path Qwen/Qwen3-1.7B --served-model-name qwen3-1.7b
       --host 0.0.0.0 --port 30000 --context-length 8192 --mem-fraction-static 0.80
-      --tool-call-parser ${SGLANG_TOOL_PARSER:-qwen25} ${SGLANG_EXTRA:-}
+      --tool-call-parser ${SGLANG_TOOL_PARSER:-qwen25} --enable-cache-report ${SGLANG_EXTRA:-}
 
   sglang-nopc:
     <<: *sglang
@@ -76,7 +76,7 @@ services:
     command: >
       python3 -m sglang.launch_server --model-path Qwen/Qwen3-1.7B --served-model-name qwen3-1.7b
       --host 0.0.0.0 --port 30000 --context-length 8192 --mem-fraction-static 0.80
-      --tool-call-parser ${SGLANG_TOOL_PARSER:-qwen25} --disable-radix-cache ${SGLANG_EXTRA:-}
+      --tool-call-parser ${SGLANG_TOOL_PARSER:-qwen25} --disable-radix-cache --enable-cache-report ${SGLANG_EXTRA:-}
 
   # CUDA 12 이미지를 쓴다. server-cuda13 은 호환 라이브러리가 최신 드라이버와 어긋나는 문제가 보고됨(llama.cpp #23111).
   # -c 는 전체 KV 용량이고 슬롯(-np)들이 나눠 쓴다: 32768 / 8 = 슬롯당 4096 토큰.
