@@ -99,7 +99,10 @@
 - **근사 재현율 평균만 보면 속는다.** pgvector 는 근사 재현율 0.81 인데 정답률은 0.70→0.30 으로 무너졌다. 놓친 것이 거의 다 매뉴얼 절이다 —
   근사 검색의 손실이 고르게 나지 않고 **소수 문서에 몰린다**. 다수인 작업 이력 사이에서 매뉴얼 절의 그래프 연결이 약해진 것으로 본다.
 - 같은 설정에서 Qdrant·Milvus·Elasticsearch 는 정확했고, 차이는 속도에서 났다. Elasticsearch 가 가장 느리지만 이미 검색 인프라로 쓰는 회사라면 별도 DB 없이 쓸 수 있다는 장점이 있다.
-- 설정 문제인지 엔진 차이인지 가르기 위해 HNSW 를 키운 pgvector·Chroma 를 다음 측정에 넣었다.
+- **설정 문제였다. 다만 "같은 설정 숫자면 공정하다"는 틀렸다.** HNSW 를 m=32 · 구축 200 · 검색 400 으로 키우자 pgvector·Chroma 모두 정답 상한(0.70)을 회복했다.
+  같은 숫자의 설정에서 Qdrant·Milvus·Elasticsearch 는 정확했고 pgvector·Chroma 는 아니었다 — 엔진마다 근사 재현율을 재서 따로 맞춰야 한다.
+  대가: pgvector 질의 지연 약 24 ms → 37 ms. 세 번 반복하면 기본 설정은 회차마다 흔들리고(pgvector R@3 0.32~0.38), 키운 설정은 세 번 모두 같았다.
+  → [reports/retrieval_vectordb_hnsw.md](reports/retrieval_vectordb_hnsw.md)
 
 ## 실행
 
