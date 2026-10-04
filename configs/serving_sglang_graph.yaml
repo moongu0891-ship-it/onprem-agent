@@ -1,0 +1,18 @@
+# SGLang 디코드 CUDA 그래프 상한 비교: 기본(이 노트북에서 8) 대 16.
+#   python scripts/bench_serving.py configs/serving_sglang_graph.yaml --manage
+# 두 변형을 같은 실행 안에서 잰다 (실행마다의 흔들림을 줄이려고).
+name: serving_sglang_graph
+model_note: "Qwen3-1.7B BF16 · SGLang 0.5.21 · 디코드 CUDA 그래프 배치 상한 8 대 16"
+max_tokens: 128
+requests_per_level: 48
+levels: [1, 4, 8, 16]
+workloads: [chat, rag, multiturn]
+slo: {ttft_ms: 1000, tpot_ms: 50}
+extra:
+  ignore_eos: true
+  chat_template_kwargs: {enable_thinking: false}
+engines:
+  - {label: "SGLang 그래프≤8(기본)", profile: sglang, base_url: "http://localhost:30000/v1", model: qwen3-1.7b,
+     info_url: "http://localhost:30000/get_server_info", toolcheck: false}
+  - {label: "SGLang 그래프≤16", profile: sglang-g16, base_url: "http://localhost:30000/v1", model: qwen3-1.7b,
+     info_url: "http://localhost:30000/get_server_info", toolcheck: false}
