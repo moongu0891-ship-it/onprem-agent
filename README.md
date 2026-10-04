@@ -1,7 +1,7 @@
 # onprem-agent
 
 **폐쇄망에서 도는 엔터프라이즈 에이전트 레퍼런스 구현.**
-서빙 엔진(vLLM · SGLang · llama.cpp), 벡터DB(Qdrant · Milvus · Elasticsearch · Weaviate · pgvector), 에이전트(LangGraph + MCP)를
+서빙 엔진(vLLM · SGLang · llama.cpp), 벡터DB(Qdrant · Milvus · Elasticsearch · Weaviate · pgvector · Chroma), 에이전트(LangGraph + MCP)를
 **같은 평가셋으로 재서 비교하고, 그 근거로 고른다.**
 
 > "X를 써 봤다"가 아니라 "X와 Y를 이 조건에서 재 보고 이걸 골랐다"를 보여 주는 저장소입니다.
@@ -31,10 +31,10 @@
 | 시나리오 | ① 운영 장애 대응(설비 경보 → 진단 → 매뉴얼 조치) ② 고객 상담(요금제·약관 + 고객 DB) | 엔진은 그대로, 도메인만 교체 | |
 | 검색 방식 | **의도 필터 + 코드 라우팅** (코드 있는 질문 → BM25, 나머지 → bge-m3) · 리랭커 끔 | BM25 · bge-m3 · 하이브리드(RRF) · 가중 RRF · 리랭커 | [2주차](#2주차-문서를-키우자-판도가-바뀌었다) |
 | 토큰화 | Kiwi 형태소 분석 + 코드형 토큰 통째 보존 + 날짜·호기 표기 통일 | | 1·2주차 |
-| 벡터DB | 비교 방법을 정함: **엔진마다 근사 재현율을 맞춘 뒤 속도 비교, 3회 반복**. pgvector 필터 검색은 `iterative_scan` 필수 | Qdrant · Milvus · Elasticsearch · Weaviate · pgvector · Chroma | [2주차](#벡터db-5종) |
+| 벡터DB | 비교 방법을 정함: **엔진마다 근사 재현율을 맞춘 뒤 속도 비교, 3회 반복**. pgvector 필터 검색은 `iterative_scan` 필수 | Qdrant · Milvus · Elasticsearch · Weaviate · pgvector · Chroma | [2주차](#벡터db-6종) |
 | 서빙 엔진 | **SGLang** (디코드 CUDA 그래프 상한 16, 접두사 캐시 켬) — 잠정 | vLLM · SGLang · llama.cpp | [3주차](#3주차-서빙) |
 | 게이트웨이 | **LiteLLM**: 에이전트는 `agent-llm` 만 안다. 1순위 GPU SGLang, 장애 시 CPU llama.cpp | 직접 호출 대비 비용 | [3주차](#3주차-서빙) |
-| 에이전트 | LangGraph, 도구는 MCP 서버 (SQL 조회 · 문서 검색 · 분석 · 승인 필요한 실행) | 모델·설정별 과업 성공률 | 4주차 예정 |
+| 에이전트 | LangGraph, 도구는 MCP 서버 (SQL 조회 · 문서 검색 · 분석 · 승인 필요한 실행) | 모델·설정별 과업 성공률 | 4~5주차 예정 |
 | 공통 | 평가 하네스 · 가드레일 · Langfuse 추적 · K8s · CI/CD · 오프라인 설치 | | 이후 |
 
 측정은 모두 노트북(RTX 5070 Laptop 8GB, WSL2, Docker)에서 했다. 서빙의 최종 수치는 24GB 이상 GPU 에서 다시 잰다.
@@ -90,16 +90,18 @@
 
 | 갈래 | 전체 R@3 | 이력 R@3 | 지연 p50 |
 |---|---|---|---|
-| 라우팅 (날짜 통일 전) | 0.74 | 0.00 | 16 ms |
+| 라우팅 (날짜 통일 전)\* | 0.74 | 0.00 | 16 ms |
 | 리랭커 + 라우팅 (날짜 통일 전) | 0.94 | 1.00 | 521 ms |
 | **의도 필터 + 라우팅 (날짜 통일 후)** | **0.96** | **1.00** | **19 ms** |
 | 의도 필터 + 리랭커 + 라우팅 | 0.96 | 1.00 | 844 ms |
+
+\* 날짜 통일 전 두 줄은 같은 노트북의 앞선 실행 값이다(보고서에는 통일 후 실행만 남김, 전후 R@3 비교표는 보고서에 있음).
 
 - 이력 질문은 라우팅에서 0점, [리랭커](docs/쉽게_풀어쓴_개념.md#리랭커)를 붙이면 만점이었다. 리랭커를 기본값으로 두기 전에 원인을 봤다: 질문의 "7월"과 문서의 "07"이 다른 토큰이었다.
   [날짜 표기를 통일](docs/쉽게_풀어쓴_개념.md#날짜-표기-통일)하자 **리랭커 없이 같은 점수, 지연은 1/45.**
 - **결정: 의도 필터 + 라우팅. 리랭커는 끈다.**
 
-### 벡터DB 5종
+### 벡터DB 6종
 
 같은 벡터, 같은 HNSW 설정(m=16 · 구축 100 · 검색 128) — [reports/retrieval_vectordb.md](reports/retrieval_vectordb.md)
 
@@ -114,7 +116,7 @@
 | **pgvector** | **0.81** | **0.30** | 2.6 ms |
 
 - **근사 재현율 평균만 보면 속는다.** pgvector 는 0.81 인데 정답률은 0.70 → 0.30. 놓친 게 거의 다 소수인 매뉴얼 절이었다.
-- **"같은 설정 숫자면 공정하다"도 틀렸다.** HNSW 를 키우자(m=32 · 구축 200 · 검색 400) pgvector·Chroma 모두 정답 상한을 회복했다(지연 24 → 37 ms). 3회 반복: [reports/retrieval_vectordb_hnsw.md](reports/retrieval_vectordb_hnsw.md)
+- **"같은 설정 숫자면 공정하다"도 틀렸다.** HNSW 를 키우자(m=32 · 구축 200 · 검색 400) pgvector·Chroma 모두 정답 상한을 회복했다(대가: 질의 임베딩 포함 p50 24 → 36 ms, pgvector). 3회 반복: [reports/retrieval_vectordb_hnsw.md](reports/retrieval_vectordb_hnsw.md)
   → **결정: DB 비교는 엔진마다 근사 재현율을 맞춘 뒤 속도를 비교한다.**
 - **pgvector 필터 검색의 함정:** "먼저 찾고 나중에 거르기"라서 소수 문서를 필터로 찾으면 0.77 → **0.32**. 작은 표에선 숨어 있다가 데이터가 커지면 드러난다. `hnsw.iterative_scan`(0.8+)으로 회복. 다른 DB 는 검색 중에 걸러 상한과 같았다. ([쉬운 설명](docs/쉽게_풀어쓴_개념.md#인덱스-강제와-iterative-scan))
 
@@ -125,13 +127,13 @@
 
 | 질문 | 답 | 근거 |
 |---|---|---|
-| 이 노트북으로 에이전트 사용자를 몇 명 받나 | 약 8명 | 캐시 켬: 동시 8명까지 모든 요청이 목표(첫 글자 1초 · 글자당 50 ms) 달성, 16명에서 75~92% |
-| 접두사 캐시는 얼마나 중요한가 | 엔진 선택보다 중요 | 에이전트 입력의 66~84% 가 앞 요청과 같다. 받을 수 있는 최대 처리량 약 2배, 동시 16명에서는 15배 차이 |
-| vLLM 과 SGLang 중 무엇을 쓰나 | SGLang (잠정) | 기본 설정의 SGLang 은 동시 16명에서 급히 느려졌다. 시작 로그를 보니 이 GPU 에서 CUDA 그래프를 8명분까지만 만들었다. 16명분으로 올리자 처리량 +22~53%, vLLM 보다 12~29% 앞섰다. 24GB GPU 에서 같은 실행으로 재확인 예정 |
+| 이 노트북으로 에이전트 사용자를 몇 명 받나 | 약 8명 | 캐시 켬: 동시 8명까지 모든 요청이 목표(첫 글자 1초 · 글자당 50 ms) 달성, 16명에서 77~92% (현재 기본 SGLang 기준) |
+| 접두사 캐시는 얼마나 중요한가 | 엔진 선택보다 중요 | 에이전트 입력의 66~84% 가 앞 요청과 같다. 받을 수 있는 최대 처리량 2~3배, 동시 16명에서는 약속을 지킨 처리량이 14~26배 차이 |
+| vLLM 과 SGLang 중 무엇을 쓰나 | SGLang (잠정) | CUDA 그래프 상한을 16으로 올린 SGLang 이 동시 16명에서 vLLM 보다 처리량 12~29% 높다(상한 8 기본값 대비 +18~53%, 원인 추적은 [문제해결 이력 D14](docs/문제해결_이력.md)). vLLM 은 다른 실행의 수치라 24GB GPU 에서 같은 실행으로 재확인 예정 |
 | llama.cpp 는 | 1인용 · 장애 시 대체 | 혼자 쓰면 가장 빠르지만(양자화 효과) 에이전트 요청 동시 4명부터 목표 달성 31% |
 | LiteLLM 게이트웨이 비용 | 작다, 유지 | 첫 글자 +7~85 ms, 처리량 −4% 이내 |
 | 1순위 엔진이 죽으면 | 끊기지 않지만 느려진다 | GPU SGLang 을 멈추자 CPU llama.cpp 로 넘겨 요청 62개 모두 성공. 대신 대체 중 응답은 약 40배 느림 → 실서비스는 GPU 이중화 |
-| 도구 호출 | 엔진보다 모델 크기가 문제 | 세 엔진 모두 형식 오류 0, 같은 문항을 똑같이 틀림 → 에이전트에는 더 큰 모델(4B·8B)을 재 본다 |
+| 도구 호출 | 엔진보다 모델 크기가 문제 | 세 엔진 모두 형식 오류 0, 우선순위 문항(tc12)을 셋 다 똑같이 틀림 → 에이전트에는 더 큰 모델(4B·8B)을 재 본다 |
 
 → 에이전트 설계에 가져갈 것: 시스템 프롬프트·도구 설명은 맨 앞에 고정(캐시), 대체 엔진으로 넘어가면 지연 안내.
 
@@ -147,7 +149,7 @@ pytest -q
 # 검색
 python scripts/eval_retrieval.py configs/retrieval_baseline.yaml --min-recall3 0.80   # 모델 없이
 pip install -e ".[st,stores]"                                                         # bge-m3·리랭커·벡터DB 클라이언트
-docker compose --profile all up -d                                                    # 벡터DB 5종 (RAM 약 6~7GB)
+docker compose --profile all up -d                                                    # 벡터DB 서버 5종 (RAM 약 6~7GB, Chroma 는 내장)
 python scripts/eval_retrieval.py configs/retrieval_filter_rerank.yaml                 # --repeat 3 으로 흔들림 범위
 
 # 서빙 (GPU 필요, 엔진을 하나씩 띄우고 재고 내린다)
@@ -167,7 +169,7 @@ src/onprem_agent/
   corpus.py          문서 → 절(id) → 청크. 정답은 절 id 로 적어 청크 크기를 바꿔도 평가셋이 그대로 쓰인다
   tokenize_ko.py     Kiwi 형태소 분석 + 코드형 토큰 통째 보존 + 날짜·호기 통일
   embed.py           임베더 교체 지점: hash · sentence-transformers · OpenAI 호환
-  stores/            벡터DB 어댑터 7종 (같은 인터페이스, 문서 종류 필터 지원)
+  stores/            벡터DB 어댑터 7개 = 6종 + 정답 상한용 메모리 전수 비교 (같은 인터페이스, 문서 종류 필터 지원)
   retrieval/         BM25 · 벡터 · 하이브리드(RRF) · 라우팅 · 의도 필터 · 리랭커, 설정으로 조립
   eval/              Recall@k · MRR · 지연, 질문 유형별 채점, 마크다운 리포트
   serving/           부하 측정(TTFT · TPOT · 굿풋 · 캐시), 요청 모양, 도구 호출 검사, 장애 대체 기록

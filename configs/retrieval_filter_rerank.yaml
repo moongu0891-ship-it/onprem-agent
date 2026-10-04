@@ -20,7 +20,7 @@ x-routed: &routed
 retrievers:
   # ── 검색 방식 ──
   - {label: bm25, kind: bm25}
-  - {label: "라우팅(현재 기본값)", <<: *routed}
+  - {label: "라우팅", <<: *routed}
   - {label: "의도필터+라우팅", kind: intent, inner: *routed}
   - {label: "리랭커+라우팅", kind: rerank, fetch_k: 30, inner: *routed}
   - {label: "의도필터+리랭커+라우팅", kind: intent, inner: {kind: rerank, fetch_k: 30, inner: *routed}}

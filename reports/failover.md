@@ -1,4 +1,4 @@
-> 측정 기기: 노트북 RTX 5070 Laptop 8GB · WSL2 · Docker (2026-10-04). LiteLLM 1.104.0 · SGLang 0.5.21 · llama.cpp(CPU) server 이미지. 1순위 정상 종료(docker stop) 방식. 해석은 [serving/README.md](../serving/README.md#장애-대체-시험).
+> 측정 기기: 노트북 RTX 5070 Laptop 8GB · WSL2 · Docker (2026-10-04). LiteLLM 1.104.0 · SGLang 0.5.21 · llama.cpp(CPU) server 이미지. 1순위 정상 종료(docker stop) 방식. 해석은 [serving/README.md](../serving/README.md#43-장애-대체-시험-실행-방법-31).
 > 주의: '첫 성공까지' 줄은 이 실행 당시 '아무 엔진이든 첫 성공'을 잰 값이다(장애 단계의 0.72초는 1순위가 멈추면서 마저 처리한 요청). 이후 '기다리던 엔진의 첫 응답'을 재도록 고쳤다 (문제해결 이력 D16).
 
 # 장애 대체 시험
