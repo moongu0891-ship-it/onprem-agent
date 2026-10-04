@@ -41,3 +41,9 @@ class PgvectorStore:
             f"SELECT id, 1 - (embedding <=> %s) AS sim FROM {self.table} ORDER BY embedding <=> %s LIMIT %s",
             (vector, vector, k)).fetchall()
         return [(r[0], float(r[1])) for r in rows]
+
+    def __del__(self):
+        try:
+            self.conn.close()
+        except Exception:
+            pass

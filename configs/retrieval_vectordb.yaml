@@ -7,7 +7,7 @@
 # 공정성: 모든 저장소가 같은 벡터(한 번만 임베딩)·같은 HNSW 설정(m=16, 구축 폭 100, 검색 폭 128)을 쓴다.
 # 문서: 매뉴얼 45절 + 정비 이력 2,400건. 정답은 매뉴얼 절이고, 이력은 같은 코드·부품 이름을 쓰는 경쟁자다.
 name: retrieval_vectordb
-gate_label: routed(code→hybrid, else bge-m3)
+gate_label: routed(code→bm25, else bge-m3)
 chunking: {max_chars: 600, overlap: 80}
 defaults:
   embedder: {kind: sentence-transformers, model: BAAI/bge-m3}
@@ -22,6 +22,13 @@ retrievers:
   - {label: bge-m3·elasticsearch, kind: dense, store: {kind: elasticsearch, url: "http://localhost:9200"}}
   - {label: bge-m3·weaviate, kind: dense, store: {kind: weaviate, port: 18080, grpc_port: 15051}}
   - {label: bge-m3·pgvector, kind: dense, store: {kind: pgvector, dsn: "postgresql://agent:agent@localhost:15432/agent"}}
+  # 설정 문제인지 엔진 차이인지 가르는 갈래: HNSW 를 키운 pgvector·Chroma
+  - label: "bge-m3·pgvector(m32·구축200·검색400)"
+    kind: dense
+    store: {kind: pgvector, dsn: "postgresql://agent:agent@localhost:15432/agent", hnsw_m: 32, ef_construct: 200, ef_search: 400}
+  - label: "bge-m3·chroma(m32·구축200·검색400)"
+    kind: dense
+    store: {kind: chroma, hnsw_m: 32, ef_construct: 200, ef_search: 400}
   - label: routed(code→hybrid, else bge-m3)
     kind: routed
     code_route:
