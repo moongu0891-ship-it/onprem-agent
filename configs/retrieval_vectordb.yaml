@@ -20,8 +20,8 @@ retrievers:
   - {label: bge-m3·qdrant, kind: dense, store: {kind: qdrant, url: "http://localhost:6333"}}
   - {label: bge-m3·milvus, kind: dense, store: {kind: milvus, uri: "http://localhost:19530"}}
   - {label: bge-m3·elasticsearch, kind: dense, store: {kind: elasticsearch, url: "http://localhost:9200"}}
-  - {label: bge-m3·weaviate, kind: dense, store: {kind: weaviate}}
-  - {label: bge-m3·pgvector, kind: dense, store: {kind: pgvector}}
+  - {label: bge-m3·weaviate, kind: dense, store: {kind: weaviate, port: 18080, grpc_port: 15051}}
+  - {label: bge-m3·pgvector, kind: dense, store: {kind: pgvector, dsn: "postgresql://agent:agent@localhost:15432/agent"}}
   - label: routed(code→hybrid, else bge-m3)
     kind: routed
     code_route:
@@ -29,4 +29,8 @@ retrievers:
       parts:
         - {kind: bm25}
         - {kind: dense, store: {kind: memory}}
+    default_route: {kind: dense, store: {kind: memory}}
+  - label: routed(code→bm25, else bge-m3)
+    kind: routed
+    code_route: {kind: bm25}
     default_route: {kind: dense, store: {kind: memory}}

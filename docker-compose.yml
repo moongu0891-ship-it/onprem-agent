@@ -51,14 +51,14 @@ services:
       DEFAULT_VECTORIZER_MODULE: none
       PERSISTENCE_DATA_PATH: /var/lib/weaviate
       CLUSTER_HOSTNAME: node1
-    ports: ["127.0.0.1:8080:8080", "127.0.0.1:50051:50051"]
+    ports: ["127.0.0.1:18080:8080", "127.0.0.1:15051:50051"]   # 8080 은 다른 프로그램과 자주 겹친다
     volumes: [weaviate:/var/lib/weaviate]
 
   pgvector:
     image: pgvector/pgvector:pg16
     profiles: [pgvector, all]
     environment: {POSTGRES_USER: agent, POSTGRES_PASSWORD: agent, POSTGRES_DB: agent}
-    ports: ["127.0.0.1:5432:5432"]
+    ports: ["127.0.0.1:15432:5432"]   # 노트북의 기존 PostgreSQL(5432)과 겹치지 않게
     volumes: [pg:/var/lib/postgresql/data]
 
 volumes: {qdrant: {}, milvus: {}, es: {}, weaviate: {}, pg: {}}
