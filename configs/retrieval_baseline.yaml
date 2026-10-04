@@ -17,3 +17,17 @@ retrievers:
     parts:
       - {kind: bm25}
       - {kind: dense, store: {kind: memory}}
+  - label: hybrid-w(bm25 0.3+hash 1.0)
+    kind: hybrid
+    weights: [0.3, 1.0]
+    parts:
+      - {kind: bm25}
+      - {kind: dense, store: {kind: memory}}
+  - label: routed(code→hybrid, else hash)
+    kind: routed
+    code_route:
+      kind: hybrid
+      parts:
+        - {kind: bm25}
+        - {kind: dense, store: {kind: memory}}
+    default_route: {kind: dense, store: {kind: memory}}

@@ -47,3 +47,27 @@ def test_bm25_separates_one_char_codes():
     r.index(chunks)
     for code in ("CRB-03", "CRB-04", "SPK-03"):
         assert r.search(f"{code} 조치", 1)[0].section_id == f"OPS-{code}"
+
+
+def test_rrf_weights_can_overrule_a_branch():
+    a = [Hit("x#0", "X", 9)]
+    b = [Hit("y#0", "Y", 0.9)]
+    assert rrf_fuse([a, b], weights=[0.3, 1.0])[0].chunk_id == "y#0"
+
+
+def test_routed_sends_code_queries_to_code_route():
+    from onprem_agent.retrieval import RoutedRetriever
+
+    class Fixed:
+        def __init__(self, sid):
+            self.name, self.sid = sid, sid
+
+        def index(self, chunks):
+            pass
+
+        def search(self, q, k):
+            return [Hit(self.sid + "#0", self.sid, 1.0)]
+
+    r = RoutedRetriever(Fixed("CODE"), Fixed("DEFAULT"))
+    assert r.search("CRB-03 조치", 1)[0].section_id == "CODE"
+    assert r.search("떨림이 심해져", 1)[0].section_id == "DEFAULT"

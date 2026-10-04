@@ -6,7 +6,7 @@ from ..embed import make_embedder
 from ..stores import make_store
 from .bm25 import BM25Retriever
 from .dense import DenseRetriever
-from .hybrid import HybridRetriever
+from .hybrid import HybridRetriever, RoutedRetriever
 
 _embedder_cache: dict[str, object] = {}
 
@@ -29,5 +29,9 @@ def build_retriever(spec: dict, defaults: dict | None = None):
                               query_prefix=spec.get("query_prefix", ""))
     if kind == "hybrid":
         parts = [build_retriever(p, defaults) for p in spec["parts"]]
-        return HybridRetriever(parts, fetch_k=spec.get("fetch_k", 20), rrf_k=spec.get("rrf_k", 60))
+        return HybridRetriever(parts, fetch_k=spec.get("fetch_k", 20), rrf_k=spec.get("rrf_k", 60),
+                               weights=spec.get("weights"))
+    if kind == "routed":
+        return RoutedRetriever(build_retriever(spec["code_route"], defaults),
+                               build_retriever(spec["default_route"], defaults))
     raise ValueError(f"알 수 없는 검색 갈래: {kind}")
