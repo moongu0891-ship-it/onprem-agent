@@ -14,5 +14,6 @@
 | [serving_laptop.md](serving_laptop.md) | 3주차 vLLM · SGLang · llama.cpp · 캐시 끔 · LiteLLM, 도구 호출 20문항 | 노트북 |
 | [serving_sglang_graph.md](serving_sglang_graph.md) | 3주차 SGLang CUDA 그래프 상한 8 대 16 | 노트북 |
 | [failover.md](failover.md) | 3주차 장애 대체 (1순위 정상 종료) | 노트북 |
+| [failover_kill.md](failover_kill.md) | 3주차 장애 대체 (1순위 강제 종료, 갑작스러운 고장) | 노트북 |
 
 노트북 = RTX 5070 Laptop 8GB · WSL2 · Docker.
