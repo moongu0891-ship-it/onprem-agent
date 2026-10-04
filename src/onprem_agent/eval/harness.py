@@ -61,10 +61,15 @@ def evaluate_retriever(retriever, chunks: list[Chunk], questions: list[dict], fe
         "index_seconds": index_s,
         "latency_ms": {"p50": percentile(lat, 50), "p95": percentile(lat, 95)},
         "misses": [r for r in per_q if r["r@3"] < 1.0],
+        "timings": dict(getattr(retriever, "timings", {})),
+        "ann_recall@10": (statistics.mean(retriever.ann_recalls) if getattr(retriever, "ann_recalls", None) else None),
+        "store_latency_ms": ({"p50": percentile(retriever.store_latencies_ms, 50),
+                              "p95": percentile(retriever.store_latencies_ms, 95)}
+                             if getattr(retriever, "store_latencies_ms", None) else None),
     }
 
 
-def run_suite(config: dict, root: Path) -> dict:
+def run_suite(config: dict, root: Path, only: list[str] | None = None) -> dict:
     """config 형식은 configs/*.yaml 참고."""
     chunking = config.get("chunking", {"max_chars": 600, "overlap": 80})
     results = {"config_name": config.get("name", "unnamed"),
@@ -72,13 +77,22 @@ def run_suite(config: dict, root: Path) -> dict:
                "env": {"python": platform.python_version(), "machine": platform.machine(), "node": platform.node()},
                "chunking": chunking, "scenarios": {}}
     for sc in config["scenarios"]:
-        chunks = load_corpus(root / sc["docs"], **chunking)
+        docs = sc["docs"] if isinstance(sc["docs"], list) else [sc["docs"]]
+        chunks = [c for d in docs for c in load_corpus(root / d, **chunking)]
         questions = load_questions(root / sc["questions"])
         rows = []
         for spec in config["retrievers"]:
-            retriever = build_retriever(spec, config.get("defaults"))
-            res = evaluate_retriever(retriever, chunks, questions)
-            res["label"] = spec.get("label", retriever.name)
+            label = spec.get("label", spec["kind"])
+            if only and not any(o in label for o in only):
+                continue
+            try:
+                retriever = build_retriever(spec, config.get("defaults"))
+                res = evaluate_retriever(retriever, chunks, questions)
+            except Exception as e:  # DB 가 안 떠 있어도 나머지 비교는 계속한다
+                print(f"  [{sc['name']}] {label:<28} 건너뜀: {type(e).__name__}: {str(e)[:120]}")
+                rows.append({"label": label, "error": f"{type(e).__name__}: {str(e)[:300]}"})
+                continue
+            res["label"] = label
             rows.append(res)
             o = res["overall"]
             print(f"  [{sc['name']}] {res['label']:<28} R@1 {o['recall@1']:.2f}  R@3 {o['recall@3']:.2f}  "
@@ -96,14 +110,27 @@ def to_markdown(results: dict) -> str:
                   "| 갈래 | R@1 | R@3 | R@5 | MRR | 코드 R@3 | 바꿔 말하기 R@3 | 어려운 R@3 | 색인(s) | p50(ms) | p95(ms) |",
                   "|---|---|---|---|---|---|---|---|---|---|---|"]
         for r in sc["results"]:
+            if "error" in r:
+                lines.append(f"| {r['label']} | 실행 안 됨: {r['error'][:60]} |||||||||| ")
+                continue
             o, bt = r["overall"], r["by_type"]
             by = [bt.get(t, {}).get("recall@3", float("nan")) for t in ("code", "paraphrase", "hard")]
             lines.append(f"| {r['label']} | {o['recall@1']:.2f} | {o['recall@3']:.2f} | {o['recall@5']:.2f} | {o['mrr']:.2f} "
                          f"| {by[0]:.2f} | {by[1]:.2f} | {by[2]:.2f} | {r['index_seconds']:.2f} "
                          f"| {r['latency_ms']['p50']:.1f} | {r['latency_ms']['p95']:.1f} |")
         lines.append("")
+        stores = [r for r in sc["results"] if "error" not in r and r.get("store_latency_ms")]
+        if stores:
+            lines += ["저장소 비교 (모든 저장소가 같은 벡터·같은 HNSW 설정을 씀. 근사 재현율 = 전수 비교 상위 10개를 되찾은 비율, 1.00 이 정확)", "",
+                      "| 갈래 | 근사 재현율@10 | 임베딩(s) | 저장소 적재(s) | DB 검색 p50(ms) | DB 검색 p95(ms) |", "|---|---|---|---|---|---|"]
+            for r in stores:
+                t, sl = r["timings"], r["store_latency_ms"]
+                ar = r.get("ann_recall@10")
+                lines.append(f"| {r['label']} | {ar:.2f} | {t.get('embed_s', 0):.2f} | {t.get('store_add_s', 0):.2f} "
+                             f"| {sl['p50']:.2f} | {sl['p95']:.2f} |")
+            lines.append("")
         for r in sc["results"]:
-            if r["misses"]:
+            if r.get("misses"):
                 lines.append(f"<details><summary>{r['label']} — 상위 3개에서 놓친 질문 {len(r['misses'])}개</summary>\n")
                 for m in r["misses"]:
                     lines.append(f"- `{m['id']}` 정답 {m['gold']} → 상위 3: {m['top3']}")

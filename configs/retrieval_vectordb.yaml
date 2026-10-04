@@ -1,0 +1,32 @@
+# 2주차: 벡터DB 5종 비교 (노트북에서 bge-m3 로 실행)
+#   docker compose --profile all up -d            # 또는 --profile qdrant 처럼 하나씩
+#   pip install -e ".[stores,st,dev]"
+#   python scripts/eval_retrieval.py configs/retrieval_vectordb.yaml
+#   python scripts/eval_retrieval.py configs/retrieval_vectordb.yaml --only memory qdrant   # 일부만
+#
+# 공정성: 모든 저장소가 같은 벡터(한 번만 임베딩)·같은 HNSW 설정(m=16, 구축 폭 100, 검색 폭 128)을 쓴다.
+# 문서: 매뉴얼 45절 + 정비 이력 2,400건. 정답은 매뉴얼 절이고, 이력은 같은 코드·부품 이름을 쓰는 경쟁자다.
+name: retrieval_vectordb
+gate_label: routed(code→hybrid, else bge-m3)
+chunking: {max_chars: 600, overlap: 80}
+defaults:
+  embedder: {kind: sentence-transformers, model: BAAI/bge-m3}
+scenarios:
+  - {name: ops_large, docs: [data/ops, data/ops_logs], questions: eval/questions_ops.jsonl}
+retrievers:
+  - {label: bm25, kind: bm25}
+  - {label: "bge-m3·memory(전수 비교, 정답 상한)", kind: dense, store: {kind: memory}}
+  - {label: bge-m3·chroma, kind: dense, store: {kind: chroma}}
+  - {label: bge-m3·qdrant, kind: dense, store: {kind: qdrant, url: "http://localhost:6333"}}
+  - {label: bge-m3·milvus, kind: dense, store: {kind: milvus, uri: "http://localhost:19530"}}
+  - {label: bge-m3·elasticsearch, kind: dense, store: {kind: elasticsearch, url: "http://localhost:9200"}}
+  - {label: bge-m3·weaviate, kind: dense, store: {kind: weaviate}}
+  - {label: bge-m3·pgvector, kind: dense, store: {kind: pgvector}}
+  - label: routed(code→hybrid, else bge-m3)
+    kind: routed
+    code_route:
+      kind: hybrid
+      parts:
+        - {kind: bm25}
+        - {kind: dense, store: {kind: memory}}
+    default_route: {kind: dense, store: {kind: memory}}

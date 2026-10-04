@@ -31,4 +31,19 @@ def make_store(spec: dict) -> VectorStore:
     if kind == "chroma":
         from .chroma import ChromaStore
         return ChromaStore(**args)
-    raise ValueError(f"아직 없는 저장소: {kind} (2~3주차에 추가 예정)")
+    if kind == "qdrant":
+        from .qdrant import QdrantStore
+        return QdrantStore(**args)
+    if kind == "milvus":
+        from .milvus import MilvusStore
+        return MilvusStore(**args)
+    if kind == "elasticsearch":
+        from .elasticsearch import ElasticsearchStore
+        return ElasticsearchStore(**args)
+    if kind == "weaviate":
+        from .weaviate import WeaviateStore
+        return WeaviateStore(**args)
+    if kind == "pgvector":
+        from .pgvector import PgvectorStore
+        return PgvectorStore(**args)
+    raise ValueError(f"알 수 없는 저장소: {kind}")

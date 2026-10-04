@@ -1,0 +1,13 @@
+# 규모 확대 점검 (모델·서버 없이 도는 것만): 매뉴얼 45절 + 정비 이력 2,400건
+name: retrieval_scale_local
+chunking: {max_chars: 600, overlap: 80}
+defaults:
+  embedder: {kind: hash, dim: 512}
+scenarios:
+  - {name: ops_large, docs: [data/ops, data/ops_logs], questions: eval/questions_ops.jsonl}
+retrievers:
+  - {label: bm25, kind: bm25}
+  - {label: dense(hash·memory), kind: dense, store: {kind: memory}}
+  - {label: "dense(hash·qdrant 메모리 모드=전수 비교)", kind: dense, store: {kind: qdrant}}
+  - {label: "dense(hash·milvus-lite=전수 비교)", kind: dense, store: {kind: milvus, uri: ./milvus_lite.db}}
+  - {label: dense(hash·pgvector), kind: dense, store: {kind: pgvector}}

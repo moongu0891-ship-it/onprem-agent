@@ -235,6 +235,38 @@ CS_HARD = [
 ]
 
 
+# ───────────────────────────── 정비 작업 이력 (규모 확대용) ─────────────────────────────
+# 실제 현장 지식베이스에는 매뉴얼보다 작업 이력이 훨씬 많다. 이력은 같은 경보 코드·부품 이름을
+# 반복해서 쓰므로, '매뉴얼의 조치 절'을 찾으려는 검색을 방해하는 현실적인 경쟁자가 된다.
+
+WO_FINDINGS = {
+    "SPK": ["커넥터 체결 느슨함 발견", "케이블 피복 손상 확인", "인근 용접기 기동과 시각 일치", "원인 특정 못함, 재발 감시"],
+    "LVL": ["레시피 설정값 변경 이력 확인", "트랜스미터 영점 틀어짐", "밸브 개도 수동 변경 흔적", "부품 교체 후 교정 누락"],
+    "CRB": ["스트레이너 부분 막힘", "레귤레이터 미세 누설", "연관 센서 쪽 응답 지연", "배관 보온재 손상으로 열 손실"],
+    "DRF": ["교정 주기 초과", "스케일 축적", "베어링 소음 증가", "열전대 피복 열화"],
+}
+WO_ACTIONS = ["청소 후 정상 복귀", "부품 교체", "교정 실시", "재체결", "감시 강화(일 단위 추세 확인)", "정비팀 이관"]
+
+
+def make_work_orders(n: int = 2400) -> list[tuple[str, str, str]]:
+    workers = ["김정비", "이보전", "박설비", "최반장", "정기사", "강주임", "조대리", "윤과장"]
+    out = []
+    for i in range(1, n + 1):
+        t_code = rng.choice(list(TYPES))
+        num, name, unit, target, parts, rel = rng.choice(SENSORS)
+        code = f"{t_code}-{num}"
+        line = rng.randint(1, 6)
+        date = f"202{rng.randint(4, 6)}-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}"
+        part = rng.choice(parts)
+        finding = rng.choice(WO_FINDINGS[t_code])
+        action = rng.choice(WO_ACTIONS)
+        hours = rng.choice([0.5, 1, 1.5, 2, 3, 4, 6])
+        body = (f"{date} KX-200 {line}호기에서 {code}({name} {TYPES[t_code][0]}) 경보 발생. "
+                f"점검 결과 {part} — {finding}. 조치: {action}. 정지 시간 {hours}시간. 작업자 {rng.choice(workers)}.")
+        out.append((f"WO-{i:05d}", f"작업 이력 WO-{i:05d} {line}호기 {code}", body))
+    return out
+
+
 def write_md(path: Path, title: str, sections: list[tuple[str, str, str]]):
     lines = [f"# {title}", "", "> 가상 데이터: 실제 회사·제품과 무관합니다.", ""]
     for sid, head, body in sections:
@@ -253,6 +285,16 @@ def main():
 
     ops = make_ops_manual()
     write_md(ROOT / "data/ops/KX-200_manual.md", "KX-200 설비 운전·정비 매뉴얼", ops)
+
+    # 규모 확대용 작업 이력 (2주차). 매뉴얼 생성과 난수열이 섞이지 않도록 별도 시드를 쓴다.
+    global rng
+    main_rng, rng = rng, random.Random(2026_02)
+    (ROOT / "data/ops_logs").mkdir(parents=True, exist_ok=True)
+    wos = make_work_orders()
+    for y in ("2024", "2025", "2026"):
+        write_md(ROOT / f"data/ops_logs/work_orders_{y}.md", f"KX-200 정비 작업 이력 {y}",
+                 [w for w in wos if f" {y}-" in f" {w[2][:10]}"])
+    rng = main_rng
 
     write_md(ROOT / "data/cs/plans.md", "한빛모바일 요금제 안내", [plan_section(*p) for p in PLANS])
     write_md(ROOT / "data/cs/terms.md", "한빛모바일 이용약관 요약", CS_TERMS)

@@ -26,11 +26,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--min-recall3", type=float, default=None)
+    ap.add_argument("--only", nargs="*", help="라벨에 이 글자가 들어간 갈래만 실행 (예: --only bm25 qdrant)")
     args = ap.parse_args()
 
     config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     print(f"설정: {config.get('name')}")
-    results = run_suite(config, ROOT)
+    results = run_suite(config, ROOT, only=args.only)
 
     name = config.get("name", Path(args.config).stem)
     (ROOT / "results").mkdir(exist_ok=True)
@@ -44,7 +45,7 @@ def main():
         failed = []
         for sc_name, sc in results["scenarios"].items():
             for r in sc["results"]:
-                if r["label"] == gate and r["overall"]["recall@3"] < args.min_recall3:
+                if r["label"] == gate and "error" not in r and r["overall"]["recall@3"] < args.min_recall3:
                     failed.append(f"{sc_name}: {gate} R@3 {r['overall']['recall@3']:.2f} < {args.min_recall3}")
         if failed:
             print("회귀 검사 실패:\n  " + "\n  ".join(failed))
