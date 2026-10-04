@@ -24,20 +24,25 @@ class WeaviateStore:
             vector_config=Configure.Vectors.self_provided(
                 vector_index_config=Configure.VectorIndex.hnsw(distance_metric=VectorDistances.COSINE,
                                                                ef=self.ef_search)),
-            properties=[Property(name="chunk_id", data_type=DataType.TEXT)],
+            properties=[Property(name="chunk_id", data_type=DataType.TEXT),
+                        Property(name="doc_type", data_type=DataType.TEXT, skip_vectorization=True)],
         )
 
     def add(self, ids, vectors, metadatas) -> None:
         with self.col.batch.fixed_size(batch_size=200) as batch:
-            for i, v in zip(ids, vectors):
-                batch.add_object(properties={"chunk_id": i}, vector=v.tolist(),
+            for i, v, m in zip(ids, vectors, metadatas):
+                batch.add_object(properties={"chunk_id": i, "doc_type": m.get("doc_type", "")}, vector=v.tolist(),
                                  uuid=str(uuid.uuid5(uuid.NAMESPACE_URL, i)))
         if self.col.batch.failed_objects:
             raise RuntimeError(f"Weaviate 색인 실패 {len(self.col.batch.failed_objects)}건")
 
-    def search(self, vector, k):
-        from weaviate.classes.query import MetadataQuery
-        r = self.col.query.near_vector(near_vector=vector.tolist(), limit=k,
+    def search(self, vector, k, filter=None):
+        from weaviate.classes.query import Filter, MetadataQuery
+        wf = None
+        for f, v in (filter or {}).items():
+            c = Filter.by_property(f).equal(v)
+            wf = c if wf is None else wf & c
+        r = self.col.query.near_vector(near_vector=vector.tolist(), limit=k, filters=wf,
                                        return_metadata=MetadataQuery(distance=True))
         return [(o.properties["chunk_id"], 1.0 - o.metadata.distance) for o in r.objects]
 

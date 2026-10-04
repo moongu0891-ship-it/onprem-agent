@@ -22,20 +22,23 @@ class MilvusStore:
         schema = self.client.create_schema(auto_id=False)
         schema.add_field("id", DataType.VARCHAR, is_primary=True, max_length=128)
         schema.add_field("vector", DataType.FLOAT_VECTOR, dim=dim)
+        schema.add_field("doc_type", DataType.VARCHAR, max_length=32)
         idx = self.client.prepare_index_params()
         params = {"M": self.hnsw[0], "efConstruction": self.hnsw[1]} if self.index_type == "HNSW" else {}
         idx.add_index(field_name="vector", index_type=self.index_type, metric_type="COSINE", params=params)
         self.client.create_collection(self.collection, schema=schema, index_params=idx)
 
     def add(self, ids, vectors, metadatas) -> None:
-        rows = [{"id": i, "vector": v.tolist()} for i, v in zip(ids, vectors)]
+        rows = [{"id": i, "vector": v.tolist(), "doc_type": m.get("doc_type", "")}
+                for i, v, m in zip(ids, vectors, metadatas)]
         for s in range(0, len(rows), 1000):
             self.client.insert(self.collection, rows[s:s + 1000])
         self.client.flush(self.collection)
         self.client.load_collection(self.collection)
 
-    def search(self, vector, k):
+    def search(self, vector, k, filter=None):
         params = {"ef": max(self.ef_search, k)} if self.index_type == "HNSW" else {}
-        res = self.client.search(self.collection, data=[vector.tolist()], limit=k,
+        expr = " and ".join(f'{f} == "{v}"' for f, v in filter.items()) if filter else ""
+        res = self.client.search(self.collection, data=[vector.tolist()], limit=k, filter=expr,
                                  search_params={"metric_type": "COSINE", "params": params})
         return [(h["id"], float(h["distance"])) for h in res[0]]  # COSINE: 클수록 유사

@@ -34,4 +34,27 @@ def build_retriever(spec: dict, defaults: dict | None = None):
     if kind == "routed":
         return RoutedRetriever(build_retriever(spec["code_route"], defaults),
                                build_retriever(spec["default_route"], defaults))
+    if kind == "intent":
+        from .intent import IntentFilterRetriever
+        return IntentFilterRetriever(build_retriever(spec["inner"], defaults))
+    if kind == "rerank":
+        from .rerank import RerankRetriever, cross_encoder_scorer
+        sc = spec.get("scorer", {"kind": "cross-encoder"})
+        if sc["kind"] == "cross-encoder":
+            key = ("ce", sc.get("model", "BAAI/bge-reranker-v2-m3"))
+            if key not in _embedder_cache:
+                _embedder_cache[key] = cross_encoder_scorer(key[1])
+            scorer, sname = _embedder_cache[key], key[1].split("/")[-1]
+        elif sc["kind"] == "overlap":  # 테스트·CI 용: 글자 겹침 점수 (모델 없음)
+            scorer, sname = _overlap_scorer, "overlap"
+        else:
+            raise ValueError(f"알 수 없는 점수기: {sc['kind']}")
+        return RerankRetriever(build_retriever(spec["inner"], defaults), scorer,
+                               fetch_k=spec.get("fetch_k", 30), scorer_name=sname)
     raise ValueError(f"알 수 없는 검색 갈래: {kind}")
+
+
+def _overlap_scorer(query: str, texts: list[str]) -> list[float]:
+    from ..tokenize_ko import tokenize
+    q = set(tokenize(query))
+    return [len(q & set(tokenize(t))) / (len(q) or 1) for t in texts]

@@ -44,3 +44,16 @@ def test_store_matches_exact_search(store, chunks):
     for q in QUERIES:
         assert live.search(q, 10)[0].chunk_id == exact.search(q, 10)[0].chunk_id, q
     assert sum(live.ann_recalls) / len(live.ann_recalls) >= 0.9
+
+
+@pytest.mark.parametrize("store", LIVE or [pytest.param("none", marks=pytest.mark.skip("ONPREM_LIVE_STORES 미설정"))])
+def test_store_filter_returns_only_requested_doc_type(store):
+    # 매뉴얼 45절 + 작업 이력 2,400건: 매뉴얼은 1.8% 뿐이라 '탐색 후 거르기' 방식이면 결과가 비기 쉽다
+    chunks = load_corpus(ROOT / "data/ops") + load_corpus(ROOT / "data/ops_logs")
+    by_id = {c.chunk_id: c for c in chunks}
+    live = build_retriever({"kind": "dense", "store": SPECS[store]}, {"embedder": {"kind": "hash", "dim": 512}})
+    live.index(chunks)
+    for dt in ("manual", "work_order"):
+        hits = live.search("CRB-03 경보 조치 순서", 10, {"doc_type": dt})
+        assert len(hits) == 10, f"{store}: {dt} 필터 결과 {len(hits)}개"
+        assert all(by_id[h.chunk_id].doc_type == dt for h in hits)

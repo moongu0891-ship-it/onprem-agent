@@ -267,8 +267,10 @@ def make_work_orders(n: int = 2400) -> list[tuple[str, str, str]]:
     return out
 
 
-def write_md(path: Path, title: str, sections: list[tuple[str, str, str]]):
+def write_md(path: Path, title: str, sections: list[tuple[str, str, str]], doc_type: str | None = None):
     lines = [f"# {title}", "", "> 가상 데이터: 실제 회사·제품과 무관합니다.", ""]
+    if doc_type:
+        lines[1:1] = [f"<!-- doc_type: {doc_type} -->"]
     for sid, head, body in sections:
         lines += [f"## {head}", f"<!-- id: {sid} -->", body, ""]
     path.write_text("\n".join(lines), encoding="utf-8")
@@ -293,7 +295,25 @@ def main():
     wos = make_work_orders()
     for y in ("2024", "2025", "2026"):
         write_md(ROOT / f"data/ops_logs/work_orders_{y}.md", f"KX-200 정비 작업 이력 {y}",
-                 [w for w in wos if f" {y}-" in f" {w[2][:10]}"])
+                 [w for w in wos if f" {y}-" in f" {w[2][:10]}"], doc_type="work_order")
+
+    # 정답이 '작업 이력'인 질문: 날짜·호기·코드로 특정되는 이력을 묻는다.
+    # 정답이 전부 매뉴얼이면 "항상 매뉴얼만 찾아라" 필터가 공짜로 점수를 얻으므로, 의도 구분이 필요하게 만든다.
+    from collections import Counter
+    key = lambda w: (w[1].split()[3], w[1].split()[4], w[2][:7])  # (호기, 코드, 연-월)
+    counts = Counter(key(w) for w in wos)
+    unique = [w for w in wos if counts[key(w)] == 1]
+    picks = rng.sample(unique, 10)
+    tmpl = ["{y}년 {m}월에 {l} {c} 경보 났을 때 어떤 조치를 했었지?",
+            "{y}년 {m}월 {l}에서 {c} 경보 처리 이력 찾아줘",
+            "지난 {y}년 {m}월 {l} {c} 건은 점검 결과가 뭐였어?"]
+    hist = []
+    for i, w in enumerate(sorted(picks), 1):
+        line, code = w[1].split()[3], w[1].split()[4]
+        y, m = w[2][:4], int(w[2][5:7])
+        hist.append({"id": f"ops-w{i:02d}", "type": "history",
+                     "question": rng.choice(tmpl).format(y=y, m=m, l=line, c=code), "gold": [w[0]]})
+    write_jsonl(ROOT / "eval/questions_ops_history.jsonl", hist)
     rng = main_rng
 
     write_md(ROOT / "data/cs/plans.md", "한빛모바일 요금제 안내", [plan_section(*p) for p in PLANS])

@@ -65,9 +65,38 @@ def test_routed_sends_code_queries_to_code_route():
         def index(self, chunks):
             pass
 
-        def search(self, q, k):
+        def search(self, q, k, filter=None):
             return [Hit(self.sid + "#0", self.sid, 1.0)]
 
     r = RoutedRetriever(Fixed("CODE"), Fixed("DEFAULT"))
     assert r.search("CRB-03 조치", 1)[0].section_id == "CODE"
     assert r.search("떨림이 심해져", 1)[0].section_id == "DEFAULT"
+
+
+def test_intent_classifier():
+    from onprem_agent.retrieval.intent import classify
+    assert classify("CRB-03 조치 순서 알려줘") == "manual"
+    assert classify("설비 만지기 전에 뭘 먼저 해야 하나요?") == "manual"
+    assert classify("2025년 5월에 4호기 CRB-01 경보 났을 때 어떤 조치를 했었지?") == "work_order"
+
+
+def test_filters_respected_by_bm25_and_memory_store():
+    from onprem_agent.retrieval import build_retriever
+    chunks = load_corpus(ROOT / "data/ops") + load_corpus(ROOT / "data/ops_logs")
+    for spec in ({"kind": "bm25"}, {"kind": "dense", "store": {"kind": "memory"}}):
+        r = build_retriever(spec, {"embedder": {"kind": "hash"}})
+        r.index(chunks)
+        by_id = {c.chunk_id: c for c in chunks}
+        for dt in ("manual", "work_order"):
+            hits = r.search("CRB-03 경보 조치", 10, {"doc_type": dt})
+            assert hits and all(by_id[h.chunk_id].doc_type == dt for h in hits)
+
+
+def test_reranker_reorders_candidates():
+    from onprem_agent.retrieval import build_retriever
+    chunks = load_corpus(ROOT / "data/ops")
+    r = build_retriever({"kind": "rerank", "scorer": {"kind": "overlap"}, "fetch_k": 20,
+                         "inner": {"kind": "dense", "store": {"kind": "memory"}}}, {"embedder": {"kind": "hash"}})
+    r.index(chunks)
+    hits = r.search("베어링 교체", 3)
+    assert len(hits) == 3 and hits[0].score >= hits[-1].score

@@ -24,8 +24,10 @@ from .metrics import mrr, percentile, recall_at_k
 KS = (1, 3, 5)
 
 
-def load_questions(path: str | Path) -> list[dict]:
-    return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
+def load_questions(path) -> list[dict]:
+    paths = path if isinstance(path, list) else [path]
+    return [json.loads(line) for p in paths
+            for line in Path(p).read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def evaluate_retriever(retriever, chunks: list[Chunk], questions: list[dict], fetch: int = 20) -> dict:
@@ -62,11 +64,30 @@ def evaluate_retriever(retriever, chunks: list[Chunk], questions: list[dict], fe
         "latency_ms": {"p50": percentile(lat, 50), "p95": percentile(lat, 95)},
         "misses": [r for r in per_q if r["r@3"] < 1.0],
         "timings": dict(getattr(retriever, "timings", {})),
+        "intent_errors": _intent_errors(retriever, questions),
+        "rerank_ms": ({"p50": percentile(retriever.rerank_ms, 50), "p95": percentile(retriever.rerank_ms, 95)}
+                      if getattr(retriever, "rerank_ms", None) else None),
         "ann_recall@10": (statistics.mean(retriever.ann_recalls) if getattr(retriever, "ann_recalls", None) else None),
         "store_latency_ms": ({"p50": percentile(retriever.store_latencies_ms, 50),
                               "p95": percentile(retriever.store_latencies_ms, 95)}
                              if getattr(retriever, "store_latencies_ms", None) else None),
     }
+
+
+def _intent_errors(retriever, questions) -> list[dict] | None:
+    """의도 분류가 틀린 질문 (정답 절의 종류와 고른 필터가 다름). 의도 필터를 쓰는 갈래에서만."""
+    decisions = getattr(retriever, "decisions", None)
+    if decisions is None:
+        inner = getattr(retriever, "inner", None)
+        decisions = getattr(inner, "decisions", None)
+    if not decisions:
+        return None
+    wrong = []
+    for q, (_, chosen) in zip(questions, decisions):
+        want = "work_order" if q["gold"][0].startswith("WO-") else "manual"
+        if chosen != want:
+            wrong.append({"id": q["id"], "chose": chosen, "want": want})
+    return wrong
 
 
 def run_suite(config: dict, root: Path, only: list[str] | None = None) -> dict:
@@ -79,7 +100,8 @@ def run_suite(config: dict, root: Path, only: list[str] | None = None) -> dict:
     for sc in config["scenarios"]:
         docs = sc["docs"] if isinstance(sc["docs"], list) else [sc["docs"]]
         chunks = [c for d in docs for c in load_corpus(root / d, **chunking)]
-        questions = load_questions(root / sc["questions"])
+        qs = sc["questions"] if isinstance(sc["questions"], list) else [sc["questions"]]
+        questions = load_questions([root / q for q in qs])
         rows = []
         for spec in config["retrievers"]:
             label = spec.get("label", spec["kind"])
@@ -107,16 +129,16 @@ def to_markdown(results: dict) -> str:
              f"- 청킹: 최대 {results['chunking']['max_chars']}자, 겹침 {results['chunking']['overlap']}자", ""]
     for name, sc in results["scenarios"].items():
         lines += [f"## 시나리오: {name} (청크 {sc['n_chunks']}개, 질문 {sc['n_questions']}개)", "",
-                  "| 갈래 | R@1 | R@3 | R@5 | MRR | 코드 R@3 | 바꿔 말하기 R@3 | 어려운 R@3 | 색인(s) | p50(ms) | p95(ms) |",
-                  "|---|---|---|---|---|---|---|---|---|---|---|"]
+                  "| 갈래 | R@1 | R@3 | R@5 | MRR | 코드 R@3 | 바꿔 말하기 R@3 | 어려운 R@3 | 이력 R@3 | 색인(s) | p50(ms) | p95(ms) |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for r in sc["results"]:
             if "error" in r:
                 lines.append(f"| {r['label']} | 실행 안 됨: {r['error'][:60]} |||||||||| ")
                 continue
             o, bt = r["overall"], r["by_type"]
-            by = [bt.get(t, {}).get("recall@3", float("nan")) for t in ("code", "paraphrase", "hard")]
+            by = [bt.get(t, {}).get("recall@3", float("nan")) for t in ("code", "paraphrase", "hard", "history")]
             lines.append(f"| {r['label']} | {o['recall@1']:.2f} | {o['recall@3']:.2f} | {o['recall@5']:.2f} | {o['mrr']:.2f} "
-                         f"| {by[0]:.2f} | {by[1]:.2f} | {by[2]:.2f} | {r['index_seconds']:.2f} "
+                         f"| {by[0]:.2f} | {by[1]:.2f} | {by[2]:.2f} | {by[3]:.2f} | {r['index_seconds']:.2f} "
                          f"| {r['latency_ms']['p50']:.1f} | {r['latency_ms']['p95']:.1f} |")
         lines.append("")
         stores = [r for r in sc["results"] if "error" not in r and r.get("store_latency_ms")]
@@ -128,6 +150,15 @@ def to_markdown(results: dict) -> str:
                 ar = r.get("ann_recall@10")
                 lines.append(f"| {r['label']} | {ar:.2f} | {t.get('embed_s', 0):.2f} | {t.get('store_add_s', 0):.2f} "
                              f"| {sl['p50']:.2f} | {sl['p95']:.2f} |")
+            lines.append("")
+        extras = [r for r in sc["results"] if "error" not in r and (r.get("intent_errors") is not None or r.get("rerank_ms"))]
+        for r in extras:
+            if r.get("intent_errors") is not None:
+                errs = r["intent_errors"]
+                lines.append(f"- {r['label']}: 의도 오분류 {len(errs)}건" + (f" {[e['id'] for e in errs]}" if errs else ""))
+            if r.get("rerank_ms"):
+                lines.append(f"- {r['label']}: 리랭크 지연 p50 {r['rerank_ms']['p50']:.0f} ms, p95 {r['rerank_ms']['p95']:.0f} ms")
+        if extras:
             lines.append("")
         for r in sc["results"]:
             if r.get("misses"):

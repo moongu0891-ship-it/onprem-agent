@@ -10,7 +10,9 @@ class VectorStore(Protocol):
 
     - reset(dim): 컬렉션을 비우고 차원을 정한다 (벤치마크마다 같은 조건에서 시작하려고)
     - add(ids, vectors, metadatas): 일괄 색인
-    - search(vector, k): (id, 유사도) 를 높은 순으로 k개
+    - search(vector, k, filter): (id, 유사도) 를 높은 순으로 k개.
+      filter 는 {"doc_type": "manual"} 같은 같음 조건. 각 DB 의 네이티브 필터로 번역한다.
+      add 의 metadatas 에는 항상 doc_type 이 들어온다.
     """
 
     name: str
@@ -19,7 +21,7 @@ class VectorStore(Protocol):
 
     def add(self, ids: list[str], vectors: np.ndarray, metadatas: list[dict]) -> None: ...
 
-    def search(self, vector: np.ndarray, k: int) -> list[tuple[str, float]]: ...
+    def search(self, vector: np.ndarray, k: int, filter: dict | None = None) -> list[tuple[str, float]]: ...
 
 
 def make_store(spec: dict) -> VectorStore:

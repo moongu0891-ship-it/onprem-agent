@@ -1,0 +1,10 @@
+{"id": "ops-w01", "type": "history", "question": "2025년 7월 1호기에서 LVL-06 경보 처리 이력 찾아줘", "gold": ["WO-00125"]}
+{"id": "ops-w02", "type": "history", "question": "2024년 2월에 1호기 LVL-07 경보 났을 때 어떤 조치를 했었지?", "gold": ["WO-00126"]}
+{"id": "ops-w03", "type": "history", "question": "2024년 9월 1호기에서 LVL-03 경보 처리 이력 찾아줘", "gold": ["WO-00533"]}
+{"id": "ops-w04", "type": "history", "question": "지난 2024년 5월 3호기 LVL-04 건은 점검 결과가 뭐였어?", "gold": ["WO-00769"]}
+{"id": "ops-w05", "type": "history", "question": "2026년 11월에 2호기 SPK-03 경보 났을 때 어떤 조치를 했었지?", "gold": ["WO-01045"]}
+{"id": "ops-w06", "type": "history", "question": "2024년 1월에 6호기 LVL-02 경보 났을 때 어떤 조치를 했었지?", "gold": ["WO-01446"]}
+{"id": "ops-w07", "type": "history", "question": "2026년 5월에 2호기 DRF-03 경보 났을 때 어떤 조치를 했었지?", "gold": ["WO-01448"]}
+{"id": "ops-w08", "type": "history", "question": "2026년 10월 2호기에서 CRB-01 경보 처리 이력 찾아줘", "gold": ["WO-01560"]}
+{"id": "ops-w09", "type": "history", "question": "2024년 10월 5호기에서 LVL-01 경보 처리 이력 찾아줘", "gold": ["WO-01743"]}
+{"id": "ops-w10", "type": "history", "question": "지난 2026년 8월 4호기 CRB-06 건은 점검 결과가 뭐였어?", "gold": ["WO-01781"]}

@@ -17,6 +17,7 @@ class BM25Retriever:
 
     def index(self, chunks: list[Chunk]) -> None:
         self.chunks = chunks
+        self.doc_types = [c.doc_type for c in chunks]
         self.tfs = [Counter(tokenize(c.text)) for c in chunks]
         self.lens = [sum(tf.values()) for tf in self.tfs]
         self.avglen = sum(self.lens) / len(self.lens)
@@ -26,11 +27,15 @@ class BM25Retriever:
         n = len(chunks)
         self.idf = {t: math.log(1 + (n - d + 0.5) / (d + 0.5)) for t, d in df.items()}
 
-    def search(self, query: str, k: int) -> list[Hit]:
+    def search(self, query: str, k: int, filter: dict | None = None) -> list[Hit]:
         q = [t for t in tokenize(query) if t in self.idf]
+        want = (filter or {}).get("doc_type")
         scores = []
         for i, tf in enumerate(self.tfs):
             s = 0.0
+            if want and self.doc_types[i] != want:
+                scores.append(0.0)
+                continue
             norm = self.k1 * (1 - self.b + self.b * self.lens[i] / self.avglen)
             for t in q:
                 f = tf.get(t, 0)

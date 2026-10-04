@@ -44,8 +44,8 @@ class HybridRetriever:
         for r in self.retrievers:
             r.index(chunks)
 
-    def search(self, query: str, k: int) -> list[Hit]:
-        rankings = [r.search(query, self.fetch_k) for r in self.retrievers]
+    def search(self, query: str, k: int, filter: dict | None = None) -> list[Hit]:
+        rankings = [r.search(query, self.fetch_k, filter) for r in self.retrievers]
         return rrf_fuse(rankings, self.rrf_k, self.weights)[:k]
 
 
@@ -61,6 +61,6 @@ class RoutedRetriever:
         self.code_route.index(chunks)
         self.default_route.index(chunks)
 
-    def search(self, query: str, k: int) -> list[Hit]:
+    def search(self, query: str, k: int, filter: dict | None = None) -> list[Hit]:
         route = self.code_route if CODE_RE.search(query) else self.default_route
-        return route.search(query, k)
+        return route.search(query, k, filter)

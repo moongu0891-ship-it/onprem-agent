@@ -14,6 +14,7 @@ from pathlib import Path
 
 _SECTION_RE = re.compile(r"^## (.+?)\s*$", re.M)
 _ID_RE = re.compile(r"<!--\s*id:\s*([\w\-]+)\s*-->")
+_DOCTYPE_RE = re.compile(r"<!--\s*doc_type:\s*([\w\-]+)\s*-->")
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ class Chunk:
     doc: str               # 원본 파일 이름
     title: str             # 절 제목
     text: str              # 검색·답변에 쓰는 본문 (제목 포함)
+    doc_type: str = "manual"  # 문서 종류 (manual | work_order …). 필터 검색에 쓴다
     meta: dict = field(default_factory=dict, compare=False, hash=False)
 
 
@@ -72,7 +74,10 @@ def load_corpus(folder: str | Path, max_chars: int = 600, overlap: int = 80) -> 
     folder = Path(folder)
     chunks: list[Chunk] = []
     for path in sorted(folder.glob("*.md")):
-        for sid, title, body in split_sections(path.read_text(encoding="utf-8")):
+        md = path.read_text(encoding="utf-8")
+        dt = _DOCTYPE_RE.search(md.split("\n## ", 1)[0])  # 파일 머리말의 문서 종류 (없으면 manual)
+        doc_type = dt.group(1) if dt else "manual"
+        for sid, title, body in split_sections(md):
             for j, piece in enumerate(chunk_text(body, max_chars, overlap)):
                 chunks.append(Chunk(
                     chunk_id=f"{sid}#{j}",
@@ -80,6 +85,7 @@ def load_corpus(folder: str | Path, max_chars: int = 600, overlap: int = 80) -> 
                     doc=path.name,
                     title=title,
                     text=f"{title}\n{piece}",
+                    doc_type=doc_type,
                 ))
     if not chunks:
         raise ValueError(f"{folder} 에서 id가 달린 절을 찾지 못했습니다")

@@ -26,6 +26,7 @@ class ElasticsearchStore:
         self.es.indices.create(index=self.index, mappings={"properties": {
             "chunk_id": {"type": "keyword"},
             "section_id": {"type": "keyword"},
+            "doc_type": {"type": "keyword"},
             "text": {"type": "text", "analyzer": self.analyzer},
             "vec": {"type": "dense_vector", "dims": dim, "index": True, "similarity": "cosine",
                     "index_options": {"type": "hnsw", "m": self.hnsw[0], "ef_construction": self.hnsw[1]}},
@@ -34,15 +35,17 @@ class ElasticsearchStore:
     def add(self, ids, vectors, metadatas) -> None:
         from elasticsearch.helpers import bulk
         actions = ({"_index": self.index, "_id": i,
-                    "_source": {"chunk_id": i, "section_id": m.get("section_id"), "text": m.get("text", ""),
+                    "_source": {"chunk_id": i, "section_id": m.get("section_id"), "doc_type": m.get("doc_type"),
+                                "text": m.get("text", ""),
                                 "vec": v.tolist()}}
                    for i, v, m in zip(ids, vectors, metadatas))
         bulk(self.es, actions, chunk_size=500)
         self.es.indices.refresh(index=self.index)
 
-    def search(self, vector, k):
-        r = self.es.search(index=self.index, size=k, source=["chunk_id"],
-                           knn={"field": "vec", "query_vector": vector.tolist(), "k": k,
-                                "num_candidates": max(self.num_candidates, k)})
+    def search(self, vector, k, filter=None):
+        knn = {"field": "vec", "query_vector": vector.tolist(), "k": k, "num_candidates": max(self.num_candidates, k)}
+        if filter:  # knn 안의 filter 는 근사 탐색 중에 적용된다 (탐색 후에 거르는 방식이 아님)
+            knn["filter"] = {"bool": {"must": [{"term": {f: v}} for f, v in filter.items()]}}
+        r = self.es.search(index=self.index, size=k, source=["chunk_id"], knn=knn)
         # ES cosine 점수 = (1 + cos) / 2 → 원래 코사인으로 되돌린다
         return [(h["_source"]["chunk_id"], 2 * h["_score"] - 1) for h in r["hits"]["hits"]]

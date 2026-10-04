@@ -46,20 +46,25 @@ class DenseRetriever:
             _vec_cache[key] = self.embedder.embed([c.text for c in chunks])
         vecs = _vec_cache[key]
         self._vecs, self._ids = vecs, [c.chunk_id for c in chunks]
+        self._doc_types = np.array([c.doc_type for c in chunks])
         t1 = time.perf_counter()
         self.store.reset(vecs.shape[1])
         self.store.add([c.chunk_id for c in chunks], vecs,
-                       [{"section_id": c.section_id, "doc": c.doc, "text": c.text} for c in chunks])
+                       [{"section_id": c.section_id, "doc": c.doc, "doc_type": c.doc_type, "text": c.text}
+                        for c in chunks])
         self.store_latencies_ms = []
         self.ann_recalls = []
         self.timings = {"embed_s": t1 - t0, "store_add_s": time.perf_counter() - t1}
 
-    def search(self, query: str, k: int) -> list[Hit]:
+    def search(self, query: str, k: int, filter: dict | None = None) -> list[Hit]:
         q = self.embedder.embed([self.query_prefix + query])[0]
         t = time.perf_counter()
-        found = self.store.search(q, k)
+        found = self.store.search(q, k, filter) if filter else self.store.search(q, k)
         self.store_latencies_ms.append((time.perf_counter() - t) * 1000)
         if k >= 10:  # 시간 측정 밖에서, 전수 비교 상위 10개와 겹치는 비율을 잰다
-            exact = {self._ids[i] for i in np.argsort(-(self._vecs @ q))[:10]}
-            self.ann_recalls.append(len(exact & {cid for cid, _ in found[:10]}) / 10)
+            sims = self._vecs @ q
+            if filter and "doc_type" in filter:  # 필터를 건 검색은 같은 필터를 건 전수 비교와 비교한다
+                sims = np.where(self._doc_types == filter["doc_type"], sims, -np.inf)
+            exact = {self._ids[i] for i in np.argsort(-sims)[:10] if np.isfinite(sims[i])}
+            self.ann_recalls.append(len(exact & {cid for cid, _ in found[:10]}) / max(len(exact), 1))
         return [Hit(cid, self.by_id[cid].section_id, s) for cid, s in found]

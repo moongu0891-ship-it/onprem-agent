@@ -30,17 +30,23 @@ class QdrantStore:
             vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
             hnsw_config=HnswConfigDiff(m=self.hnsw[0], ef_construct=self.hnsw[1]),
         )
+        # 필터 필드에 인덱스를 걸어야 Qdrant 가 필터를 그래프 탐색 안에서 처리한다
+        from qdrant_client.models import PayloadSchemaType
+        self.client.create_payload_index(self.collection, "doc_type", PayloadSchemaType.KEYWORD)
 
     def add(self, ids, vectors, metadatas) -> None:
         from qdrant_client.models import PointStruct
-        points = [PointStruct(id=_uuid(i), vector=v.tolist(), payload={"chunk_id": i, **m})
+        points = [PointStruct(id=_uuid(i), vector=v.tolist(),
+                              payload={"chunk_id": i, "section_id": m.get("section_id"), "doc_type": m.get("doc_type")})
                   for i, v, m in zip(ids, vectors, metadatas)]
         for s in range(0, len(points), 256):
             self.client.upsert(self.collection, points=points[s:s + 256], wait=True)
 
-    def search(self, vector, k):
-        from qdrant_client.models import SearchParams
-        res = self.client.query_points(self.collection, query=vector.tolist(), limit=k,
+    def search(self, vector, k, filter=None):
+        from qdrant_client.models import FieldCondition, Filter, MatchValue, SearchParams
+        qf = (Filter(must=[FieldCondition(key=f, match=MatchValue(value=v)) for f, v in filter.items()])
+              if filter else None)
+        res = self.client.query_points(self.collection, query=vector.tolist(), limit=k, query_filter=qf,
                                        search_params=SearchParams(hnsw_ef=self.ef_search),
                                        with_payload=["chunk_id"])
         return [(p.payload["chunk_id"], float(p.score)) for p in res.points]

@@ -1,0 +1,37 @@
+# 2주차 후반: 문서 종류 필터(질문 의도) + 리랭커, 그리고 '필터를 건 검색'의 DB별 동작
+#   docker compose --profile all up -d
+#   python scripts/eval_retrieval.py configs/retrieval_filter_rerank.yaml
+# 평가셋: 매뉴얼 질문 37개 + 정답이 작업 이력인 질문 10개(의도 구분이 필요하도록)
+name: retrieval_filter_rerank
+gate_label: "의도필터+리랭커+라우팅"
+chunking: {max_chars: 600, overlap: 80}
+defaults:
+  embedder: {kind: sentence-transformers, model: BAAI/bge-m3}
+scenarios:
+  - name: ops_large
+    docs: [data/ops, data/ops_logs]
+    questions: [eval/questions_ops.jsonl, eval/questions_ops_history.jsonl]
+
+x-routed: &routed
+  kind: routed
+  code_route: {kind: bm25}
+  default_route: {kind: dense, store: {kind: memory}}
+
+retrievers:
+  # ── 검색 방식 ──
+  - {label: bm25, kind: bm25}
+  - {label: "라우팅(현재 기본값)", <<: *routed}
+  - {label: "의도필터+라우팅", kind: intent, inner: *routed}
+  - {label: "리랭커+라우팅", kind: rerank, fetch_k: 30, inner: *routed}
+  - {label: "의도필터+리랭커+라우팅", kind: intent, inner: {kind: rerank, fetch_k: 30, inner: *routed}}
+
+  # ── 필터를 건 벡터 검색: DB 별로 필터를 탐색 중에 거는지, 탐색 후에 거르는지 ──
+  - {label: "필터·memory(정답 상한)", kind: intent, inner: {kind: dense, store: {kind: memory}}}
+  - {label: "필터·chroma", kind: intent, inner: {kind: dense, store: {kind: chroma}}}
+  - {label: "필터·qdrant", kind: intent, inner: {kind: dense, store: {kind: qdrant, url: "http://localhost:6333"}}}
+  - {label: "필터·milvus", kind: intent, inner: {kind: dense, store: {kind: milvus, uri: "http://localhost:19530"}}}
+  - {label: "필터·elasticsearch", kind: intent, inner: {kind: dense, store: {kind: elasticsearch, url: "http://localhost:9200"}}}
+  - {label: "필터·weaviate", kind: intent, inner: {kind: dense, store: {kind: weaviate, port: 18080, grpc_port: 15051}}}
+  - {label: "필터·pgvector(플래너 선택)", kind: intent, inner: {kind: dense, store: {kind: pgvector, dsn: "postgresql://agent:agent@localhost:15432/agent"}}}
+  - {label: "필터·pgvector(인덱스 강제)", kind: intent, inner: {kind: dense, store: {kind: pgvector, dsn: "postgresql://agent:agent@localhost:15432/agent", force_index: true}}}
+  - {label: "필터·pgvector(인덱스 강제+iterative)", kind: intent, inner: {kind: dense, store: {kind: pgvector, dsn: "postgresql://agent:agent@localhost:15432/agent", force_index: true, iterative_scan: true}}}

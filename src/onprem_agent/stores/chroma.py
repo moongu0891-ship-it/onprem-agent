@@ -30,6 +30,7 @@ class ChromaStore:
             self.col.add(ids=ids[i:i + 1000], embeddings=vectors[i:i + 1000].tolist(),
                          metadatas=metadatas[i:i + 1000])
 
-    def search(self, vector, k):
-        r = self.col.query(query_embeddings=[np.asarray(vector).tolist()], n_results=k)
+    def search(self, vector, k, filter=None):
+        r = self.col.query(query_embeddings=[np.asarray(vector).tolist()], n_results=k,
+                           where=filter or None)
         return [(i, 1.0 - d) for i, d in zip(r["ids"][0], r["distances"][0])]
