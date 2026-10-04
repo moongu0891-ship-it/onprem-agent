@@ -48,7 +48,10 @@ def parse_metric(text: str, name: str) -> float | None:
     return None
 
 
-def summarize_phase(records: list[dict], t_event: float | None = None) -> dict:
+def summarize_phase(records: list[dict], t_event: float | None = None, expect: str | None = None) -> dict:
+    """expect: 사건 뒤에 답해야 할 엔진(장애 → 대체, 복구 → 1순위). 그 엔진이 처음 답한 시각을 잰다.
+    (처음엔 '아무 엔진이든 첫 성공'을 쟀는데, docker stop 은 1순위가 받아 둔 요청을 마저 처리하게 해서
+    그 성공이 섞여 '0.7초 만에 넘어감'처럼 잘못 보였다.)"""
     ok = [r for r in records if r["ok"]]
     lat = [r["ms"] for r in ok]
     out = {
@@ -59,7 +62,9 @@ def summarize_phase(records: list[dict], t_event: float | None = None) -> dict:
     }
     if t_event is not None:
         # 사건(멈춤·재시작) 이후 처음으로 '다른 엔진'이 답한 시각
-        after = [r for r in records if r["t"] >= t_event and r["ok"]]
+        after = sorted((r for r in records if r["t"] >= t_event and r["ok"] and (expect is None or r["backend"] == expect)),
+                       key=lambda r: r["t"])
+        out["expect"] = expect
         out["first_ok_after_event_s"] = round(after[0]["t"] - t_event, 2) if after else None
         out["failed_after_event"] = sum(1 for r in records if r["t"] >= t_event and not r["ok"])
     return out
@@ -83,8 +88,9 @@ def to_markdown(res: dict) -> str:
     for ph in res["phases"]:
         s = ph["summary"]
         if "first_ok_after_event_s" in s:
-            lines.append(f"- {ph['name']}: {ph.get('event', '사건')} 후 첫 성공까지 {s['first_ok_after_event_s']} 초, "
-                         f"그 뒤 실패 {s['failed_after_event']}건")
+            who = s.get("expect") or "아무 엔진"
+            lines.append(f"- {ph['name']}: {ph.get('event', '사건')} 후 {who} 의 첫 응답(요청 보낸 시각 기준)까지 "
+                         f"{s['first_ok_after_event_s']} 초, 사건 뒤 실패 {s['failed_after_event']}건")
         for e in s["errors"]:
             lines.append(f"  - 실패 예 (사건 기준 {e['t']}s): {e['error'][:200]}")
     if res.get("headers_sample"):

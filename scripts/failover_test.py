@@ -9,6 +9,7 @@ SGLang(GPU) · llama.cpp(CPU) · LiteLLM 을 함께 띄우고, 끝나면 모두 
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -132,18 +133,21 @@ def main():
             b0 = backup_tokens()
             time.sleep(15)
             recs = load.take()
-            res["phases"].append({"name": "1 정상", "summary": summarize_phase(recs),
+            res["phases"].append({"name": "1 정상", "summary": summarize_phase(recs), "records": recs,
                                   "backup_tokens_delta": (backup_tokens() or 0) - (b0 or 0) if b0 is not None else None})
             print("  1 정상:", res["phases"][-1]["summary"]["backends"])
 
             # 2) 장애: 1순위를 멈춘다
             b0 = backup_tokens()
             t_stop = time.perf_counter() - t0
-            dc("stop", PRIMARY_SVC)
+            # docker stop = 정상 종료 신호(SIGTERM). 1순위는 받아 둔 요청을 마저 처리하고 끝낸다(이 노트북에서 약 14초).
+            # 갑작스러운 고장(전원·프로세스 사망)은 FAILOVER_KILL=1 로 docker kill 을 쓴다.
+            dc("kill" if os.environ.get("FAILOVER_KILL") == "1" else "stop", PRIMARY_SVC)
+            res["stop_mode"] = "kill" if os.environ.get("FAILOVER_KILL") == "1" else "stop"
             time.sleep(30)
             recs = load.take()
             res["phases"].append({"name": "2 장애 (1순위 멈춤)", "event": "1순위 멈춤",
-                                  "summary": summarize_phase(recs, t_stop),
+                                  "summary": summarize_phase(recs, t_stop, expect="llama.cpp(CPU)"), "records": recs,
                                   "backup_tokens_delta": (backup_tokens() or 0) - (b0 or 0) if b0 is not None else None})
             print("  2 장애:", res["phases"][-1]["summary"]["backends"], "실패", res["phases"][-1]["summary"]["failed"])
 
@@ -157,11 +161,11 @@ def main():
             recs = load.take()
             during = [r for r in recs if r["t"] < t_ready]
             after = [r for r in recs if r["t"] >= t_ready]
-            res["phases"].append({"name": "3a 1순위 재시작 중", "summary": summarize_phase(during),
+            res["phases"].append({"name": "3a 1순위 재시작 중", "summary": summarize_phase(during), "records": during,
                                   "restart_s": round(t_ready - t_start, 1),
                                   "backup_tokens_delta": (backup_tokens() or 0) - (b0 or 0) if b0 is not None else None})
             res["phases"].append({"name": "3b 1순위 복구 후", "event": "1순위 준비 완료",
-                                  "summary": summarize_phase(after, t_ready)})
+                                  "summary": summarize_phase(after, t_ready, expect="SGLang"), "records": after})
             print("  3 복구:", res["phases"][-1]["summary"]["backends"], f"(재시작 {t_ready - t_start:.0f}s)")
     except Exception as e:
         res["error"] = f"{type(e).__name__}: {e}"[:300]

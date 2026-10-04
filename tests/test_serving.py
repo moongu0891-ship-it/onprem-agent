@@ -136,7 +136,10 @@ def test_failover_helpers():
             {"t": 11.5, "ok": True, "ms": 900, "backend": "llama.cpp(CPU)", "error": None}]
     s = summarize_phase(recs, t_event=10.0)
     assert s["failed_after_event"] == 1 and s["first_ok_after_event_s"] == 1.5
+    recs.insert(1, {"t": 10.1, "ok": True, "ms": 80, "backend": "SGLang", "error": None})  # 멈추는 중에 1순위가 마저 처리한 요청
+    assert summarize_phase(recs, t_event=10.0)["first_ok_after_event_s"] == 0.1
+    assert summarize_phase(recs, t_event=10.0, expect="llama.cpp(CPU)")["first_ok_after_event_s"] == 1.5
     assert s["backends"] == {"SGLang": 1, "llama.cpp(CPU)": 1}
     md = to_markdown({"started_at": "x", "primary": "SGLang", "backup": "llama.cpp", "max_tokens": 16, "workers": 2,
                       "phases": [{"name": "2 장애", "event": "멈춤", "summary": s, "backup_tokens_delta": 16}]})
-    assert "첫 성공까지 1.5 초" in md
+    assert "첫 응답(요청 보낸 시각 기준)까지 1.5 초" in md
