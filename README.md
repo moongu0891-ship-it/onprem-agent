@@ -22,7 +22,7 @@
 | 서빙 | OpenAI 호환 API, LiteLLM 게이트웨이로 한 주소 | vLLM · SGLang (GPU) · llama.cpp (CPU) |
 | 공통 | 평가 하네스 · 가드레일 · Langfuse 추적 · K8s · CI/CD · 오프라인 설치 | |
 
-진행 상황은 [docs/ROADMAP.md](docs/ROADMAP.md).
+진행 상황은 [docs/ROADMAP.md](docs/ROADMAP.md), 부딪힌 문제와 해결 과정은 [docs/문제해결_이력.md](docs/문제해결_이력.md).
 
 ## 1주차 결과: 검색 기준선
 
