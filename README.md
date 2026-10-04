@@ -114,6 +114,8 @@ pip install -e ".[st]"
 python scripts/eval_retrieval.py configs/retrieval_bge.yaml
 ```
 
+측정 결과는 `results/`(Git 비추적)에 쓰이고, 확정본만 `reports/`에 옮겨 커밋한다. HNSW 는 만들 때마다 결과가 조금씩 달라서 DB 비교는 `--repeat 3` 으로 범위를 본다.
+
 ## 구조
 
 ```
