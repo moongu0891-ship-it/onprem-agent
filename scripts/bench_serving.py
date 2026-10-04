@@ -44,11 +44,40 @@ def compose(profiles, action):
     subprocess.run(cmd, check=True)
 
 
-def wait_ready(base_url, headers, timeout_s):
-    """/models 가 200 을 줄 때까지 기다린다. 첫 실행은 모델 내려받기 때문에 수 분 걸릴 수 있다."""
+def _pargs(profiles):
+    profiles = profiles if isinstance(profiles, list) else [profiles]
+    return [a for p in profiles for a in ("--profile", p)]
+
+
+def exited_containers(profiles) -> list[str]:
+    """프로필의 컨테이너 중 이미 죽은(종료된) 것. 죽었으면 더 기다릴 필요가 없다."""
+    r = subprocess.run(COMPOSE + _pargs(profiles) + ["ps", "-a", "--status", "exited", "--format", "{{.Name}}"],
+                       capture_output=True, text=True)
+    return [x for x in r.stdout.split() if x]
+
+
+def save_logs(profiles, tag) -> str:
+    """컨테이너를 내리기 전에 로그를 results/logs/ 에 남긴다. 내린 뒤에는 로그도 사라진다."""
+    r = subprocess.run(COMPOSE + _pargs(profiles) + ["logs", "--no-color", "--tail", "300"],
+                       capture_output=True, text=True)
+    d = ROOT / "results/logs"
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"{tag}.log"
+    path.write_text(r.stdout + r.stderr, encoding="utf-8")
+    return str(path.relative_to(ROOT))
+
+
+def wait_ready(base_url, headers, timeout_s, profiles=None):
+    """/models 가 200 을 줄 때까지 기다린다. 첫 실행은 모델 내려받기 때문에 수 분 걸릴 수 있다.
+    profiles 를 주면 컨테이너가 죽었는지도 30초마다 확인해, 죽었으면 바로 실패로 끝낸다."""
     import httpx
-    t0 = time.time()
+    t0, last_check = time.time(), 0.0
     while time.time() - t0 < timeout_s:
+        if profiles and time.time() - last_check > 30:
+            last_check = time.time()
+            dead = exited_containers(profiles)
+            if dead:
+                raise RuntimeError(f"컨테이너가 종료됨: {', '.join(dead)} ({time.time() - t0:.0f}s 만에)")
         try:
             if httpx.get(f"{base_url}/models", headers=headers, timeout=5).status_code == 200:
                 print(f"  준비 완료 ({time.time() - t0:.0f}s)")
@@ -136,12 +165,20 @@ def main():
             if a.manage:
                 compose(eng["profile"], "up")
             for url in eng.get("wait_for", []):      # 게이트웨이 뒤의 엔진이 먼저 준비돼야 한다
-                wait_ready(url, {}, a.ready_timeout if a.manage else 10)
-            wait_ready(eng["base_url"], eng.get("headers", {}), a.ready_timeout if a.manage else 10)
+                wait_ready(url, {}, a.ready_timeout if a.manage else 10, eng["profile"] if a.manage else None)
+            wait_ready(eng["base_url"], eng.get("headers", {}), a.ready_timeout if a.manage else 10,
+                       eng["profile"] if a.manage else None)
             res["engines"].append(asyncio.run(bench_engine(eng, cfg, jobs_by_level, a.quick)))
         except Exception as e:
-            print(f"  건너뜀: {type(e).__name__}: {str(e)[:200]}")
-            res["engines"].append({"label": eng["label"], "error": f"{type(e).__name__}: {str(e)[:300]}"})
+            msg = f"{type(e).__name__}: {str(e)[:300]}"
+            if a.manage:
+                tag = f"{cfg['name']}_{'_'.join(eng['profile'] if isinstance(eng['profile'], list) else [eng['profile']])}"
+                log = save_logs(eng["profile"], tag)
+                msg += f" — 엔진 로그: {log}"
+                tail = (ROOT / log).read_text(encoding="utf-8").splitlines()[-25:]
+                print("  --- 엔진 로그 마지막 25줄 ---\n  " + "\n  ".join(tail))
+            print(f"  건너뜀: {msg}")
+            res["engines"].append({"label": eng["label"], "error": msg})
         finally:
             if a.manage:
                 compose(eng["profile"], "down")
