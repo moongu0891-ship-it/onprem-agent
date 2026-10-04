@@ -23,6 +23,7 @@
 | 공통 | 평가 하네스 · 가드레일 · Langfuse 추적 · K8s · CI/CD · 오프라인 설치 | |
 
 진행 상황은 [docs/ROADMAP.md](docs/ROADMAP.md), 부딪힌 문제와 해결 과정은 [docs/문제해결_이력.md](docs/문제해결_이력.md).
+용어를 비유로 풀어 둔 설명은 [docs/쉽게_풀어쓴_개념.md](docs/쉽게_풀어쓴_개념.md).
 
 ## 1주차 결과: 검색 기준선
 
@@ -127,7 +128,7 @@
 vLLM · SGLang · llama.cpp 를 같은 모델(Qwen3-1.7B)·같은 요청으로 비교하고 LiteLLM 게이트웨이 뒤에 둔다.
 에이전트는 엔진 주소 대신 `agent-llm` 이라는 이름만 알고, vLLM 이 죽으면 게이트웨이가 llama.cpp 로 넘긴다.
 
-**무엇을 재나** — 결과 읽는 법(용어·프리필/디코드·굿풋)은 [serving/README.md](serving/README.md#1-결과-읽는-법)에 한 번 정리했다.
+**무엇을 재나** — 결과 읽는 법은 [serving/README.md](serving/README.md#1-결과-읽는-법), 비유로 푼 설명은 [쉽게 풀어쓴 개념](docs/쉽게_풀어쓴_개념.md#서빙).
 
 | 지표 | 쉬운 말 |
 |---|---|
