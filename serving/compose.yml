@@ -99,5 +99,4 @@ services:
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     volumes: ["./litellm.yaml:/app/config.yaml:ro"]
     environment: {LITELLM_MASTER_KEY: "sk-local-dev"}
-    extra_hosts: ["host.docker.internal:host-gateway"]
     ports: ["127.0.0.1:4000:4000"]

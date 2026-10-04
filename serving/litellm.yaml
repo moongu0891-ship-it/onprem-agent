@@ -1,5 +1,6 @@
 # LiteLLM 게이트웨이 설정.
-# 엔진들은 별도 compose 프로필로 뜨므로, 게이트웨이는 호스트 포트(host.docker.internal)로 붙는다.
+# 게이트웨이와 엔진은 같은 compose 네트워크에 있으므로 서비스 이름(vllm, sglang, llamacpp)과 컨테이너 안 포트로 붙는다.
+# (처음엔 host.docker.internal:8000 으로 붙였는데, 엔진 포트를 호스트의 127.0.0.1 에만 열어 두어서 컨테이너에서 닿지 않았다.)
 #
 # 이름 규칙
 #   agent-llm        에이전트가 쓰는 이름. 1순위 vLLM, 실패하면 llama.cpp 로 넘긴다.
@@ -7,15 +8,15 @@
 
 model_list:
   - model_name: agent-llm
-    litellm_params: {model: hosted_vllm/qwen3-1.7b, api_base: "http://host.docker.internal:8000/v1"}
+    litellm_params: {model: hosted_vllm/qwen3-1.7b, api_base: "http://vllm:8000/v1"}
   - model_name: agent-llm-backup
-    litellm_params: {model: openai/qwen3-1.7b, api_base: "http://host.docker.internal:18081/v1", api_key: none}
+    litellm_params: {model: openai/qwen3-1.7b, api_base: "http://llamacpp:8080/v1", api_key: none}
   - model_name: vllm
-    litellm_params: {model: hosted_vllm/qwen3-1.7b, api_base: "http://host.docker.internal:8000/v1"}
+    litellm_params: {model: hosted_vllm/qwen3-1.7b, api_base: "http://vllm:8000/v1"}
   - model_name: sglang
-    litellm_params: {model: openai/qwen3-1.7b, api_base: "http://host.docker.internal:30000/v1", api_key: none}
+    litellm_params: {model: openai/qwen3-1.7b, api_base: "http://sglang:30000/v1", api_key: none}
   - model_name: llamacpp
-    litellm_params: {model: openai/qwen3-1.7b, api_base: "http://host.docker.internal:18081/v1", api_key: none}
+    litellm_params: {model: openai/qwen3-1.7b, api_base: "http://llamacpp:8080/v1", api_key: none}
 
 router_settings:
   fallbacks: [{"agent-llm": ["agent-llm-backup"]}]

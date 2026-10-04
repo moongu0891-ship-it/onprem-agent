@@ -42,6 +42,10 @@ def to_markdown(res: dict) -> str:
                     f"| {_f(s['tpot_ms']['p95'], '{:.1f}')} | {s['slo_attainment']:.0%} | {s['goodput_req_per_s']:.2f} "
                     f"| {_f(s['cache_hit_ratio'], '{:.0%}')} | {s['errors']} |")
         lines.append("")
+        for e in engines:
+            for lv in e.get("workloads", {}).get(w, []):
+                if lv["summary"]["errors"]:
+                    lines.append(f"- {e['label']} 동시 {lv['concurrency']} 오류 예: {lv['summary']['error_samples'][:1]}")
         # 엔진별 최대 굿풋
         best = []
         for e in engines:
