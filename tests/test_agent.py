@@ -175,3 +175,25 @@ def test_after_tool_model_answers_once_results_exist():
     assert score(TASKS["ops-m5"], tr)["success"]
     assert system_prompt("ops", ["safety"]).startswith(SYSTEM["ops"]) and "search_manual" in system_prompt("ops", ["safety"])[len(SYSTEM["ops"]):]
     assert system_prompt("cs", ["safety"]) == SYSTEM["cs"]
+
+
+def test_degraded_notice_when_gateway_used_backup():
+    """5주차: 게이트웨이 헤더가 대체 엔진을 가리키면 답 끝에 지연·정확도 안내를 붙인다. 1순위가 답하면 붙이지 않는다."""
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+    from langchain_core.messages import AIMessage
+    from langgraph.checkpoint.memory import InMemorySaver
+    from onprem_agent.agent.graph import DEGRADED_NOTICE, build_graph, on_backup
+    from onprem_agent.agent.runner import run_task
+
+    class Scripted(GenericFakeChatModel):
+        def bind_tools(self, tools, **kw):
+            return self
+    backup = {"headers": {"x-litellm-model-group": "agent-llm-4b-backup", "x-litellm-attempted-fallbacks": "1"}}
+    primary = {"headers": {"x-litellm-model-group": "agent-llm-4b"}}
+    assert on_backup(AIMessage("x", response_metadata=backup)) and not on_backup(AIMessage("x", response_metadata=primary))
+    for meta, expect in ((backup, True), (primary, False)):
+        app = build_graph(Scripted(messages=iter([AIMessage("안녕하세요.", response_metadata=meta)])), [], "sys",
+                          checkpointer=InMemorySaver(), auto_cite=True, degraded_notice=True)
+        tr = asyncio.run(run_task(app, "안녕"))
+        assert tr["answer"].endswith(DEGRADED_NOTICE) is expect and tr["degraded_notice"] is expect
+        assert tr["backup_calls"] == (1 if expect else 0) and tr["raw_answer"] == "안녕하세요."

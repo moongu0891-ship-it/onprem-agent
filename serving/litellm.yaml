@@ -6,6 +6,9 @@
 #   agent-llm        에이전트가 쓰는 이름. 1순위 SGLang(CUDA 그래프 상한 16, sglang-g16 프로필),
 #                    실패하면 CPU 의 llama.cpp(llamacpp-cpu 프로필)로 넘긴다 — GPU 가 하나뿐이라 대체 엔진은 CPU 에 둔다.
 #                    (노트북 측정 결과로 vLLM → SGLang 으로 바꿈. serving/README.md 4.2 ③-2)
+#   agent-llm-4b     4주차 측정으로 고른 에이전트 기본값(Qwen3-4B FP8, sglang-4b 프로필). 실패하면 CPU llama.cpp(1.7B Q8)로.
+#                    대체 쪽은 CPU 라 생각 모드 답이 수 분 걸릴 수 있어 시간 제한을 길게 둔다.
+#                    agent-llm(1.7B)은 3주차 서빙·장애 대체 측정을 그대로 재현할 수 있게 남겨 둔다.
 #   vllm / sglang / llamacpp   엔진을 직접 고르는 이름 (측정용)
 
 model_list:
@@ -13,6 +16,10 @@ model_list:
     litellm_params: {model: openai/qwen3-1.7b, api_base: "http://sglang-g16:30000/v1", api_key: none}
   - model_name: agent-llm-backup
     litellm_params: {model: openai/qwen3-1.7b, api_base: "http://llamacpp-cpu:8080/v1", api_key: none}
+  - model_name: agent-llm-4b
+    litellm_params: {model: openai/qwen3-4b, api_base: "http://sglang-4b:30000/v1", api_key: none, timeout: 300}
+  - model_name: agent-llm-4b-backup
+    litellm_params: {model: openai/qwen3-1.7b, api_base: "http://llamacpp-cpu:8080/v1", api_key: none, timeout: 900}
   - model_name: vllm
     litellm_params: {model: hosted_vllm/qwen3-1.7b, api_base: "http://vllm:8000/v1"}
   - model_name: sglang
@@ -21,7 +28,7 @@ model_list:
     litellm_params: {model: openai/qwen3-1.7b, api_base: "http://llamacpp:8080/v1", api_key: none}
 
 router_settings:
-  fallbacks: [{"agent-llm": ["agent-llm-backup"]}]
+  fallbacks: [{"agent-llm": ["agent-llm-backup"]}, {"agent-llm-4b": ["agent-llm-4b-backup"]}]
   num_retries: 0          # 같은 엔진 재시도 대신 바로 대체 엔진으로
   timeout: 120
 

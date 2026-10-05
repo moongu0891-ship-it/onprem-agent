@@ -38,6 +38,8 @@ NO_TOOL_SPEC = {"type": "function", "function": {
     "parameters": {"type": "object", "properties": {}}}}
 FORCE_NOTE = ("방금 도구 없이 답하려 했다. 업무 질문이면 알맞은 업무 도구를 골라 불러라. "
               "인사·잡담처럼 도구가 정말 필요 없을 때만 no_tool_needed 를 골라라.")
+DEGRADED_NOTICE = ("※ 지금은 대체 엔진으로 답하고 있어 평소보다 느리고 정확도가 낮을 수 있습니다. "
+                   "작업 요청처럼 중요한 일은 내용을 한 번 더 확인해 주세요.")
 SOURCE_ID = re.compile(r"\[([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)\]")          # [OPS-CRB-06] [WO-00125] [TK-0001] [C0050] [CS-PLN-5G89]
 MODEL_CITE = re.compile(r"\[?\s*근거\s*:[^\]\n]*\]?")
 
@@ -60,6 +62,17 @@ def this_turn(messages: list) -> list:
     return messages[idx:]
 
 
+def on_backup(msg) -> bool:
+    """게이트웨이(LiteLLM) 응답 헤더로 대체 엔진이 답했는지 본다(모델에 response_headers 를 켰을 때만 헤더가 있다).
+    x-litellm-model-group 이 '-backup' 으로 끝나거나, 대체를 시도한 횟수가 있으면 대체 엔진이다(3주차 장애 대체 시험에서 확인한 헤더)."""
+    h = {str(k).lower(): str(v) for k, v in ((getattr(msg, "response_metadata", None) or {}).get("headers") or {}).items()}
+    try:
+        tried = int(h.get("x-litellm-attempted-fallbacks", "0") or 0)
+    except ValueError:
+        tried = 0
+    return h.get("x-litellm-model-group", "").endswith("-backup") or tried > 0
+
+
 def cite_sources(raw: str, turn: list) -> str:
     """모델이 쓴 근거 표기를 지우고, 이번 질문에서 성공한 업무 기능(도구) 결과의 근거 번호를 붙인다."""
     ids = []
@@ -72,7 +85,7 @@ def cite_sources(raw: str, turn: list) -> str:
 
 
 def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS, max_steps: int = 6, checkpointer=None,
-                require_tool: bool = False, auto_cite: bool = False, after_tool_model=None):
+                require_tool: bool = False, auto_cite: bool = False, after_tool_model=None, degraded_notice: bool = False):
     """after_tool_model: 이번 질문에 업무 기능(도구) 결과가 하나라도 생긴 뒤에 쓸 모델(5주차 '생각은 첫 단계만').
     생각 모드는 '무엇을 찾을지' 고를 때 효과가 크고(4주차: 54% → 92%), 찾은 결과를 읽고 답을 쓸 때는 시간만 든다는 가정을 잰다.
     결과를 본 뒤에도 업무 기능(도구)을 더 부를 수 있다(여러 단계 과업) — 그때는 생각 없이 고른다."""
@@ -107,7 +120,7 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
         last = state["messages"][-1]
         if isinstance(last, AIMessage) and last.tool_calls:
             return "gate"
-        return "finalize" if auto_cite else END
+        return "finalize" if (auto_cite or degraded_notice) else END
 
     async def gate(state: AgentState):
         last = state["messages"][-1]
@@ -144,10 +157,14 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
     async def finalize(state: AgentState):
         last = state["messages"][-1]
         raw = str(last.content)
-        text = cite_sources(raw, this_turn(state["messages"]))
+        turn = this_turn(state["messages"])
+        text = cite_sources(raw, turn) if auto_cite else raw
+        degraded = degraded_notice and any(on_backup(m) for m in turn if isinstance(m, AIMessage))
+        if degraded:   # 5주차: 대체 엔진(CPU)이 답했으면 사용자에게 알린다 — '끊기지 않음'과 '같은 품질'은 다르다(3주차)
+            text = f"{text}\n\n{DEGRADED_NOTICE}"
         # 같은 id 로 돌려주면 MessagesState 가 마지막 답을 바꿔 끼운다(새로 덧붙이지 않는다)
         return {"messages": [AIMessage(content=text, id=last.id,
-                                       response_metadata={**(last.response_metadata or {}), "raw_answer": raw},
+                                       response_metadata={**(last.response_metadata or {}), "raw_answer": raw, "degraded": degraded},
                                        usage_metadata=getattr(last, "usage_metadata", None))]}
 
     g = StateGraph(AgentState)

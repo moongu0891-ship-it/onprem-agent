@@ -32,6 +32,9 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None, promp
     graph_opts = graph_opts or {}
     from langgraph.checkpoint.memory import InMemorySaver
     rows, traces = [], []
+    only_ids = only_ids or spec.get("tasks")          # 모델별로 일부 과업만(장애 시험처럼 느린 줄)
+    kill = spec.get("kill")                            # {"after": N, "service": "sglang-4b"}: N 과업 뒤 엔진 강제 종료
+    done = 0
     for scenario in ("ops", "cs"):
         ts = [t for t in tasks if t["scenario"] == scenario and (not only_ids or t["id"] in only_ids)]
         if not ts:
@@ -42,12 +45,19 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None, promp
             app = build_graph(make_model(spec, scenario), tools, system_prompt(scenario, prompt_rules), checkpointer=InMemorySaver(),
                               max_steps=spec.get("max_steps", 6), after_tool_model=after, **graph_opts)
             for t in ts:
+                if kill and done == kill["after"]:
+                    import subprocess
+                    from bench_serving import COMPOSE, _pargs
+                    print(f"  !! 1순위 엔진 강제 종료: docker compose kill {kill['service']}")
+                    subprocess.run(COMPOSE + _pargs(spec.get("profile") or []) + ["kill", kill["service"]], check=False)
+                done += 1
                 tr = await run_task(app, t["question"], approval=t["approval"] or "approve")
                 r = score(t, tr)
                 rows.append(r)
                 traces.append({"id": t["id"], **tr})
                 mark = "성공" if r["success"] else "실패"
                 print(f"  [{spec['label']}] {t['id']:<7} {mark}  {tr['seconds']:5.1f}s  호출 {len(tr['tool_calls'])}"
+                      + ("  [대체 엔진]" if tr.get("backup_calls") else "")
                       + (f"  — {'; '.join(r['reasons'])}" if r["reasons"] else ""))
     return rows, traces
 
@@ -79,6 +89,8 @@ def main():
                 compose(profile, "up")
                 running = profile
                 wait_ready(spec["base_url"], spec.get("headers", {}), a.ready_timeout, profile)
+                for u in spec.get("wait_also", []):   # 게이트웨이는 엔진보다 먼저 뜬다 — 뒤의 엔진들까지 기다려야 첫 요청이 대체로 새지 않는다
+                    wait_ready(u, {}, a.ready_timeout, profile)
             graph_opts = {**cfg.get("graph", {}), **spec.get("graph", {})}   # 설정 파일 기본값 위에 모델별 값
             prompt_rules = tuple(spec.get("prompt_rules", cfg.get("prompt_rules", [])))
             rows, traces = asyncio.run(eval_model(spec, tasks, mcp_env, a.tasks, graph_opts, prompt_rules))

@@ -44,8 +44,14 @@ def make_model(spec: dict, scenario: str):
                       temperature=0.0, max_tokens=spec.get("max_tokens", 512), timeout=timeout,
                       default_headers=spec.get("headers"),
                       http_async_client=httpx.AsyncClient(timeout=timeout), http_client=httpx.Client(timeout=timeout),
+                      include_response_headers=bool(spec.get("response_headers", False)),   # 게이트웨이: 어느 엔진이 답했나
                       # Qwen3 생각 모드: 기본 끔(서빙 측정과 같게). spec 에 thinking: true 면 켠다(생각 글은 엔진이 따로 떼어 낸다)
                       extra_body={"chat_template_kwargs": {"enable_thinking": bool(spec.get("thinking", False))}})
+
+
+def _on_backup(m) -> bool:
+    from .graph import on_backup
+    return on_backup(m)
 
 
 async def run_task(app, question: str, approval: str = "approve", max_interrupts: int = 3) -> dict:
@@ -77,6 +83,8 @@ async def run_task(app, question: str, approval: str = "approve", max_interrupts
     usage = [m.usage_metadata for m in msgs if isinstance(m, AIMessage) and getattr(m, "usage_metadata", None)]
     return {"question": question, "tool_calls": calls, "executed": executed, "approvals_asked": asked,
             "answer": final, "raw_answer": raw,
+            "backup_calls": sum(1 for m in msgs if isinstance(m, AIMessage) and _on_backup(m)),
+            "degraded_notice": bool(last is not None and (last.response_metadata or {}).get("degraded")),
             "nudged": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("nudged")),
             "llm_calls": sum(1 for m in msgs if isinstance(m, AIMessage)),
             "input_tokens": sum(u.get("input_tokens", 0) for u in usage), "output_tokens": sum(u.get("output_tokens", 0) for u in usage),
