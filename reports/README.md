@@ -20,5 +20,6 @@
 | [agent_laptop_v3.md](agent_laptop_v3.md) | 4주차 에이전트 3차: 되돌림 = 필수 선택, **4B 생각 켬 92%** | 노트북 |
 | [agent_laptop_v4.md](agent_laptop_v4.md) | 4주차 에이전트 4차: 생각 모드 몫 나누기, 92% 재현, 1.7B 생각 켬 85% | 노트북 |
 | [agent_laptop_w5.md](agent_laptop_w5.md) | 5주차 ① 생각 첫 단계만 · 안전 질문 규칙/검색, 재채점(D25) — **4B + 안전 질문 검색 96%** | 노트북 |
+| [agent_laptop_gw.md](agent_laptop_gw.md) | 5주차 ② 게이트웨이 경유 · 과업 도중 1순위 강제 종료와 지연 안내 | 노트북 |
 
 노트북 = RTX 5070 Laptop 8GB · WSL2 · Docker.

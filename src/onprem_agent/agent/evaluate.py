@@ -166,7 +166,8 @@ def to_markdown(res: dict) -> str:
         lines += ["", "과업 종류별 성공률", "", "| 모델 | " + " | ".join(kinds) + " |", "|---|" + "---|" * len(kinds)]
         for m in res["models"]:
             if not m.get("error"):
-                lines.append(f"| {m['label']} | " + " | ".join(f"{m['summary']['by_kind'].get(k, float('nan')):.0%}" for k in kinds) + " |")
+                bk = m["summary"]["by_kind"]   # 일부 과업만 돌린 줄은 없는 종류를 '—' 로
+                lines.append(f"| {m['label']} | " + " | ".join(f"{bk[k]:.0%}" if k in bk else "—" for k in kinds) + " |")
     for m in res["models"]:
         fails = [r for r in m.get("rows", []) if not r["success"]]
         if fails:
