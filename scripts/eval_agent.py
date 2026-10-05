@@ -24,11 +24,11 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from onprem_agent.agent.evaluate import score, summarize, to_markdown  # noqa: E402
 from onprem_agent.agent.graph import build_graph  # noqa: E402
-from onprem_agent.agent.prompts import SYSTEM  # noqa: E402
+from onprem_agent.agent.prompts import system_prompt  # noqa: E402
 from onprem_agent.agent.runner import make_model, mcp_tools, run_task  # noqa: E402
 
 
-async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None):
+async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None, prompt_rules=()):
     graph_opts = graph_opts or {}
     from langgraph.checkpoint.memory import InMemorySaver
     rows, traces = [], []
@@ -37,8 +37,10 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None):
         if not ts:
             continue
         async with mcp_tools(scenario, mcp_env) as tools:
-            app = build_graph(make_model(spec, scenario), tools, SYSTEM[scenario], checkpointer=InMemorySaver(),
-                              max_steps=spec.get("max_steps", 6), **graph_opts)
+            after = (make_model({**spec, "thinking": False, "max_tokens": spec.get("answer_max_tokens", 512)}, scenario)
+                     if spec.get("thinking") == "first" else None)   # 생각은 첫 단계(무엇을 찾을지)만
+            app = build_graph(make_model(spec, scenario), tools, system_prompt(scenario, prompt_rules), checkpointer=InMemorySaver(),
+                              max_steps=spec.get("max_steps", 6), after_tool_model=after, **graph_opts)
             for t in ts:
                 tr = await run_task(app, t["question"], approval=t["approval"] or "approve")
                 r = score(t, tr)
@@ -65,20 +67,23 @@ def main():
     res = {"config_name": cfg["name"], "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "n_tasks": len(tasks), "n_ops": sum(t["scenario"] == "ops" for t in tasks),
            "n_cs": sum(t["scenario"] == "cs" for t in tasks), "embedder": cfg.get("embedder"), "models": []}
-    for spec in cfg["models"]:
-        if a.only and not any(o in spec["label"] for o in a.only):
-            continue
+    specs = [sp for sp in cfg["models"] if not a.only or any(o in sp["label"] for o in a.only)]
+    running = None   # --manage: 지금 떠 있는 엔진 프로필. 다음 모델이 같은 엔진이면 내리지 않고 이어 쓴다(재시작 1~3분 절약)
+    for i, spec in enumerate(specs):
         print(f"\n== {spec['label']}")
         profile = spec.get("profile")
+        next_profile = specs[i + 1].get("profile") if i + 1 < len(specs) else None
         try:
-            if a.manage and profile:
+            if a.manage and profile and running != profile:
                 from bench_serving import compose, wait_ready
                 compose(profile, "up")
+                running = profile
                 wait_ready(spec["base_url"], spec.get("headers", {}), a.ready_timeout, profile)
             graph_opts = {**cfg.get("graph", {}), **spec.get("graph", {})}   # 설정 파일 기본값 위에 모델별 값
-            rows, traces = asyncio.run(eval_model(spec, tasks, mcp_env, a.tasks, graph_opts))
+            prompt_rules = tuple(spec.get("prompt_rules", cfg.get("prompt_rules", [])))
+            rows, traces = asyncio.run(eval_model(spec, tasks, mcp_env, a.tasks, graph_opts, prompt_rules))
             res["models"].append({"label": spec["label"], "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                                  "graph": graph_opts,
+                                  "graph": graph_opts, "prompt_rules": list(prompt_rules),
                                   "spec": {k: v for k, v in spec.items() if k != "headers"},
                                   "summary": summarize(rows), "rows": rows, "traces": traces})
             s = res["models"][-1]["summary"]
@@ -91,11 +96,13 @@ def main():
                 from bench_serving import save_logs
                 msg += f" — 엔진 로그: {save_logs(profile, cfg['name'] + '_' + spec['label'].replace(' ', '_'))}"
             print(f"  건너뜀: {msg}")
+            running = None   # 엔진 상태를 모르니 다음 모델은 새로 띄운다
             res["models"].append({"label": spec["label"], "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "error": msg})
         finally:
-            if a.manage and profile:
+            if a.manage and profile and (next_profile != profile or running is None):
                 from bench_serving import compose
                 compose(profile, "down")
+                running = None
 
     out = ROOT / "results"
     out.mkdir(exist_ok=True)

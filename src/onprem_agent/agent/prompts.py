@@ -34,3 +34,20 @@ CS_SYSTEM = """당신은 한빛모바일 고객센터 상담 지원 에이전트
 """ + COMMON
 
 SYSTEM = {"ops": OPS_SYSTEM, "cs": CS_SYSTEM}
+
+
+# 선택 규칙 — 설정의 prompt_rules 로 켠다. 켜면 시스템 프롬프트 끝에 붙는다(요청마다 바뀌지 않으므로 캐시 원칙은 그대로).
+# safety (5주차): 4주차에 모든 모델이 "감전되지 않게 하려면?"(ops-m5)에서 매뉴얼을 찾지 않고 상식으로 답했다.
+#   그럴듯하지만 매뉴얼의 현장 절차(차단기 번호·무전압 확인)가 빠진다. 다칠 수 있는 질문은 아는 것 같아도 찾게 한다.
+RULES = {
+    "safety": {
+        "ops": "\n- 감전·전원 차단·잠금·잔압·고온·회전부처럼 사람이 다칠 수 있는 작업을 묻는 질문은, 알고 있는 것 같아도 "
+               "상식으로 답하지 말고 반드시 search_manual 로 매뉴얼의 안전 수칙을 찾아 그 순서와 번호(차단기·밸브 번호 등)를 그대로 안내한다.",
+        "cs": "",
+    },
+}
+
+
+def system_prompt(scenario: str, rules=()) -> str:
+    return SYSTEM[scenario] + "".join(RULES[r][scenario] for r in rules)
+

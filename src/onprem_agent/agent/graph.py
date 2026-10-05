@@ -72,9 +72,13 @@ def cite_sources(raw: str, turn: list) -> str:
 
 
 def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS, max_steps: int = 6, checkpointer=None,
-                require_tool: bool = False, auto_cite: bool = False):
+                require_tool: bool = False, auto_cite: bool = False, after_tool_model=None):
+    """after_tool_model: 이번 질문에 업무 기능(도구) 결과가 하나라도 생긴 뒤에 쓸 모델(5주차 '생각은 첫 단계만').
+    생각 모드는 '무엇을 찾을지' 고를 때 효과가 크고(4주차: 54% → 92%), 찾은 결과를 읽고 답을 쓸 때는 시간만 든다는 가정을 잰다.
+    결과를 본 뒤에도 업무 기능(도구)을 더 부를 수 있다(여러 단계 과업) — 그때는 생각 없이 고른다."""
     by_name = {t.name: t for t in tools}
     llm_tools = model.bind_tools(tools)
+    llm_after = after_tool_model.bind_tools(tools) if after_tool_model is not None else None
     llm_forced = model.bind_tools([*tools, NO_TOOL_SPEC], tool_choice="required") if require_tool else None
 
     async def agent(state: AgentState):
@@ -83,7 +87,8 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
         if steps >= max_steps:   # 단계 상한: 업무 기능(도구) 없이 지금까지의 결과로 답하게 한다
             msgs.append(SystemMessage("도구를 더 부르지 말고 지금까지의 결과로 답하라."))
             return {"messages": [await model.ainvoke(msgs)], "steps": steps + 1}
-        resp = await llm_tools.ainvoke(msgs)
+        has_results = any(isinstance(m, ToolMessage) for m in this_turn(state["messages"]))
+        resp = await (llm_after if (llm_after is not None and has_results) else llm_tools).ainvoke(msgs)
         if require_tool and not resp.tool_calls and not any(isinstance(m, ToolMessage) for m in this_turn(state["messages"])):
             # 되돌림: 업무 기능(도구) 선택을 필수로 걸고 한 번 더. 업무 기능(도구)을 고르면 그걸 쓰고(먼저 쓴 답은 버림),
             # no_tool_needed 를 고르거나 아무것도 안 고르면 먼저 쓴 답을 그대로 쓴다.

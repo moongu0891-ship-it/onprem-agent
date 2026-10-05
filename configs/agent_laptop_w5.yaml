@@ -1,0 +1,23 @@
+# 에이전트 과업 평가 5주차 ① — 속도와 안전 질문 (노트북 RTX 5070 Laptop 8GB)
+#   python scripts/eval_agent.py configs/agent_laptop_w5.yaml --manage
+# 4주차 결정(잠정): Qwen3-4B(FP8) + 생각 모드 + 안전 기능 = 92%, 대신 과업당 약 15초. 여기서 두 가지를 잰다.
+#   ① 생각은 첫 단계만(thinking: first): 무엇을 찾을지 고르는 호출만 생각하고, 결과를 읽고 답하는 호출은 생각 없이.
+#      품질을 지키면서 시간이 얼마나 줄어드나.
+#   ② 안전 질문 규칙(prompt_rules: [safety]): 다칠 수 있는 질문은 상식으로 답하지 말고 매뉴얼을 찾게.
+#      4주차에 모든 모델이 틀린 ops-m5 를 겨냥한다. 과업 1개라 이것만으로 일반화하지 않는다(6주차 가드레일에서 안전 질문 셋으로 확장).
+# 첫 줄은 4주차 기본값을 같은 날 다시 잰 기준선이다.
+name: agent_laptop_w5
+tasks: eval/agent_tasks.jsonl
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+graph: {require_tool: true, auto_cite: true}     # 안전 기능 두 개는 모든 줄에서 켬
+models:
+  - {label: "4B · 생각 켬 (4주차 기본값)", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300}
+  - {label: "4B · 생각 첫 단계만", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: first, max_tokens: 2048, answer_max_tokens: 512, timeout: 300}
+  - {label: "4B · 생각 켬 · 안전 질문 규칙", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [safety]}
+  - {label: "4B · 생각 첫 단계만 · 안전 질문 규칙", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: first, max_tokens: 2048, answer_max_tokens: 512, timeout: 300, prompt_rules: [safety]}
+  - {label: "1.7B · 생각 첫 단계만 · 안전 질문 규칙", kind: openai, profile: sglang-g16, base_url: "http://localhost:30000/v1", model: qwen3-1.7b,
+     thinking: first, max_tokens: 2048, answer_max_tokens: 512, timeout: 300, prompt_rules: [safety]}

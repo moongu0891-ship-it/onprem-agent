@@ -147,3 +147,31 @@ def test_require_tool_nudges_once_then_tool_is_used():
     tr = asyncio.run(run_task(app, TASKS["ops-n1"]["question"]))
     assert tr["nudged"] == 1 and tr["tool_calls"] == [] and tr["answer"] == "안녕하세요! 무엇을 도와드릴까요?"
     assert score(TASKS["ops-n1"], tr)["success"]
+
+
+def test_after_tool_model_answers_once_results_exist():
+    """5주차 '생각은 첫 단계만': 업무 기능(도구) 결과가 생긴 뒤에는 after_tool_model 이 답한다."""
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+    from langchain_core.messages import AIMessage
+    from langchain_core.tools import tool
+    from langgraph.checkpoint.memory import InMemorySaver
+    from onprem_agent.agent.graph import build_graph
+    from onprem_agent.agent.prompts import SYSTEM, system_prompt
+    from onprem_agent.agent.runner import run_task
+
+    @tool
+    def search_manual(query: str) -> str:
+        """매뉴얼 검색"""
+        return "[OPS-SAFE] 안전 수칙\n주 전원 차단기(MCCB-01)를 OFF 한다."
+
+    class Scripted(GenericFakeChatModel):
+        def bind_tools(self, tools, **kw):
+            return self
+    first = Scripted(messages=iter([AIMessage("", tool_calls=[{"name": "search_manual", "args": {"query": "감전"}, "id": "c1"}])]))
+    after = Scripted(messages=iter([AIMessage("주 전원 차단기 MCCB-01 을 내립니다.")]))
+    app = build_graph(first, [search_manual], "sys", checkpointer=InMemorySaver(), auto_cite=True, after_tool_model=after)
+    tr = asyncio.run(run_task(app, TASKS["ops-m5"]["question"]))
+    assert tr["answer"].startswith("주 전원 차단기 MCCB-01") and tr["answer"].endswith("[근거: OPS-SAFE]")
+    assert score(TASKS["ops-m5"], tr)["success"]
+    assert system_prompt("ops", ["safety"]).startswith(SYSTEM["ops"]) and "search_manual" in system_prompt("ops", ["safety"])[len(SYSTEM["ops"]):]
+    assert system_prompt("cs", ["safety"]) == SYSTEM["cs"]
