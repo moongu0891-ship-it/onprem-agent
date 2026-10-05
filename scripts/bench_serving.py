@@ -127,7 +127,7 @@ async def bench_engine(eng, cfg, jobs_by_level, quick):
         tc_extra = {"chat_template_kwargs": cfg.get("extra", {}).get("chat_template_kwargs", {})}
         t = await run_toolcheck(eng["base_url"], eng["model"], cases, tc_extra, headers)
         out["toolcheck"] = t
-        print(f"  [{eng['label']}] 도구 호출: 도구 선택 {t['tool_accuracy']:.2f}, 인자까지 {t['args_accuracy']:.2f}, "
+        print(f"  [{eng['label']}] 업무 기능(도구) 호출: 업무 기능(도구) 선택 {t['tool_accuracy']:.2f}, 인자까지 {t['args_accuracy']:.2f}, "
               f"형식 오류 {t['parse_errors']}, 요청 오류 {t['request_errors']}")
     return out
 
@@ -137,7 +137,7 @@ def main():
     ap.add_argument("config")
     ap.add_argument("--only", nargs="*", help="이 문자열이 이름에 들어간 엔진만")
     ap.add_argument("--manage", action="store_true", help="엔진마다 docker compose 로 띄우고 내린다")
-    ap.add_argument("--quick", action="store_true", help="동작 확인용: 동시 1·4, 요청 8개, 도구 검사 5문항")
+    ap.add_argument("--quick", action="store_true", help="동작 확인용: 동시 1·4, 요청 8개, 업무 기능(도구) 검사 5문항")
     ap.add_argument("--ready-timeout", type=int, default=1200)
     a = ap.parse_args()
 

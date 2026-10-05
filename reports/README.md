@@ -11,7 +11,7 @@
 | [retrieval_vectordb.md](retrieval_vectordb.md) | 2주차 검색 방식 · 벡터DB 6종 (같은 HNSW 설정) | 노트북 |
 | [retrieval_vectordb_hnsw.md](retrieval_vectordb_hnsw.md) | 2주차 pgvector·Chroma HNSW 확대, 3회 반복 | 노트북 |
 | [retrieval_filter_rerank.md](retrieval_filter_rerank.md) | 2주차 의도 필터 · 리랭커 · 날짜 표기 · DB별 필터 검색 | 노트북 |
-| [serving_laptop.md](serving_laptop.md) | 3주차 vLLM · SGLang · llama.cpp · 캐시 끔 · LiteLLM, 도구 호출 20문항 | 노트북 |
+| [serving_laptop.md](serving_laptop.md) | 3주차 vLLM · SGLang · llama.cpp · 캐시 끔 · LiteLLM, 업무 기능(도구) 호출 20문항 | 노트북 |
 | [serving_sglang_graph.md](serving_sglang_graph.md) | 3주차 SGLang CUDA 그래프 상한 8 대 16 | 노트북 |
 | [failover.md](failover.md) | 3주차 장애 대체 (1순위 정상 종료) | 노트북 |
 | [failover_kill.md](failover_kill.md) | 3주차 장애 대체 (1순위 강제 종료, 갑작스러운 고장) | 노트북 |

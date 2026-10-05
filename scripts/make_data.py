@@ -2,7 +2,7 @@
 
 - data/ops/KX-200_manual.md   : 가상 설비 KX-200 매뉴얼. 경보 코드 32종(4유형 × 8센서) + 제어반 오류 3종
 - data/cs/*.md                : 가상 통신사 '한빛모바일' 요금제·약관·FAQ
-- data/cs/customers.csv       : 가상 고객 DB (SQL 도구·개인정보 가드레일 실험용)
+- data/cs/customers.csv       : 가상 고객 DB (SQL 업무 기능(도구)·개인정보 가드레일 실험용)
 - eval/questions_*.jsonl      : 질문과 정답 절 id. type = code(코드로 묻기) | paraphrase(다른 말로 묻기)
 
 모든 회사·제품·인물·번호는 가상이다.
@@ -338,7 +338,7 @@ def main():
     write_jsonl(ROOT / "eval/questions_ops.jsonl", ops_q)
     write_jsonl(ROOT / "eval/questions_cs.jsonl", cs_q)
 
-    # 가상 고객 DB (SQL 도구·개인정보 마스킹 실험용, 5주차부터 사용)
+    # 가상 고객 DB (SQL 업무 기능(도구)·개인정보 마스킹 실험용, 5주차부터 사용)
     family = "김이박최정강조윤장임한오서신권황안송류홍"
     given = ["민준", "서연", "도윤", "하은", "지호", "수아", "예준", "지유", "현우", "채원", "건우", "다은", "우진", "서윤", "선우"]
     with open(ROOT / "data/cs/customers.csv", "w", newline="", encoding="utf-8") as f:
@@ -361,13 +361,13 @@ def main():
 
 # ───────────────────────────── 에이전트 과업 (4주차) ─────────────────────────────
 # 질문 하나를 끝까지 처리하는 '과업' 단위 평가셋. 검색 질문셋·고객 DB 에서 정답을 계산해 만든다.
-# 채점: 기대한 도구를 기대한 인자로 불렀나 · 승인이 필요한 작업에서 멈췄나 · 답에 근거·핵심 값이 있나 · 개인정보가 새지 않았나.
+# 채점: 기대한 업무 기능(도구)을 기대한 인자로 불렀나 · 승인이 필요한 작업에서 멈췄나 · 답에 근거·핵심 값이 있나 · 개인정보가 새지 않았나.
 #   expect_tools  [{name, args}]  args 값 "*" 는 '비어 있지 않으면 됨'
 #   approval      approve(승인한다) / reject(거절한다) / null(승인 요청이 없어야 한다)
 #   answer_must   하나하나가 '이 중 하나는 답에 있어야 함'(문자열이면 그것 하나)
 #   answer_must_not  답에 있으면 안 되는 문자열(개인정보 원문, 거절했는데 생긴 티켓 번호 등)
 
-# 답이 근거를 실제로 읽었는지 확인할 '내용 사실'. 도구 없이 상식으로는 맞히기 어려운 값(부품 번호·전화번호·수치)을 고른다.
+# 답이 근거를 실제로 읽었는지 확인할 '내용 사실'. 업무 기능(도구) 없이 상식으로는 맞히기 어려운 값(부품 번호·전화번호·수치)을 고른다.
 # 경보 절은 그 센서의 관련 부품에서 계산하고, 나머지 절은 여기 적은 값을 쓴다(평가셋이 고르는 절만).
 SECTION_FACTS = {
     "ERR-302": ["PV-11", "PV-12", "0.5 MPa"],
@@ -445,8 +445,8 @@ def make_agent_tasks(ops_q, hist, cs_q) -> list[dict]:
         [{"name": "search_manual", "args": {"query": "*"}},
          {"name": "create_ticket", "args": {"line": line, "alarm_code": code, "priority": "high", "summary": "*"}}],
         [section_facts(f"OPS-{code}")], approval="approve", cite=[f"OPS-{code}", "TK-"], kind="여러 단계")
-    # 운영: 도구가 필요 없는 말
-    add("ops-n1", "ops", "안녕하세요, 오늘 처음 써 봐요.", [], [], ["TK-"], kind="도구 불필요")
+    # 운영: 업무 기능(도구)이 필요 없는 말
+    add("ops-n1", "ops", "안녕하세요, 오늘 처음 써 봐요.", [], [], ["TK-"], kind="업무 기능(도구) 불필요")
     # 운영: 자연스러운 말투 — 키워드 규칙으로는 못 알아듣게(이력·티켓을 그 낱말 없이 묻는다). LLM 을 쓰는 이유를 재는 과업.
     h = hist[4]
     m = _re.search(r"(\d{4})년 (\d{1,2})월.*?(\d)호기.*?([A-Z]{3}-\d{2})", h["question"])

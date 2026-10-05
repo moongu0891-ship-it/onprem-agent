@@ -53,7 +53,7 @@ async def chat(scenario, model_key, store, thread, embedder):
         app = build_graph(make_model(MODELS[model_key], scenario), tools, SYSTEM[scenario], checkpointer=saver,
                           require_tool=True, auto_cite=True)   # 2차 측정에서 켠 두 안전 기능
         cfg = {"configurable": {"thread_id": thread}}
-        print(f"[{scenario} · {model_key} · 저장 {store} · 대화 번호 {thread}]  도구: {', '.join(t.name for t in tools)}  (끝내려면 빈 줄)")
+        print(f"[{scenario} · {model_key} · 저장 {store} · 대화 번호 {thread}]  업무 기능(도구): {', '.join(t.name for t in tools)}  (끝내려면 빈 줄)")
         pending = (await app.aget_state(cfg)).interrupts
         inp = None
         while True:
@@ -72,7 +72,7 @@ async def chat(scenario, model_key, store, thread, embedder):
             if not pending:
                 for m in state["messages"][-6:]:
                     if isinstance(m, AIMessage) and m.tool_calls:
-                        print("  · 도구:", ", ".join(f"{tc['name']}({json.dumps(tc['args'], ensure_ascii=False)})" for tc in m.tool_calls))
+                        print("  · 업무 기능(도구):", ", ".join(f"{tc['name']}({json.dumps(tc['args'], ensure_ascii=False)})" for tc in m.tool_calls))
                 print("\n" + str(state["messages"][-1].content))
 
 

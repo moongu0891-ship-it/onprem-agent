@@ -17,8 +17,8 @@ ROOT = Path(__file__).resolve().parents[3]
 
 @asynccontextmanager
 async def mcp_tools(scenario: str, env: dict | None = None):
-    """MCP 서버를 한 번 띄워 연결을 유지한 채 도구를 쓴다.
-    (기본 방식은 도구를 부를 때마다 서버 프로세스를 새로 띄워, 검색 색인을 매번 다시 만든다 — 실험으로 확인.)"""
+    """MCP 서버를 한 번 띄워 연결을 유지한 채 업무 기능(도구)을 쓴다.
+    (기본 방식은 업무 기능(도구)을 부를 때마다 서버 프로세스를 새로 띄워, 검색 색인을 매번 다시 만든다 — 실험으로 확인.)"""
     from langchain_mcp_adapters.client import MultiServerMCPClient
     from langchain_mcp_adapters.tools import load_mcp_tools
     e = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "ONPREM_ROOT": str(ROOT), **(env or {})}

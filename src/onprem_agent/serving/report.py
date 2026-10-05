@@ -62,8 +62,8 @@ def to_markdown(res: dict) -> str:
 
     tc = [e for e in engines if e.get("toolcheck")]
     if tc:
-        lines += ["## 도구 호출 검사", "",
-                  "| 엔진 | 문항 | 도구 선택 정확도 | 인자까지 정확 | JSON 형식 오류 | 요청 오류 | 지연 p50(ms) |",
+        lines += ["## 업무 기능(도구) 호출 검사", "",
+                  "| 엔진 | 문항 | 업무 기능(도구) 선택 정확도 | 인자까지 정확 | JSON 형식 오류 | 요청 오류 | 지연 p50(ms) |",
                   "|---|---|---|---|---|---|---|"]
         for e in tc:
             t = e["toolcheck"]

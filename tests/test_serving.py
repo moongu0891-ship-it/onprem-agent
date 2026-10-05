@@ -81,7 +81,7 @@ def test_workloads_share_system_prompt_but_not_user_turns():
     assert len({j["system"] for j in wl["rag"]}) == 1          # 모든 요청이 같은 시스템 프롬프트
     assert len({j["turns"][0] for j in wl["rag"]}) == 6         # 사용자 메시지는 모두 다름(꼬리표)
     assert all(len(j["turns"]) == 3 for j in wl["multiturn"])
-    assert "get_work_orders" in wl["rag"][0]["system"]          # 도구 설명이 시스템 프롬프트에 들어 있음
+    assert "get_work_orders" in wl["rag"][0]["system"]          # 업무 기능(도구) 설명이 시스템 프롬프트에 들어 있음
 
 
 def test_bench_measures_ttft_tpot_and_cache(server):
@@ -109,7 +109,7 @@ def test_toolcheck_scoring(server):
     by = {m["id"]: m for m in t["misses"]}
     assert "tc06" not in by and "tc19" not in by       # 이력 질문: 대소문자 무시하고 인자 일치 / 인사: 안 부름이 정답
     assert by["tc01"]["parse_error"]                    # 깨진 JSON 인자
-    assert by["tc15"]["got"] == "search_manual"         # 엉뚱한 도구
+    assert by["tc15"]["got"] == "search_manual"         # 엉뚱한 업무 기능(도구)
     assert t["parse_errors"] == 2 and t["args_accuracy"] == 0.5
 
 

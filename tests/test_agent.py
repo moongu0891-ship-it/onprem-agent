@@ -109,11 +109,11 @@ def test_cite_sources_replaces_model_citations():
             ToolMessage("승인되지 않아 실행하지 않았다.", tool_call_id="2", name="create_ticket", status="error")]
     out = cite_sources("2025-07-11 에 감시 강화.\n근거: [근거: 1, 2]", turn)
     assert out.endswith("[근거: WO-00125]") and "1, 2" not in out
-    assert cite_sources("안녕하세요 [근거: ]", [HumanMessage("안녕")]) == "안녕하세요"   # 도구를 안 썼으면 근거도 없다
+    assert cite_sources("안녕하세요 [근거: ]", [HumanMessage("안녕")]) == "안녕하세요"   # 업무 기능(도구)을 안 썼으면 근거도 없다
 
 
 def test_require_tool_nudges_once_then_tool_is_used():
-    """도구 없이 답한 모델에 도구 선택을 필수로 걸어 한 번 더 물으면 도구를 부르고, 답에는 코드가 붙인 근거가 남는다."""
+    """업무 기능(도구) 없이 답한 모델에 업무 기능(도구) 선택을 필수로 걸어 한 번 더 물으면 업무 기능(도구)을 부르고, 답에는 코드가 붙인 근거가 남는다."""
     from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
     from langchain_core.messages import AIMessage
     from langchain_core.tools import tool
@@ -129,7 +129,7 @@ def test_require_tool_nudges_once_then_tool_is_used():
     class Scripted(GenericFakeChatModel):
         def bind_tools(self, tools, **kw):
             return self
-    script = iter([AIMessage("CRB-06 은 수직 풀링 문제입니다. [근거: 1]"),                       # 1) 도구 없이 지어냄 → 되돌림
+    script = iter([AIMessage("CRB-06 은 수직 풀링 문제입니다. [근거: 1]"),                       # 1) 업무 기능(도구) 없이 지어냄 → 되돌림
                    AIMessage("", tool_calls=[{"name": "search_manual", "args": {"query": "CRB-06"}, "id": "c1"}]),
                    AIMessage("보조 순환 펌프 P-22 를 점검합니다. [근거: 1]")])
     app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
@@ -139,7 +139,7 @@ def test_require_tool_nudges_once_then_tool_is_used():
     assert tr["answer"].endswith("[근거: OPS-CRB-06]") and tr["raw_answer"].endswith("[근거: 1]")
     assert score(TASKS["ops-m1"], tr)["success"]
 
-    # 인사: 되돌려도 no_tool_needed 를 고르면 먼저 쓴 답을 그대로, 도구 호출은 0
+    # 인사: 되돌려도 no_tool_needed 를 고르면 먼저 쓴 답을 그대로, 업무 기능(도구) 호출은 0
     script = iter([AIMessage("안녕하세요! 무엇을 도와드릴까요?"),
                    AIMessage("", tool_calls=[{"name": "no_tool_needed", "args": {}, "id": "c2"}])])
     app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),

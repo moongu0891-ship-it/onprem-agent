@@ -1,4 +1,4 @@
-"""규칙 기반 '모델' — LLM 없이 정규식과 낱말로 도구를 고르고, 도구 결과를 이어 붙여 답한다.
+"""규칙 기반 '모델' — LLM 없이 정규식과 낱말로 업무 기능(도구)을 고르고, 업무 기능(도구) 결과를 이어 붙여 답한다.
 
 쓰임
 1. CI·테스트: GPU 없이 그래프·MCP 서버·승인 절차·평가 하네스가 맞물리는지 확인한다.
@@ -48,7 +48,7 @@ class RuleModel(BaseChatModel):
         names = tuple(t["function"]["name"] if isinstance(t, dict) else t.name for t in tools)
         return self.model_copy(update={"tool_names": names})
 
-    # ── 첫 질문에서 부를 도구 ──
+    # ── 첫 질문에서 부를 업무 기능(도구) ──
     def _first_calls(self, q: str) -> list[dict]:
         if re.fullmatch(r"\s*(안녕|고마워|감사)[^?]{0,20}", q):
             return []
@@ -77,7 +77,7 @@ class RuleModel(BaseChatModel):
             return [ticket]
         return [_call("search_manual", {"query": q})]
 
-    # ── 도구 결과를 보고 한 단계 더 갈지 ──
+    # ── 업무 기능(도구) 결과를 보고 한 단계 더 갈지 ──
     def _next_calls(self, q: str, tool_msgs: list[ToolMessage], done: set[str]) -> list[dict]:
         text = "\n".join(str(m.content) for m in tool_msgs)
         if self.scenario == "cs" and "get_customer" in done and "get_plan" not in done and re.search(r"요금|얼마|월", q):
@@ -106,7 +106,7 @@ class RuleModel(BaseChatModel):
         return out + (f"\n[근거: {', '.join(cites[:3])}]" if cites else "")
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs) -> ChatResult:
-        # 이번 질문 이후의 도구 결과만 본다
+        # 이번 질문 이후의 업무 기능(도구) 결과만 본다
         idx = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage))
         q = str(messages[idx].content)
         tool_msgs = [m for m in messages[idx:] if isinstance(m, ToolMessage)]

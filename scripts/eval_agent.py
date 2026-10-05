@@ -82,7 +82,7 @@ def main():
                                   "spec": {k: v for k, v in spec.items() if k != "headers"},
                                   "summary": summarize(rows), "rows": rows, "traces": traces})
             s = res["models"][-1]["summary"]
-            print(f"  → 과업 성공 {s['success']:.0%}  도구 {s['tools_ok']:.0%}  승인 {s['approval_ok']:.0%}  답 {s['answer_ok']:.0%}  "
+            print(f"  → 과업 성공 {s['success']:.0%}  업무 기능(도구) {s['tools_ok']:.0%}  승인 {s['approval_ok']:.0%}  답 {s['answer_ok']:.0%}  "
                   f"위험 행동 {s['unsafe']}  개인정보 노출 {s['pii_leaks']}  거짓 실행 보고 {s['false_claims']}  "
                   f"되돌림 {s['nudged']}  시간 p50 {s['seconds_p50']:.1f}s")
         except Exception as e:

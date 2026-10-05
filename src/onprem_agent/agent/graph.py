@@ -1,25 +1,25 @@
-"""LangGraph 에이전트 그래프. 두 시나리오가 같은 코드를 쓰고, 시스템 프롬프트와 도구 서버만 바뀐다.
+"""LangGraph 에이전트 그래프. 두 시나리오가 같은 코드를 쓰고, 시스템 프롬프트와 업무 기능(도구) 서버만 바뀐다.
 
-    [사용자 질문] → agent(모델) ─ 도구 요청 없음 ─┬─ (안전 기능 ① 되돌림) 이번 질문에 도구를 한 번도 안 썼으면,
-                       │ 도구 요청                │    도구 선택을 '필수'로 걸고 한 번 더 묻는다 — 업무 도구 또는 no_tool_needed(인사·잡담)
+    [사용자 질문] → agent(모델) ─ 업무 기능(도구) 요청 없음 ─┬─ (안전 기능 ① 되돌림) 이번 질문에 업무 기능(도구)을 한 번도 안 썼으면,
+                       │ 업무 기능(도구) 요청                │    업무 기능(도구) 선택을 '필수'로 걸고 한 번 더 묻는다 — 업무 기능(도구) 또는 no_tool_needed(인사·잡담)
                        │                          └─ (안전 기능 ② 근거 자동) finalize: 근거 번호를 코드가 붙임 → 끝
                        ▼
-                     gate ─ 승인이 필요한 도구(create_ticket)가 있으면 멈추고 사람에게 묻는다(interrupt)
+                     gate ─ 승인이 필요한 업무 기능(도구)(create_ticket)가 있으면 멈추고 사람에게 묻는다(interrupt)
                        │        └ 거절 → "실행하지 않음" 결과를 붙여 agent 로 돌아감
                        ▼ 승인 · 승인 불필요
-                     tools(도구 실행) → agent → …
+                     tools(업무 기능(도구) 실행) → agent → …
 
-- 단계 상한(max_steps): 모델이 도구를 끝없이 부르면 멈추고, 지금까지의 결과로 답하게 한다.
+- 단계 상한(max_steps): 모델이 업무 기능(도구)을 끝없이 부르면 멈추고, 지금까지의 결과로 답하게 한다.
 - 체크포인터: 대화·승인 대기 상태를 저장한다. 승인을 기다리는 동안 서버가 재시작돼도 이어 갈 수 있다(SQLite·PostgreSQL).
-- 도구 실행은 직접 한다(ToolNode 대신): 없는 도구 이름·도구 오류를 모델에게 '오류 결과'로 돌려줘 스스로 고치게 하고,
+- 업무 기능(도구) 실행은 직접 한다(ToolNode 대신): 없는 업무 기능(도구) 이름·업무 기능(도구) 오류를 모델에게 '오류 결과'로 돌려줘 스스로 고치게 하고,
   MCP 결과(내용 블록 목록)를 엔진이 받는 일반 문자열로 바꾼다.
 
 안전 기능 두 개 — 모델이 자주 틀리는 것은 모델에 맡기지 않고 구조로 보장한다(노트북 측정, 문제해결 이력 D21·D23):
-- require_tool(되돌림): 작은 모델은 번호가 없는 질문에서 도구를 건너뛰고 지어냈다. 이번 질문에 도구를 한 번도 쓰지 않고 답하면
-  도구 선택을 필수(tool_choice="required")로 걸고 한 번 더 묻는다. 인사·잡담이면 no_tool_needed 를 고르게 해 원래 답을 그대로 쓴다.
-  (2차에서는 "도구를 먼저 써라"는 글을 덧붙였는데, 모델이 그 글에 글로 대답할 뿐 도구를 부르지 않았다 — 4B 13번 되돌려 도구 호출 0번 증가.)
+- require_tool(되돌림): 작은 모델은 번호가 없는 질문에서 업무 기능(도구)을 건너뛰고 지어냈다. 이번 질문에 업무 기능(도구)을 한 번도 쓰지 않고 답하면
+  업무 기능(도구) 선택을 필수(tool_choice="required")로 걸고 한 번 더 묻는다. 인사·잡담이면 no_tool_needed 를 고르게 해 원래 답을 그대로 쓴다.
+  (2차에서는 "업무 기능(도구)을 먼저 써라"는 글을 덧붙였는데, 모델이 그 글에 글로 대답할 뿐 업무 기능(도구)을 부르지 않았다 — 4B 13번 되돌려 업무 기능(도구) 호출 0번 증가.)
 - auto_cite(근거 자동): 모델은 근거를 1, 2 같은 순번으로 적거나 찾지도 않은 근거를 붙였다. 모델이 쓴 [근거: …] 는 지우고,
-  이번 질문에서 성공한 도구 결과의 [대괄호] 번호를 코드가 붙인다. 모델이 쓴 원래 답은 response_metadata["raw_answer"] 에 남긴다.
+  이번 질문에서 성공한 업무 기능(도구) 결과의 [대괄호] 번호를 코드가 붙인다. 모델이 쓴 원래 답은 response_metadata["raw_answer"] 에 남긴다.
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def this_turn(messages: list) -> list:
 
 
 def cite_sources(raw: str, turn: list) -> str:
-    """모델이 쓴 근거 표기를 지우고, 이번 질문에서 성공한 도구 결과의 근거 번호를 붙인다."""
+    """모델이 쓴 근거 표기를 지우고, 이번 질문에서 성공한 업무 기능(도구) 결과의 근거 번호를 붙인다."""
     ids = []
     for m in turn:
         if isinstance(m, ToolMessage) and m.status == "success":
@@ -80,12 +80,12 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
     async def agent(state: AgentState):
         steps = state.get("steps", 0)
         msgs = [SystemMessage(system_prompt), *state["messages"]]
-        if steps >= max_steps:   # 단계 상한: 도구 없이 지금까지의 결과로 답하게 한다
+        if steps >= max_steps:   # 단계 상한: 업무 기능(도구) 없이 지금까지의 결과로 답하게 한다
             msgs.append(SystemMessage("도구를 더 부르지 말고 지금까지의 결과로 답하라."))
             return {"messages": [await model.ainvoke(msgs)], "steps": steps + 1}
         resp = await llm_tools.ainvoke(msgs)
         if require_tool and not resp.tool_calls and not any(isinstance(m, ToolMessage) for m in this_turn(state["messages"])):
-            # 되돌림: 도구 선택을 필수로 걸고 한 번 더. 업무 도구를 고르면 그걸 쓰고(먼저 쓴 답은 버림),
+            # 되돌림: 업무 기능(도구) 선택을 필수로 걸고 한 번 더. 업무 기능(도구)을 고르면 그걸 쓰고(먼저 쓴 답은 버림),
             # no_tool_needed 를 고르거나 아무것도 안 고르면 먼저 쓴 답을 그대로 쓴다.
             forced = await llm_forced.ainvoke([*msgs, SystemMessage(FORCE_NOTE)])
             calls = [tc for tc in forced.tool_calls if tc["name"] != NO_TOOL]

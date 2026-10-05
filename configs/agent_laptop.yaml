@@ -4,11 +4,11 @@
 # 질문: ① LLM 이 규칙 기준선보다 나은가(특히 자연스러운 말투) ② 1.7B → 4B 로 키우면 나아지나
 #       ③ 엔진에 따라 과업 성공이 달라지나 ④ 그래프의 두 안전 기능(되돌림·근거 자동)가 얼마나 메우나 — 같은 모델을 켜고/끄고 잰다
 # 1차(개선 전): reports/agent_laptop_v1.md, 2차(안전 기능 첫판): reports/agent_laptop_v2.md.
-# 2차부터 도구 결과의 근거 번호 형식 통일·프롬프트 근거 규칙이 모든 줄에 들어가고, '(안전 기능 끔)' 줄은 그래프 안전 기능만 끈 것이다.
-# 3차: 되돌림 = 도구 선택 필수(tool_choice=required) + no_tool_needed. 4B 는 생각 모드를 켠 줄도 잰다.
+# 2차부터 업무 기능(도구) 결과의 근거 번호 형식 통일·프롬프트 근거 규칙이 모든 줄에 들어가고, '(안전 기능 끔)' 줄은 그래프 안전 기능만 끈 것이다.
+# 3차: 되돌림 = 업무 기능(도구) 선택 필수(tool_choice=required) + no_tool_needed. 4B 는 생각 모드를 켠 줄도 잰다.
 name: agent_laptop
 tasks: eval/agent_tasks.jsonl
-embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}   # 검색 도구는 2주차 기본값(라우팅 + bge-m3). GPU 는 엔진이 쓰므로 임베딩은 CPU 로
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}   # 검색 업무 기능(도구)은 2주차 기본값(라우팅 + bge-m3). GPU 는 엔진이 쓰므로 임베딩은 CPU 로
 graph: {require_tool: true, auto_cite: true}     # 기본: 두 안전 기능 켬. 모델별 graph 로 덮어쓴다
 models:
   - {label: "규칙 기준선", kind: rule}
