@@ -14,7 +14,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: 설치
-        run: pip install -e ".[chroma,serving,dev]"
+        run: pip install -e ".[chroma,serving,agent,dev]"
       - name: 단위 테스트
         run: pytest -q
       - name: 데이터가 생성 스크립트와 일치하는지 확인
@@ -23,6 +23,8 @@ jobs:
           git diff --exit-code data eval
       - name: 검색 회귀 검사 (기준 갈래 Recall@3 >= 0.80)
         run: python scripts/eval_retrieval.py configs/retrieval_baseline.yaml --min-recall3 0.80
+      - name: 에이전트 회귀 검사 (규칙 기준선, MCP 서버·승인 절차 포함, 과업 성공 >= 60%)
+        run: python scripts/eval_agent.py configs/agent_ci.yaml
       - uses: actions/upload-artifact@v4
         with:
           name: retrieval-report

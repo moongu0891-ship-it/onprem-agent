@@ -6,3 +6,4 @@ chroma_db/
 results/
 .env
 milvus_lite.db
+var/

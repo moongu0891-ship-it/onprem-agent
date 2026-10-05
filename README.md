@@ -18,6 +18,7 @@
 |---|---|
 | 이 README | 계층 구성, 지금 기본값, 주차별 결과와 결정 |
 | [serving/README.md](serving/README.md) | 서빙 결과 읽는 법, 결과표 전체와 해석, 장애 대체 시험 |
+| [agent/README.md](agent/README.md) | 에이전트 설계(승인·개인정보·도구), 실행·데모, 과업 평가 읽는 법과 결과 |
 | [docs/쉽게_풀어쓴_개념.md](docs/쉽게_풀어쓴_개념.md) | 용어를 비유로 풀어 둔 설명 (도서관 · 상담 창구 · 레시피 카드 · 교환기) |
 | [docs/문제해결_이력.md](docs/문제해결_이력.md) | 부딪힌 문제: 증상 → 원인 → 해결 → 교훈 |
 | [docs/노트북_환경_구축.md](docs/노트북_환경_구축.md) | Windows 노트북(WSL2 · Docker · GPU)에서 돌리기까지, 결과 읽는 법 |
@@ -34,7 +35,7 @@
 | 벡터DB | 비교 방법을 정함: **엔진마다 근사 재현율을 맞춘 뒤 속도 비교, 3회 반복**. pgvector 필터 검색은 `iterative_scan` 필수 | Qdrant · Milvus · Elasticsearch · Weaviate · pgvector · Chroma | [2주차](#벡터db-6종) |
 | 서빙 엔진 | **SGLang** (디코드 CUDA 그래프 상한 16, 접두사 캐시 켬) — 잠정 | vLLM · SGLang · llama.cpp | [3주차](#3주차-서빙) |
 | 게이트웨이 | **LiteLLM**: 에이전트는 `agent-llm` 만 안다. 1순위 GPU SGLang, 장애 시 CPU llama.cpp | 직접 호출 대비 비용 | [3주차](#3주차-서빙) |
-| 에이전트 | LangGraph, 도구는 MCP 서버 (SQL 조회 · 문서 검색 · 분석 · 승인 필요한 실행) | 모델·설정별 과업 성공률 | 4~5주차 예정 |
+| 에이전트 | **LangGraph + MCP 도구 서버 2개.** 정확한 값은 SQL 도구, 문서는 검색 도구. 상태를 바꾸는 도구는 사람 승인, 개인정보는 도구 서버에서 가림, 대화·승인 대기는 DB 저장 | 규칙 기준선 · 모델 크기 · 엔진별 과업 성공률 (노트북 측정 예정) | [4주차](#4주차-에이전트-진행-중) |
 | 공통 | 평가 하네스 · 가드레일 · Langfuse 추적 · K8s · CI/CD · 오프라인 설치 | | 이후 |
 
 측정은 모두 노트북(RTX 5070 Laptop 8GB, WSL2, Docker)에서 했다. 서빙의 최종 수치는 24GB 이상 GPU 에서 다시 잰다.
@@ -137,6 +138,15 @@
 
 → 에이전트 설계에 가져갈 것: 시스템 프롬프트·도구 설명은 맨 앞에 고정(캐시), 대체 엔진으로 넘어가면 지연 안내.
 
+## 4주차: 에이전트 (진행 중)
+
+두 시나리오(설비 정비 · 고객 상담)가 같은 LangGraph 그래프를 쓰고, 시스템 프롬프트와 MCP 도구 서버만 바꾼다. 설계와 결과 읽는 법: [agent/README.md](agent/README.md)
+
+- **과업 평가셋 26개**: 질문 하나를 끝까지 처리했나(도구·인자, 승인 절차, 답의 핵심 값·근거, 개인정보 노출)를 채점한다. 거절했는데 실행된 티켓은 '위험 행동'으로 따로 센다.
+- **규칙 기준선** (LLM 없음): 과업 성공 73%, 위험 행동 0, 개인정보 노출 0. 키워드로는 못 알아듣는 '바꿔 말하기' 과업 3개를 모두 놓쳤다 — 이 차이를 LLM 이 메우는지가 다음 측정이다.
+- 승인 대기 중 프로그램을 껐다 켜도 같은 승인 질문이 다시 나온다(대화·승인 상태를 SQLite·PostgreSQL 에 저장).
+- 다음: 노트북에서 Qwen3-1.7B(SGLang·vLLM)와 Qwen3-4B 로 같은 과업을 재서, 규칙 대비 이득·모델 크기·엔진의 영향을 본다.
+
 ---
 
 ## 실행
@@ -157,6 +167,11 @@ pip install -e ".[serving]"
 docker compose --profile all down
 python scripts/bench_serving.py configs/serving_laptop.yaml --manage
 python scripts/failover_test.py                                                       # 장애 대체 시험
+
+# 에이전트
+pip install -e ".[agent]"
+python scripts/agent_chat.py ops                                                      # 대화 데모 (티켓은 y/n 승인)
+python scripts/eval_agent.py configs/agent_ci.yaml                                    # 과업 평가 (규칙 기준선)
 ```
 
 - 측정 결과는 `results/`(Git 제외)에 쓰이고, 확정본만 `reports/`에 옮겨 커밋한다.
@@ -173,11 +188,12 @@ src/onprem_agent/
   retrieval/         BM25 · 벡터 · 하이브리드(RRF) · 라우팅 · 의도 필터 · 리랭커, 설정으로 조립
   eval/              Recall@k · MRR · 지연, 질문 유형별 채점, 마크다운 리포트
   serving/           부하 측정(TTFT · TPOT · 굿풋 · 캐시), 요청 모양, 도구 호출 검사, 장애 대체 기록
-scripts/             make_data · eval_retrieval · bench_serving · failover_test
+  agent/             업무 DB, MCP 도구 서버, LangGraph 그래프(승인), 규칙 기준선, 과업 채점
+scripts/             make_data · eval_retrieval · bench_serving · failover_test · eval_agent · agent_chat
 configs/             실험 설정 (실험은 설정 파일만 바꿔서 돌린다)
-serving/             엔진·게이트웨이 compose, LiteLLM 설정, 서빙 README
+serving/ · agent/    서빙(엔진·게이트웨이 compose, LiteLLM 설정)과 에이전트의 README
 data/ ops · ops_logs · cs    가상 설비 매뉴얼·정비 이력, 가상 통신사 요금제·약관·FAQ·고객 DB
-eval/                질문셋 (code · paraphrase · hard · history, 정답 = 절 id), 도구 호출 20문항
+eval/                질문셋 (code · paraphrase · hard · history, 정답 = 절 id), 도구 호출 20문항, 에이전트 과업 26개
 docs/ · reports/     설명 문서, 측정 원본
 ```
 

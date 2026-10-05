@@ -1,0 +1,8 @@
+# 에이전트 과업 평가 — 규칙 모델만 (GPU·모델 없이 어디서나 돈다, CI 회귀 검사)
+#   python scripts/eval_agent.py configs/agent_ci.yaml
+name: agent_ci
+tasks: eval/agent_tasks.jsonl
+embedder: {kind: hash}          # 검색 도구의 임베더. 노트북에서는 bge-m3
+min_success: 0.60               # 규칙 기준선이 이 밑으로 떨어지면 그래프·도구·채점 어딘가가 깨진 것
+models:
+  - {label: "규칙 기준선", kind: rule}

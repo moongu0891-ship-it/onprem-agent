@@ -88,6 +88,16 @@ services:
       --host 0.0.0.0 --port 30000 --context-length 8192 --mem-fraction-static 0.80
       --tool-call-parser ${SGLANG_TOOL_PARSER:-qwen25} --enable-cache-report --cuda-graph-max-bs-decode 16 ${SGLANG_EXTRA:-}
 
+  # 4주차 에이전트 모델 크기 비교용: Qwen3-4B 양자화판 (8GB 에는 BF16 4B 가 안 들어간다).
+  # 기본 FP8(약 4.4GB). Blackwell 노트북에서 FP8 커널이 안 맞으면 AWQ 4비트판으로: QWEN4B_MODEL=Qwen/Qwen3-4B-AWQ
+  sglang-4b:
+    <<: *sglang
+    profiles: [sglang-4b]
+    command: >
+      python3 -m sglang.launch_server --model-path ${QWEN4B_MODEL:-Qwen/Qwen3-4B-FP8} --served-model-name qwen3-4b
+      --host 0.0.0.0 --port 30000 --context-length 8192 --mem-fraction-static 0.80
+      --tool-call-parser ${SGLANG_TOOL_PARSER:-qwen25} --enable-cache-report --cuda-graph-max-bs-decode 16 ${SGLANG_EXTRA:-}
+
   # CUDA 12 이미지를 쓴다. server-cuda13 은 호환 라이브러리가 최신 드라이버와 어긋나는 문제가 보고됨(llama.cpp #23111).
   # -c 는 전체 KV 용량이고 슬롯(-np)들이 나눠 쓴다: 32768 / 8 = 슬롯당 4096 토큰.
   llamacpp:
