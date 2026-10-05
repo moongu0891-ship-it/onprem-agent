@@ -75,7 +75,8 @@ def main():
                 compose(profile, "up")
                 wait_ready(spec["base_url"], spec.get("headers", {}), a.ready_timeout, profile)
             rows, traces = asyncio.run(eval_model(spec, tasks, mcp_env, a.tasks))
-            res["models"].append({"label": spec["label"], "spec": {k: v for k, v in spec.items() if k != "headers"},
+            res["models"].append({"label": spec["label"], "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                                  "spec": {k: v for k, v in spec.items() if k != "headers"},
                                   "summary": summarize(rows), "rows": rows, "traces": traces})
             s = res["models"][-1]["summary"]
             print(f"  → 과업 성공 {s['success']:.0%}  도구 {s['tools_ok']:.0%}  승인 {s['approval_ok']:.0%}  답 {s['answer_ok']:.0%}  "
@@ -86,7 +87,7 @@ def main():
                 from bench_serving import save_logs
                 msg += f" — 엔진 로그: {save_logs(profile, cfg['name'] + '_' + spec['label'].replace(' ', '_'))}"
             print(f"  건너뜀: {msg}")
-            res["models"].append({"label": spec["label"], "error": msg})
+            res["models"].append({"label": spec["label"], "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "error": msg})
         finally:
             if a.manage and profile:
                 from bench_serving import compose
@@ -94,9 +95,16 @@ def main():
 
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
-    (out / f"{cfg['name']}.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
-    (out / f"{cfg['name']}.md").write_text(to_markdown(res), encoding="utf-8")
-    print(f"\n저장: results/{cfg['name']}.json, results/{cfg['name']}.md")
+    name = cfg["name"] + ("_partial" if a.tasks else "")   # 일부 과업만 돌린 결과는 전체 결과와 섞지 않는다
+    prev_path = out / f"{name}.json"
+    if a.only and prev_path.exists():
+        # --only 로 일부 모델만 다시 돌렸으면, 이전에 잰 다른 모델 결과는 지우지 않고 남긴다(설정 파일 순서 유지)
+        prev = {m["label"]: m for m in json.loads(prev_path.read_text(encoding="utf-8")).get("models", [])}
+        new = {m["label"]: m for m in res["models"]}
+        res["models"] = [new.get(s["label"]) or prev[s["label"]] for s in cfg["models"] if s["label"] in new or s["label"] in prev]
+    (out / f"{name}.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
+    (out / f"{name}.md").write_text(to_markdown(res), encoding="utf-8")
+    print(f"\n저장: results/{name}.json, results/{name}.md")
     gate = cfg.get("min_success")
     if gate is not None:
         worst = min((m["summary"]["success"] for m in res["models"] if not m.get("error")), default=0)
