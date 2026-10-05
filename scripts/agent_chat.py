@@ -2,7 +2,7 @@
 
     python scripts/agent_chat.py ops                                   # 규칙 모델 (GPU 없이)
     python scripts/agent_chat.py ops --model sglang                    # SGLang 직접 (localhost:30000)
-    python scripts/agent_chat.py cs  --model gateway                   # LiteLLM 게이트웨이의 agent-llm
+    python scripts/agent_chat.py cs  --model gateway                   # LiteLLM 게이트웨이의 agent-llm-4b
     python scripts/agent_chat.py ops --model sglang --store postgres   # 대화·승인 대기 상태를 PostgreSQL 에 저장
 
 대화와 '승인 대기' 상태는 체크포인터에 저장된다. --thread 로 같은 번호를 주면 프로그램을 껐다 켜도 이어진다
@@ -30,11 +30,13 @@ from onprem_agent.agent.runner import make_model, mcp_tools  # noqa: E402
 MODELS = {
     "rule": {"kind": "rule"},
     "sglang": {"kind": "openai", "base_url": "http://localhost:30000/v1", "model": "qwen3-1.7b"},
-    # 4주차 측정으로 고른 기본값: 4B + 생각 모드 + 안전 기능 (과업 성공 92%, 2회 같음)
+    # 4·5주차 측정으로 고른 기본값: 4B + 생각 모드 + 안전 기능 + 안전 질문 검색 (과업 성공 96%)
     "sglang-4b": {"kind": "openai", "base_url": "http://localhost:30000/v1", "model": "qwen3-4b",
                   "thinking": True, "max_tokens": 2048, "timeout": 300},
     "vllm": {"kind": "openai", "base_url": "http://localhost:8000/v1", "model": "qwen3-1.7b"},
-    "gateway": {"kind": "openai", "base_url": "http://localhost:4000/v1", "model": "agent-llm", "api_key": "sk-local-dev"},
+    # 5주차 결정: 게이트웨이 이름 agent-llm-4b (4B + 생각 모드, 1순위 장애 시 CPU 대체 → 답에 지연 안내)
+    "gateway": {"kind": "openai", "base_url": "http://localhost:4000/v1", "model": "agent-llm-4b", "api_key": "sk-local-dev",
+                "thinking": True, "max_tokens": 2048, "timeout": 900, "response_headers": True},
 }
 PG_DSN = "postgresql://agent:agent@localhost:15432/agent"
 

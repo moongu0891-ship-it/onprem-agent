@@ -1,6 +1,6 @@
-# 에이전트 과업 평가 5주차 ③ — 게이트웨이 경유와 엔진 장애 (노트북 RTX 5070 Laptop 8GB)
+# 에이전트 과업 평가 5주차 ② — 게이트웨이 경유와 엔진 장애 (노트북 RTX 5070 Laptop 8GB)
 #   python scripts/eval_agent.py configs/agent_laptop_gw.yaml --manage
-# 3주차 결정: 에이전트는 엔진 주소를 모르고 게이트웨이(LiteLLM)의 이름만 안다. 4주차 기본값(4B + 생각 모드 + 안전 기능)을
+# 3주차 결정: 에이전트는 엔진 주소를 모르고 게이트웨이(LiteLLM)의 이름만 안다. 5주차 기본값(4B + 생각 모드 + 안전 기능 + 안전 질문 검색)을
 # 게이트웨이 이름 agent-llm-4b 로 부르고, 1순위가 죽으면 CPU llama.cpp(1.7B Q8)로 넘어간다(serving/litellm.yaml).
 #   ① 엔진 직접 vs 게이트웨이 경유: 같은 과업에서 품질·시간이 같은가 (생각 모드·tool_choice=required 같은 옵션이 그대로 넘어가나)
 #   ② 과업 도중 1순위 강제 종료(docker kill): 과업이 끊기지 않고 끝나나, 대체 엔진이 답한 과업에 지연 안내가 붙나
