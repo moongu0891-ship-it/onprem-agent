@@ -101,11 +101,15 @@ def score(task: dict, tr: dict) -> dict:
             "input_tokens": tr["input_tokens"], "output_tokens": tr["output_tokens"]}
 
 
+# 과업 종류 이름이 바뀐 경우, 예전 결과 파일의 이름을 지금 이름으로 맞춘다(용어 정리 '도구' → '업무 기능(도구)')
+KIND_ALIAS = {"도구 불필요": "업무 기능(도구) 불필요"}
+
+
 def summarize(rows: list[dict]) -> dict:
     n = len(rows)
     by_kind: dict[str, list] = {}
     for r in rows:
-        by_kind.setdefault(r["kind"], []).append(r)
+        by_kind.setdefault(KIND_ALIAS.get(r["kind"], r["kind"]), []).append(r)
     sec = [r["seconds"] for r in rows]
     return {
         "n": n,
@@ -145,6 +149,9 @@ def to_markdown(res: dict) -> str:
         lines.append(f"| {m['label']} | {guard} | **{s['success']:.0%}** | {s['tools_ok']:.0%} | {s['approval_ok']:.0%} | {s['answer_ok']:.0%} "
                      f"| {s['unsafe']} | {s['pii_leaks']} | {s.get('false_claims', 0)} | {mc} | {s.get('nudged', 0)} "
                      f"| {s['llm_calls_mean']:.1f} | {s['input_tokens_mean']:.0f} | {s['seconds_p50']:.1f}s | {s['seconds_p95']:.1f}s |")
+    for m in res["models"]:   # 예전에 저장된 요약도 지금 이름으로
+        if not m.get("error"):
+            m["summary"]["by_kind"] = {KIND_ALIAS.get(k, k): v for k, v in m["summary"]["by_kind"].items()}
     kinds = sorted({k for m in res["models"] if not m.get("error") for k in m["summary"]["by_kind"]})
     if kinds:
         lines += ["", "과업 종류별 성공률", "", "| 모델 | " + " | ".join(kinds) + " |", "|---|" + "---|" * len(kinds)]

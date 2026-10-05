@@ -18,5 +18,6 @@
 | [agent_laptop_v1.md](agent_laptop_v1.md) | 4주차 에이전트 과업 26개: 규칙 · Qwen3-1.7B(SGLang·vLLM) · 4B, 실패 답 발췌 (개선 전) | 노트북 |
 | [agent_laptop_v2.md](agent_laptop_v2.md) | 4주차 에이전트 2차: 안전 기능 켬/끔 비교, 채점 보강 (측정기 결함 D22 표시) | 노트북 |
 | [agent_laptop_v3.md](agent_laptop_v3.md) | 4주차 에이전트 3차: 되돌림 = 필수 선택, **4B 생각 켬 92%** | 노트북 |
+| [agent_laptop_v4.md](agent_laptop_v4.md) | 4주차 에이전트 4차: 생각 모드 몫 나누기, 92% 재현, 1.7B 생각 켬 85% | 노트북 |
 
 노트북 = RTX 5070 Laptop 8GB · WSL2 · Docker.
