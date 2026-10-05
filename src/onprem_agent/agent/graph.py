@@ -1,7 +1,8 @@
 """LangGraph 에이전트 그래프. 두 시나리오가 같은 코드를 쓰고, 시스템 프롬프트와 도구 서버만 바뀐다.
 
-    [사용자 질문] → agent(모델) ─ 도구 요청 없음 ─┬─ (require_tool) 이번 질문에 도구를 한 번도 안 썼으면 한 번 되돌림 → agent
-                       │ 도구 요청                 └─ (auto_cite) finalize: 근거 번호를 코드가 붙임 → 끝
+    [사용자 질문] → agent(모델) ─ 도구 요청 없음 ─┬─ (안전 기능 ① 되돌림) 이번 질문에 도구를 한 번도 안 썼으면,
+                       │ 도구 요청                │    도구 선택을 '필수'로 걸고 한 번 더 묻는다 — 업무 도구 또는 no_tool_needed(인사·잡담)
+                       │                          └─ (안전 기능 ② 근거 자동) finalize: 근거 번호를 코드가 붙임 → 끝
                        ▼
                      gate ─ 승인이 필요한 도구(create_ticket)가 있으면 멈추고 사람에게 묻는다(interrupt)
                        │        └ 거절 → "실행하지 않음" 결과를 붙여 agent 로 돌아감
@@ -13,26 +14,30 @@
 - 도구 실행은 직접 한다(ToolNode 대신): 없는 도구 이름·도구 오류를 모델에게 '오류 결과'로 돌려줘 스스로 고치게 하고,
   MCP 결과(내용 블록 목록)를 엔진이 받는 일반 문자열로 바꾼다.
 
-안전 기능 두 개 — 모델이 자주 틀리는 것은 모델에 맡기지 않고 구조로 보장한다(노트북 1차 측정, 문제해결 이력 D21):
-- require_tool: 작은 모델은 번호가 없는 질문에서 도구를 건너뛰고 지어냈다. 이번 질문에 도구를 한 번도 쓰지 않고 답하면
-  한 번만 되돌려 "업무 질문이면 먼저 도구를, 인사·잡담이면 같은 답을" 하게 한다.
-- auto_cite: 모델은 근거를 1, 2 같은 순번으로 적거나 찾지도 않은 근거를 붙였다. 모델이 쓴 [근거: …] 는 지우고,
+안전 기능 두 개 — 모델이 자주 틀리는 것은 모델에 맡기지 않고 구조로 보장한다(노트북 측정, 문제해결 이력 D21·D23):
+- require_tool(되돌림): 작은 모델은 번호가 없는 질문에서 도구를 건너뛰고 지어냈다. 이번 질문에 도구를 한 번도 쓰지 않고 답하면
+  도구 선택을 필수(tool_choice="required")로 걸고 한 번 더 묻는다. 인사·잡담이면 no_tool_needed 를 고르게 해 원래 답을 그대로 쓴다.
+  (2차에서는 "도구를 먼저 써라"는 글을 덧붙였는데, 모델이 그 글에 글로 대답할 뿐 도구를 부르지 않았다 — 4B 13번 되돌려 도구 호출 0번 증가.)
+- auto_cite(근거 자동): 모델은 근거를 1, 2 같은 순번으로 적거나 찾지도 않은 근거를 붙였다. 모델이 쓴 [근거: …] 는 지우고,
   이번 질문에서 성공한 도구 결과의 [대괄호] 번호를 코드가 붙인다. 모델이 쓴 원래 답은 response_metadata["raw_answer"] 에 남긴다.
 """
 
 from __future__ import annotations
 
 import re
-import uuid
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.types import Command, interrupt
 
 APPROVAL_TOOLS = frozenset({"create_ticket"})
-NUDGE_PREFIX = "nudge-"
-NUDGE = ("(시스템 확인) 방금 도구로 근거를 찾지 않고 답했다. 설비 경보·작업 이력·작업 요청, 고객·요금제·약관에 관한 업무 질문이면 "
-         "지금 알맞은 도구를 먼저 불러라. 인사·잡담처럼 도구가 필요 없는 말이면 방금 답을 그대로 다시 써라.")
+NO_TOOL = "no_tool_needed"
+NO_TOOL_SPEC = {"type": "function", "function": {
+    "name": NO_TOOL,
+    "description": "인사·감사·잡담처럼 업무 도구가 전혀 필요 없는 말일 때만 고른다. 설비·이력·작업 요청·고객·요금제·약관에 관한 질문이면 고르지 않는다.",
+    "parameters": {"type": "object", "properties": {}}}}
+FORCE_NOTE = ("방금 도구 없이 답하려 했다. 업무 질문이면 알맞은 업무 도구를 골라 불러라. "
+              "인사·잡담처럼 도구가 정말 필요 없을 때만 no_tool_needed 를 골라라.")
 SOURCE_ID = re.compile(r"\[([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)\]")          # [OPS-CRB-06] [WO-00125] [TK-0001] [C0050] [CS-PLN-5G89]
 MODEL_CITE = re.compile(r"\[?\s*근거\s*:[^\]\n]*\]?")
 
@@ -49,13 +54,9 @@ def _to_text(out) -> str:
     return str(out)
 
 
-def is_nudge(m) -> bool:
-    return isinstance(m, HumanMessage) and str(m.id or "").startswith(NUDGE_PREFIX)
-
-
 def this_turn(messages: list) -> list:
-    """마지막 '진짜' 사용자 질문(되돌림 메시지 제외) 이후의 메시지."""
-    idx = max((i for i, m in enumerate(messages) if isinstance(m, HumanMessage) and not is_nudge(m)), default=0)
+    """마지막 사용자 질문 이후의 메시지."""
+    idx = max((i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=0)
     return messages[idx:]
 
 
@@ -74,26 +75,31 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
                 require_tool: bool = False, auto_cite: bool = False):
     by_name = {t.name: t for t in tools}
     llm_tools = model.bind_tools(tools)
+    llm_forced = model.bind_tools([*tools, NO_TOOL_SPEC], tool_choice="required") if require_tool else None
 
     async def agent(state: AgentState):
         steps = state.get("steps", 0)
         msgs = [SystemMessage(system_prompt), *state["messages"]]
         if steps >= max_steps:   # 단계 상한: 도구 없이 지금까지의 결과로 답하게 한다
             msgs.append(SystemMessage("도구를 더 부르지 말고 지금까지의 결과로 답하라."))
-            resp = await model.ainvoke(msgs)
-        else:
-            resp = await llm_tools.ainvoke(msgs)
-        out = [resp]
-        if require_tool and not resp.tool_calls and steps < max_steps:
-            turn = this_turn(state["messages"])
-            if not any(isinstance(m, ToolMessage) for m in turn) and not any(is_nudge(m) for m in turn):
-                out.append(HumanMessage(NUDGE, id=f"{NUDGE_PREFIX}{uuid.uuid4().hex[:8]}"))
-        return {"messages": out, "steps": steps + 1}
+            return {"messages": [await model.ainvoke(msgs)], "steps": steps + 1}
+        resp = await llm_tools.ainvoke(msgs)
+        if require_tool and not resp.tool_calls and not any(isinstance(m, ToolMessage) for m in this_turn(state["messages"])):
+            # 되돌림: 도구 선택을 필수로 걸고 한 번 더. 업무 도구를 고르면 그걸 쓰고(먼저 쓴 답은 버림),
+            # no_tool_needed 를 고르거나 아무것도 안 고르면 먼저 쓴 답을 그대로 쓴다.
+            forced = await llm_forced.ainvoke([*msgs, SystemMessage(FORCE_NOTE)])
+            calls = [tc for tc in forced.tool_calls if tc["name"] != NO_TOOL]
+            meta = {**(resp.response_metadata or {}), "nudged": True}
+            if calls:
+                resp = AIMessage(content="", tool_calls=calls, id=forced.id, response_metadata=meta,
+                                 usage_metadata=getattr(forced, "usage_metadata", None))
+            else:
+                resp = AIMessage(content=resp.content, id=resp.id, response_metadata=meta,
+                                 usage_metadata=getattr(resp, "usage_metadata", None))
+        return {"messages": [resp], "steps": steps + 1}
 
     def route(state: AgentState):
         last = state["messages"][-1]
-        if is_nudge(last):
-            return "agent"
         if isinstance(last, AIMessage) and last.tool_calls:
             return "gate"
         return "finalize" if auto_cite else END
@@ -145,7 +151,7 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
     g.add_node("tools", run_tools)
     g.add_node("finalize", finalize)
     g.add_edge(START, "agent")
-    g.add_conditional_edges("agent", route, ["gate", "agent", "finalize", END])
+    g.add_conditional_edges("agent", route, ["gate", "finalize", END])
     g.add_edge("tools", "agent")
     g.add_edge("finalize", END)
     return g.compile(checkpointer=checkpointer)

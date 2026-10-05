@@ -113,7 +113,7 @@ def test_cite_sources_replaces_model_citations():
 
 
 def test_require_tool_nudges_once_then_tool_is_used():
-    """도구 없이 답한 모델을 한 번 되돌리면 도구를 부르고, 답에는 코드가 붙인 근거가 남는다."""
+    """도구 없이 답한 모델에 도구 선택을 필수로 걸어 한 번 더 물으면 도구를 부르고, 답에는 코드가 붙인 근거가 남는다."""
     from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
     from langchain_core.messages import AIMessage
     from langchain_core.tools import tool
@@ -138,3 +138,12 @@ def test_require_tool_nudges_once_then_tool_is_used():
     assert tr["nudged"] == 1 and [c["name"] for c in tr["tool_calls"]] == ["search_manual"]
     assert tr["answer"].endswith("[근거: OPS-CRB-06]") and tr["raw_answer"].endswith("[근거: 1]")
     assert score(TASKS["ops-m1"], tr)["success"]
+
+    # 인사: 되돌려도 no_tool_needed 를 고르면 먼저 쓴 답을 그대로, 도구 호출은 0
+    script = iter([AIMessage("안녕하세요! 무엇을 도와드릴까요?"),
+                   AIMessage("", tool_calls=[{"name": "no_tool_needed", "args": {}, "id": "c2"}])])
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+                      require_tool=True, auto_cite=True)
+    tr = asyncio.run(run_task(app, TASKS["ops-n1"]["question"]))
+    assert tr["nudged"] == 1 and tr["tool_calls"] == [] and tr["answer"] == "안녕하세요! 무엇을 도와드릴까요?"
+    assert score(TASKS["ops-n1"], tr)["success"]

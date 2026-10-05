@@ -9,7 +9,7 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.types import Command
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -34,11 +34,18 @@ def make_model(spec: dict, scenario: str):
     if spec["kind"] == "rule":
         from .rule_model import RuleModel
         return RuleModel(scenario=scenario)
+    import httpx
     from langchain_openai import ChatOpenAI
+    # 연결(httpx 클라이언트)을 모델마다 새로 만든다. langchain-openai 는 기본 클라이언트를 주소별로 캐시해 두는데,
+    # 평가는 모델마다 asyncio.run 을 새로 돌리므로 같은 주소의 두 번째 모델이 닫힌 이벤트 루프의 연결을 물려받아
+    # 첫 요청이 "Event loop is closed" 로 실패했다(노트북 2차, 문제해결 이력 D22).
+    timeout = spec.get("timeout", 120)
     return ChatOpenAI(base_url=spec["base_url"], model=spec["model"], api_key=spec.get("api_key", "none"),
-                      temperature=0.0, max_tokens=spec.get("max_tokens", 512), timeout=spec.get("timeout", 120),
+                      temperature=0.0, max_tokens=spec.get("max_tokens", 512), timeout=timeout,
                       default_headers=spec.get("headers"),
-                      extra_body={"chat_template_kwargs": {"enable_thinking": False}})   # Qwen3 생각 모드 끔
+                      http_async_client=httpx.AsyncClient(timeout=timeout), http_client=httpx.Client(timeout=timeout),
+                      # Qwen3 생각 모드: 기본 끔(서빙 측정과 같게). spec 에 thinking: true 면 켠다(생각 글은 엔진이 따로 떼어 낸다)
+                      extra_body={"chat_template_kwargs": {"enable_thinking": bool(spec.get("thinking", False))}})
 
 
 async def run_task(app, question: str, approval: str = "approve", max_interrupts: int = 3) -> dict:
@@ -70,7 +77,7 @@ async def run_task(app, question: str, approval: str = "approve", max_interrupts
     usage = [m.usage_metadata for m in msgs if isinstance(m, AIMessage) and getattr(m, "usage_metadata", None)]
     return {"question": question, "tool_calls": calls, "executed": executed, "approvals_asked": asked,
             "answer": final, "raw_answer": raw,
-            "nudged": sum(1 for m in msgs if isinstance(m, HumanMessage) and str(m.id or "").startswith("nudge-")),
+            "nudged": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("nudged")),
             "llm_calls": sum(1 for m in msgs if isinstance(m, AIMessage)),
             "input_tokens": sum(u.get("input_tokens", 0) for u in usage), "output_tokens": sum(u.get("output_tokens", 0) for u in usage),
             "seconds": elapsed, "error": error}

@@ -45,7 +45,8 @@ class RuleModel(BaseChatModel):
         return "rule"
 
     def bind_tools(self, tools, **kwargs):
-        return self.model_copy(update={"tool_names": tuple(t.name for t in tools)})
+        names = tuple(t["function"]["name"] if isinstance(t, dict) else t.name for t in tools)
+        return self.model_copy(update={"tool_names": names})
 
     # ── 첫 질문에서 부를 도구 ──
     def _first_calls(self, q: str) -> list[dict]:
@@ -105,9 +106,8 @@ class RuleModel(BaseChatModel):
         return out + (f"\n[근거: {', '.join(cites[:3])}]" if cites else "")
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs) -> ChatResult:
-        from .graph import is_nudge
-        # 이번 질문 이후의 도구 결과만 본다. 그래프의 되돌림 메시지는 사용자 질문이 아니다.
-        idx = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage) and not is_nudge(m))
+        # 이번 질문 이후의 도구 결과만 본다
+        idx = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage))
         q = str(messages[idx].content)
         tool_msgs = [m for m in messages[idx:] if isinstance(m, ToolMessage)]
         done = {m.name for m in tool_msgs}

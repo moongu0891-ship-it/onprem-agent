@@ -16,5 +16,6 @@
 | [failover.md](failover.md) | 3주차 장애 대체 (1순위 정상 종료) | 노트북 |
 | [failover_kill.md](failover_kill.md) | 3주차 장애 대체 (1순위 강제 종료, 갑작스러운 고장) | 노트북 |
 | [agent_laptop_v1.md](agent_laptop_v1.md) | 4주차 에이전트 과업 26개: 규칙 · Qwen3-1.7B(SGLang·vLLM) · 4B, 실패 답 발췌 (개선 전) | 노트북 |
+| [agent_laptop_v2.md](agent_laptop_v2.md) | 4주차 에이전트 2차: 안전 기능 켬/끔 비교, 채점 보강 (측정기 결함 D22 표시) | 노트북 |
 
 노트북 = RTX 5070 Laptop 8GB · WSL2 · Docker.
