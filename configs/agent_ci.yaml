@@ -3,7 +3,7 @@
 name: agent_ci
 tasks: eval/agent_tasks.jsonl
 embedder: {kind: hash}          # 검색 도구의 임베더. 노트북에서는 bge-m3
-graph: {require_tool: true, auto_cite: true}   # 노트북과 같은 그래프 장치
+graph: {require_tool: true, auto_cite: true}   # 노트북과 같은 그래프 안전 기능
 min_success: 0.60               # 규칙 기준선이 이 밑으로 떨어지면 그래프·도구·채점 어딘가가 깨진 것
 models:
   - {label: "규칙 기준선", kind: rule}

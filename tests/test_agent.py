@@ -80,7 +80,7 @@ def test_multi_step_and_no_tool(ops_run):
     assert tr["tool_calls"] == [] and score(t, tr)["success"]
 
 
-# ── 2차: 그래프 장치(되돌림·근거 자동)와 채점(내용·거짓 실행 보고) ──
+# ── 2차: 그래프 안전 기능(되돌림·근거 자동)와 채점(내용·거짓 실행 보고) ──
 
 def _tr(answer, calls=(), executed=(), raw=None, asked=()):
     return {"tool_calls": list(calls), "executed": list(executed), "approvals_asked": list(asked), "answer": answer,
