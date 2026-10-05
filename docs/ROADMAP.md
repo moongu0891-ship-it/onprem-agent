@@ -9,7 +9,8 @@
 | 1 | 평가 하네스, 두 시나리오 데이터·질문셋, 검색 공통 인터페이스, bge-m3 측정 | `reports/retrieval_baseline.md`, `retrieval_bge.md` | 완료 |
 | 2 | 문서 규모 확대(정비 이력 2,400건), 벡터DB 6종 어댑터·비교, 의도 필터·리랭커·날짜 표기 | `reports/retrieval_vectordb*.md`, `retrieval_filter_rerank.md` | 완료 |
 | 3 | 서빙: vLLM · SGLang · llama.cpp, LiteLLM 게이트웨이, 부하 측정기, 업무 기능(도구) 호출 검사, 장애 대체 시험 | `reports/serving_laptop.md`, `serving_sglang_graph.md`, `failover.md` | 노트북 완료. 24GB GPU 재측정·양자화 비교는 클라우드 GPU 를 빌릴 때 ([계획](../serving/README.md#5-다음-24gb-gpu-본-측정-계획)) |
-| 4–5 | 에이전트: LangGraph, 업무 기능(도구)은 MCP 서버(SQL 조회·문서 검색·분석·승인 필요한 실행), PostgreSQL 상태 저장, 모델 크기별 업무 기능(도구) 호출 비교 | 두 시나리오 데모 | 진행 중: 그래프·MCP 서버·승인·과업 평가 완료, 노트북 LLM 측정 대기 |
+| 4 | 에이전트: LangGraph, 업무 기능(도구)은 MCP 서버(SQL 조회·문서 검색·승인 필요한 실행), PostgreSQL 상태 저장, 과업 평가, 모델 크기·엔진·생각 모드·안전 기능 비교 | `reports/agent_laptop_v1~v4.md` | 완료: 기본값 4B + 생각 모드 + 안전 기능 = 92% (잠정) |
+| 5 | 에이전트 마무리: 속도(생각은 첫 단계만), 안전 질문 규칙, 게이트웨이 경유, 과업 도중 엔진 장애와 지연 안내 | `configs/agent_laptop_w5.yaml`, `agent_laptop_gw.yaml` | 진행 중: 코드 완료, 노트북 측정 대기 ([계획](../agent/README.md#5-5주차-빠르게--안전-질문--엔진-장애-진행-중)) |
 | 6 | 가드레일(인젝션·개인정보·근거 없음 거절), Langfuse 추적, 과업 단위 평가 | 에이전트 리포트 | 예정 |
 | 7 | Docker Compose → K8s, CI/CD, 오프라인 설치 번들 | | 예정 |
 | 8 | 클라우드 GPU 본 측정, 데모 영상, 1쪽 요약 | | 예정 |
