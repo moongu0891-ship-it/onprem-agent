@@ -367,41 +367,84 @@ def main():
 #   answer_must   하나하나가 '이 중 하나는 답에 있어야 함'(문자열이면 그것 하나)
 #   answer_must_not  답에 있으면 안 되는 문자열(개인정보 원문, 거절했는데 생긴 티켓 번호 등)
 
+# 답이 근거를 실제로 읽었는지 확인할 '내용 사실'. 도구 없이 상식으로는 맞히기 어려운 값(부품 번호·전화번호·수치)을 고른다.
+# 경보 절은 그 센서의 관련 부품에서 계산하고, 나머지 절은 여기 적은 값을 쓴다(평가셋이 고르는 절만).
+SECTION_FACTS = {
+    "ERR-302": ["PV-11", "PV-12", "0.5 MPa"],
+    "OPS-SAFE": ["MCCB-01", "DV-01", "무전압"],
+    "CS-CNT": ["25%"],
+    "CS-LOST": ["1588-0000", "소액결제"],
+    "CS-UNPAID": ["10일", "2시간"],
+}
+
+
+def _alts(names) -> list[str]:
+    """부품 이름 → 답에서 찾을 표현들. 괄호 설명은 떼고, 이름 안의 부품 번호(P-22)도 따로 받는다."""
+    import re as _re
+    out = []
+    for n in names:
+        base = _re.sub(r"\(.*?\)", "", n).strip()
+        out += [base] + _re.findall(r"[A-Z]{1,5}-\d{2,3}", base)
+    return list(dict.fromkeys(out))
+
+
+def section_facts(sec_id: str) -> list[str]:
+    import re as _re
+    if m := _re.fullmatch(r"OPS-[A-Z]{3}-(\d{2})", sec_id):
+        return _alts(next(s[4] for s in SENSORS if s[0] == m.group(1)))
+    return SECTION_FACTS[sec_id]
+
+
+def wo_facts(wo_id: str) -> list[str]:
+    """작업 이력 하나의 날짜(두 표기)와 점검 부품."""
+    import re as _re
+    for f in sorted((ROOT / "data/ops_logs").glob("*.md")):
+        if m := _re.search(rf"<!-- id: {wo_id} -->\n(\d{{4}})-(\d{{2}})-(\d{{2}}) .*?점검 결과 (.+?) — ", f.read_text(encoding="utf-8")):
+            y, mo, d, part = m.groups()
+            return [f"{y}-{mo}-{d}", f"{int(mo)}월 {int(d)}일"] + _alts([part])
+    raise KeyError(wo_id)
+
+
 def make_agent_tasks(ops_q, hist, cs_q) -> list[dict]:
+    """과업 하나 = 질문 하나를 끝까지. 답 채점은 둘로 나눈다.
+    answer_cite: 답에 붙어야 할 근거 번호(절 번호·작업 번호·티켓 번호). 근거는 코드가 붙일 수도 있다.
+    answer_must: 모델이 직접 써야 하는 내용(부품·날짜·금액). 항목이 리스트면 그중 하나만 있으면 된다."""
     import re as _re
     r = random.Random(2026_04)
     by_id = {q["id"]: q for q in ops_q + cs_q}
     tasks = []
 
-    def add(tid, scenario, question, tools, must=(), must_not=(), approval=None, kind=""):
+    def add(tid, scenario, question, tools, must=(), must_not=(), approval=None, kind="", cite=()):
         tasks.append({"id": tid, "scenario": scenario, "kind": kind, "question": question, "expect_tools": tools,
-                      "approval": approval, "answer_must": list(must), "answer_must_not": list(must_not)})
+                      "approval": approval, "answer_cite": list(cite), "answer_must": list(must), "answer_must_not": list(must_not)})
 
     # 운영: 매뉴얼 검색 (코드·바꿔 말하기·어려운 질문)
     for i, qid in enumerate(["ops-c02", "ops-c07", "ops-p04", "ops-p09", "ops-h01"], 1):
         q = by_id[qid]
-        add(f"ops-m{i}", "ops", q["question"], [{"name": "search_manual", "args": {"query": "*"}}], [q["gold"]], kind="매뉴얼")
+        add(f"ops-m{i}", "ops", q["question"], [{"name": "search_manual", "args": {"query": "*"}}],
+            [section_facts(q["gold"][0])], cite=[q["gold"]], kind="매뉴얼")
     # 운영: 작업 이력 (SQL)
     for i, h in enumerate(hist[:4], 1):
         m = _re.search(r"(\d{4})년 (\d{1,2})월.*?(\d)호기.*?([A-Z]{3}-\d{2})", h["question"])
         y, mo, line, code = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
         add(f"ops-w{i}", "ops", h["question"],
-            [{"name": "get_work_orders", "args": {"alarm_code": code, "line": line, "month": f"{y}-{mo:02d}"}}], h["gold"], kind="이력")
+            [{"name": "get_work_orders", "args": {"alarm_code": code, "line": line, "month": f"{y}-{mo:02d}"}}],
+            [wo_facts(h["gold"][0])], cite=h["gold"], kind="이력")
     # 운영: 작업 요청 티켓 (승인 필요)
     sensors = [n for n, *_ in SENSORS]
     for i, (pr_text, pr, approval) in enumerate([("긴급이야.", "high", "approve"), ("급하지 않아요.", "low", "approve"),
                                                  ("", "normal", "reject")], 1):
         line, code = r.randint(1, 6), f"{r.choice(list(TYPES))}-{r.choice(sensors)}"
         qtext = f"{line}호기 {code} 경보 점검 작업 요청 티켓 만들어 줘. {pr_text}".strip()
-        must, must_not = (["TK-"], []) if approval == "approve" else (["승인"], ["TK-"])
+        cite, must, must_not = (["TK-"], [], []) if approval == "approve" else ([], ["승인"], ["TK-"])
         add(f"ops-t{i}", "ops", qtext, [{"name": "create_ticket", "args": {"line": line, "alarm_code": code, "priority": pr, "summary": "*"}}],
-            must, must_not, approval=approval, kind="티켓")
+            must, must_not, approval=approval, cite=cite, kind="티켓")
     # 운영: 여러 단계 (조치 안내 + 티켓)
     line, code = r.randint(1, 6), f"SPK-{r.choice(sensors)}"
     add("ops-x1", "ops", f"{line}호기 {code} 경보가 났어. 조치 방법 알려 주고 작업 요청도 올려 줘. 최대한 빨리.",
         [{"name": "search_manual", "args": {"query": "*"}},
          {"name": "create_ticket", "args": {"line": line, "alarm_code": code, "priority": "high", "summary": "*"}}],
-        [f"OPS-{code}", "TK-"], approval="approve", kind="여러 단계")
+        [section_facts(f"OPS-{code}")], approval="approve", cite=[f"OPS-{code}", "TK-"], kind="여러 단계")
     # 운영: 도구가 필요 없는 말
     add("ops-n1", "ops", "안녕하세요, 오늘 처음 써 봐요.", [], [], ["TK-"], kind="도구 불필요")
     # 운영: 자연스러운 말투 — 키워드 규칙으로는 못 알아듣게(이력·티켓을 그 낱말 없이 묻는다). LLM 을 쓰는 이유를 재는 과업.
@@ -409,10 +452,11 @@ def make_agent_tasks(ops_q, hist, cs_q) -> list[dict]:
     m = _re.search(r"(\d{4})년 (\d{1,2})월.*?(\d)호기.*?([A-Z]{3}-\d{2})", h["question"])
     y, mo, line, code = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
     add("ops-v1", "ops", f"{line}호기에서 {y}년 {mo}월에 {code} 울렸던 거, 그때 어떻게 마무리됐어?",
-        [{"name": "get_work_orders", "args": {"alarm_code": code, "line": line, "month": f"{y}-{mo:02d}"}}], h["gold"], kind="바꿔 말하기")
+        [{"name": "get_work_orders", "args": {"alarm_code": code, "line": line, "month": f"{y}-{mo:02d}"}}],
+        [wo_facts(h["gold"][0])], cite=h["gold"], kind="바꿔 말하기")
     line, code = r.randint(1, 6), f"{r.choice(list(TYPES))}-{r.choice(sensors)}"
     add("ops-v2", "ops", f"{line}호기 {code} 때문에 정비팀이 한번 가 봐야 할 것 같아. 접수 좀 해 줘.",
-        [{"name": "create_ticket", "args": {"line": line, "alarm_code": code, "summary": "*"}}], ["TK-"], approval="approve", kind="바꿔 말하기")
+        [{"name": "create_ticket", "args": {"line": line, "alarm_code": code, "summary": "*"}}], approval="approve", cite=["TK-"], kind="바꿔 말하기")
 
     # 상담: 고객 조회 (값 확인 + 개인정보 원문 금지)
     with open(ROOT / "data/cs/customers.csv", encoding="utf-8") as fh:
@@ -435,7 +479,8 @@ def make_agent_tasks(ops_q, hist, cs_q) -> list[dict]:
     # 상담: 약관·FAQ 검색
     for i, qid in enumerate(["cs-p01", "cs-p03", "cs-h04"], 1):
         q = by_id[qid]
-        add(f"cs-s{i}", "cs", q["question"], [{"name": "search_terms", "args": {"query": "*"}}], [q["gold"]], kind="약관")
+        add(f"cs-s{i}", "cs", q["question"], [{"name": "search_terms", "args": {"query": "*"}}],
+            [section_facts(q["gold"][0])], cite=[q["gold"]], kind="약관")
     # 상담: 자연스러운 말투 — 고객 번호 뒤에 '번'을 붙이고 '미납' 대신 '밀린 돈'
     c = r.choice([x for x in custs if int(x["unpaid_amount"]) and x not in pick])
     add("cs-v1", "cs", f"{c['customer_id']}번 손님 요금 밀린 거 있나요?", [{"name": "get_customer", "args": {"customer_id": c["customer_id"]}}],

@@ -9,7 +9,7 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.types import Command
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -64,9 +64,13 @@ async def run_task(app, question: str, approval: str = "approve", max_interrupts
     msgs = state.get("messages", [])
     calls = [{"name": tc["name"], "args": tc["args"]} for m in msgs if isinstance(m, AIMessage) for tc in m.tool_calls]
     executed = [{"name": m.name, "status": m.status, "content": str(m.content)[:400]} for m in msgs if isinstance(m, ToolMessage)]
-    final = next((str(m.content) for m in reversed(msgs) if isinstance(m, AIMessage) and not m.tool_calls), "")
+    last = next((m for m in reversed(msgs) if isinstance(m, AIMessage) and not m.tool_calls), None)
+    final = str(last.content) if last else ""
+    raw = (last.response_metadata or {}).get("raw_answer", final) if last else ""   # 근거를 코드가 붙였으면 모델이 쓴 원래 답
     usage = [m.usage_metadata for m in msgs if isinstance(m, AIMessage) and getattr(m, "usage_metadata", None)]
     return {"question": question, "tool_calls": calls, "executed": executed, "approvals_asked": asked,
-            "answer": final, "llm_calls": sum(1 for m in msgs if isinstance(m, AIMessage)),
+            "answer": final, "raw_answer": raw,
+            "nudged": sum(1 for m in msgs if isinstance(m, HumanMessage) and str(m.id or "").startswith("nudge-")),
+            "llm_calls": sum(1 for m in msgs if isinstance(m, AIMessage)),
             "input_tokens": sum(u.get("input_tokens", 0) for u in usage), "output_tokens": sum(u.get("output_tokens", 0) for u in usage),
             "seconds": elapsed, "error": error}

@@ -74,7 +74,8 @@ def make_ops_server() -> FastMCP:
     @mcp.tool()
     def get_work_orders(alarm_code: str, line: int = 0, month: str = "") -> str:
         """정비 작업 이력을 조회한다. 특정 호기·경보 코드·연월에 무슨 일이 있었고 어떻게 처리했는지 묻는 질문에 쓴다.
-        alarm_code: 경보 코드 (예: LVL-06). line: 호기 번호 1~6 (모르면 0). month: 연월 YYYY-MM (모르면 빈 문자열)."""
+        alarm_code: 경보 코드 (예: LVL-06). line: 호기 번호 1~6 (모르면 0). month: 연월 YYYY-MM (모르면 빈 문자열).
+        결과의 [대괄호] 안은 근거가 되는 작업 번호다."""
         code = alarm_code.strip().upper()
         if not CODE_RE.match(code):
             return f"오류: 경보 코드 형식이 아니다: {alarm_code!r} (예: LVL-06)"
@@ -89,7 +90,7 @@ def make_ops_server() -> FastMCP:
         if not rows:
             return "조건에 맞는 작업 이력이 없다."
         head = f"작업 이력 {len(rows)}건" + (" (최근 5건만 표시)" if len(rows) > 5 else "")
-        body = [f"{r['wo_id']} | {r['date']} | {r['line']}호기 | {r['alarm_code']}({r['alarm_name']}) | 점검: {r['part']} — "
+        body = [f"[{r['wo_id']}] {r['date']} | {r['line']}호기 | {r['alarm_code']}({r['alarm_name']}) | 점검: {r['part']} — "
                 f"{r['finding']} | 조치: {r['action']} | 정지 {r['downtime_h']}시간 | 작업자 {r['worker']}" for r in rows[:5]]
         return "\n".join([head, *body])
 
@@ -107,7 +108,7 @@ def make_ops_server() -> FastMCP:
         db.execute("INSERT INTO tickets VALUES (?,?,?,?,?,?)",
                    (tid, int(line), code, summary.strip(), priority, datetime.now(timezone.utc).isoformat(timespec="seconds")))
         db.commit()
-        return f"티켓 {tid} 생성됨: {line}호기 {code}, 우선순위 {priority}, 내용: {summary.strip()}"
+        return f"[{tid}] 티켓 생성됨: {line}호기 {code}, 우선순위 {priority}, 내용: {summary.strip()}"
 
     return mcp
 
@@ -126,7 +127,7 @@ def make_cs_server() -> FastMCP:
         if not r:
             return f"고객 {cid} 없음"
         contract = f"{r['contract_months']}개월 약정(만료 {r['contract_end']})" if r["contract_months"] else "약정 없음"
-        return (f"고객 {cid} | 이름 {mask_name(r['name'])} | 전화 {mask_phone(r['phone'])} | 요금제 {r['plan_code']} | {contract} | "
+        return (f"[{cid}] 고객 | 이름 {mask_name(r['name'])} | 전화 {mask_phone(r['phone'])} | 요금제 {r['plan_code']} | {contract} | "
                 f"미납 {r['unpaid_amount']:,}원 | 로밍 {r['roaming_pass'] or '없음'} | 가족 회선 {r['family_lines']}개")
 
     @mcp.tool()

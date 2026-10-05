@@ -105,9 +105,10 @@ class RuleModel(BaseChatModel):
         return out + (f"\n[근거: {', '.join(cites[:3])}]" if cites else "")
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs) -> ChatResult:
-        q = next(str(m.content) for m in reversed(messages) if isinstance(m, HumanMessage))
-        # 이번 질문 이후의 도구 결과만 본다
-        idx = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage))
+        from .graph import is_nudge
+        # 이번 질문 이후의 도구 결과만 본다. 그래프의 되돌림 메시지는 사용자 질문이 아니다.
+        idx = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage) and not is_nudge(m))
+        q = str(messages[idx].content)
         tool_msgs = [m for m in messages[idx:] if isinstance(m, ToolMessage)]
         done = {m.name for m in tool_msgs}
         if self.tool_names:

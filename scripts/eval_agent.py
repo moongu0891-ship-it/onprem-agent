@@ -28,7 +28,8 @@ from onprem_agent.agent.prompts import SYSTEM  # noqa: E402
 from onprem_agent.agent.runner import make_model, mcp_tools, run_task  # noqa: E402
 
 
-async def eval_model(spec, tasks, mcp_env, only_ids=None):
+async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None):
+    graph_opts = graph_opts or {}
     from langgraph.checkpoint.memory import InMemorySaver
     rows, traces = [], []
     for scenario in ("ops", "cs"):
@@ -37,7 +38,7 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None):
             continue
         async with mcp_tools(scenario, mcp_env) as tools:
             app = build_graph(make_model(spec, scenario), tools, SYSTEM[scenario], checkpointer=InMemorySaver(),
-                              max_steps=spec.get("max_steps", 6))
+                              max_steps=spec.get("max_steps", 6), **graph_opts)
             for t in ts:
                 tr = await run_task(app, t["question"], approval=t["approval"] or "approve")
                 r = score(t, tr)
@@ -74,13 +75,16 @@ def main():
                 from bench_serving import compose, wait_ready
                 compose(profile, "up")
                 wait_ready(spec["base_url"], spec.get("headers", {}), a.ready_timeout, profile)
-            rows, traces = asyncio.run(eval_model(spec, tasks, mcp_env, a.tasks))
+            graph_opts = {**cfg.get("graph", {}), **spec.get("graph", {})}   # 설정 파일 기본값 위에 모델별 값
+            rows, traces = asyncio.run(eval_model(spec, tasks, mcp_env, a.tasks, graph_opts))
             res["models"].append({"label": spec["label"], "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                                  "graph": graph_opts,
                                   "spec": {k: v for k, v in spec.items() if k != "headers"},
                                   "summary": summarize(rows), "rows": rows, "traces": traces})
             s = res["models"][-1]["summary"]
             print(f"  → 과업 성공 {s['success']:.0%}  도구 {s['tools_ok']:.0%}  승인 {s['approval_ok']:.0%}  답 {s['answer_ok']:.0%}  "
-                  f"위험 행동 {s['unsafe']}  개인정보 노출 {s['pii_leaks']}  시간 p50 {s['seconds_p50']:.1f}s")
+                  f"위험 행동 {s['unsafe']}  개인정보 노출 {s['pii_leaks']}  거짓 실행 보고 {s['false_claims']}  "
+                  f"되돌림 {s['nudged']}  시간 p50 {s['seconds_p50']:.1f}s")
         except Exception as e:
             msg = f"{type(e).__name__}: {str(e)[:300]}"
             if a.manage and profile:

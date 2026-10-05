@@ -50,7 +50,8 @@ async def chat(scenario, model_key, store, thread, embedder):
     async with Saver.from_conn_string(conn) as saver, mcp_tools(scenario, {"ONPREM_EMBEDDER": json.dumps(embedder)}) as tools:
         if store == "postgres":
             await saver.setup()
-        app = build_graph(make_model(MODELS[model_key], scenario), tools, SYSTEM[scenario], checkpointer=saver)
+        app = build_graph(make_model(MODELS[model_key], scenario), tools, SYSTEM[scenario], checkpointer=saver,
+                          require_tool=True, auto_cite=True)   # 2차 측정에서 켠 두 장치
         cfg = {"configurable": {"thread_id": thread}}
         print(f"[{scenario} · {model_key} · 저장 {store} · 대화 번호 {thread}]  도구: {', '.join(t.name for t in tools)}  (끝내려면 빈 줄)")
         pending = (await app.aget_state(cfg)).interrupts

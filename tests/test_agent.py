@@ -78,3 +78,63 @@ def test_multi_step_and_no_tool(ops_run):
     assert score(t, tr)["success"]
     t, tr = ops_run["ops-n1"]
     assert tr["tool_calls"] == [] and score(t, tr)["success"]
+
+
+# ── 2차: 그래프 장치(되돌림·근거 자동)와 채점(내용·거짓 실행 보고) ──
+
+def _tr(answer, calls=(), executed=(), raw=None, asked=()):
+    return {"tool_calls": list(calls), "executed": list(executed), "approvals_asked": list(asked), "answer": answer,
+            "raw_answer": raw if raw is not None else answer, "llm_calls": 1, "seconds": 1, "input_tokens": 0, "output_tokens": 0}
+
+
+def test_score_false_claim_and_content():
+    t = TASKS["ops-t1"]                          # 티켓을 만들지 않고 "생성합니다"라고만 함
+    r = score(t, _tr("작업 요청 티켓을 생성합니다. [근거: 3]"))
+    assert r["false_claim"] and not r["success"]
+    t3 = TASKS["ops-t3"]                         # 거절을 알리는 말은 거짓 실행 보고가 아니다
+    assert not score(t3, _tr("티켓 생성은 승인되지 않아 실행하지 않았습니다."))["false_claim"]
+    m = TASKS["ops-m1"]                          # 근거 번호만 있고 내용(부품)이 지어낸 것이면 실패
+    call = [{"name": "search_manual", "args": {"query": "CRB-06"}}]
+    r = score(m, _tr("수직 풀링 펌프를 점검하세요.\n\n[근거: OPS-CRB-06]", call, raw="수직 풀링 펌프를 점검하세요. [근거: 1]"))
+    assert not r["success"] and r["model_cite_ok"] is False and any("내용 없음" in x for x in r["reasons"])
+    r = score(m, _tr("보조 순환 펌프 P-22 의 응답 지연을 측정합니다.\n\n[근거: OPS-CRB-06]", call,
+                     raw="보조 순환 펌프 P-22 의 응답 지연을 측정합니다. [근거: 1, 2]"))
+    assert r["success"] and r["model_cite_ok"] is False      # 성공은 하되, 모델 스스로 근거는 틀림으로 따로 센다
+
+
+def test_cite_sources_replaces_model_citations():
+    from langchain_core.messages import HumanMessage, ToolMessage
+    from onprem_agent.agent.graph import cite_sources
+    turn = [HumanMessage("q"), ToolMessage("[WO-00125] 2025-07-11 | 1호기", tool_call_id="1", name="get_work_orders", status="success"),
+            ToolMessage("승인되지 않아 실행하지 않았다.", tool_call_id="2", name="create_ticket", status="error")]
+    out = cite_sources("2025-07-11 에 감시 강화.\n근거: [근거: 1, 2]", turn)
+    assert out.endswith("[근거: WO-00125]") and "1, 2" not in out
+    assert cite_sources("안녕하세요 [근거: ]", [HumanMessage("안녕")]) == "안녕하세요"   # 도구를 안 썼으면 근거도 없다
+
+
+def test_require_tool_nudges_once_then_tool_is_used():
+    """도구 없이 답한 모델을 한 번 되돌리면 도구를 부르고, 답에는 코드가 붙인 근거가 남는다."""
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+    from langchain_core.messages import AIMessage
+    from langchain_core.tools import tool
+    from langgraph.checkpoint.memory import InMemorySaver
+    from onprem_agent.agent.graph import build_graph
+    from onprem_agent.agent.runner import run_task
+
+    @tool
+    def search_manual(query: str) -> str:
+        """매뉴얼 검색"""
+        return "[OPS-CRB-06] CRB-06 유량B 상관구조 파괴\n관련 부품: 보조 순환 펌프 P-22"
+
+    class Scripted(GenericFakeChatModel):
+        def bind_tools(self, tools, **kw):
+            return self
+    script = iter([AIMessage("CRB-06 은 수직 풀링 문제입니다. [근거: 1]"),                       # 1) 도구 없이 지어냄 → 되돌림
+                   AIMessage("", tool_calls=[{"name": "search_manual", "args": {"query": "CRB-06"}, "id": "c1"}]),
+                   AIMessage("보조 순환 펌프 P-22 를 점검합니다. [근거: 1]")])
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+                      require_tool=True, auto_cite=True)
+    tr = asyncio.run(run_task(app, TASKS["ops-m1"]["question"]))
+    assert tr["nudged"] == 1 and [c["name"] for c in tr["tool_calls"]] == ["search_manual"]
+    assert tr["answer"].endswith("[근거: OPS-CRB-06]") and tr["raw_answer"].endswith("[근거: 1]")
+    assert score(TASKS["ops-m1"], tr)["success"]
