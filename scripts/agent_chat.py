@@ -53,7 +53,8 @@ async def chat(scenario, model_key, store, thread, embedder):
         if store == "postgres":
             await saver.setup()
         app = build_graph(make_model(MODELS[model_key], scenario), tools, SYSTEM[scenario], checkpointer=saver,
-                          require_tool=True, auto_cite=True)   # 2차 측정에서 켠 두 안전 기능
+                          require_tool=True, auto_cite=True, safety_search=True,
+                          degraded_notice=model_key == "gateway")   # 4·5주차 측정으로 켠 기능들
         cfg = {"configurable": {"thread_id": thread}}
         print(f"[{scenario} · {model_key} · 저장 {store} · 대화 번호 {thread}]  업무 기능(도구): {', '.join(t.name for t in tools)}  (끝내려면 빈 줄)")
         pending = (await app.aget_state(cfg)).interrupts

@@ -197,3 +197,32 @@ def test_degraded_notice_when_gateway_used_backup():
         tr = asyncio.run(run_task(app, "안녕"))
         assert tr["answer"].endswith(DEGRADED_NOTICE) is expect and tr["degraded_notice"] is expect
         assert tr["backup_calls"] == (1 if expect else 0) and tr["raw_answer"] == "안녕하세요."
+
+
+def test_strip_think_and_safety_search():
+    """5주차: 생각 글은 답·채점에서 뗀다(D25). 안전 질문은 모델보다 먼저 매뉴얼을 찾는다(D26)."""
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+    from langchain_core.messages import AIMessage
+    from langchain_core.tools import tool
+    from langgraph.checkpoint.memory import InMemorySaver
+    from onprem_agent.agent.graph import build_graph, strip_think
+    from onprem_agent.agent.runner import run_task
+
+    assert strip_think("<think>\nMCCB-01 이 있겠지\n</think>\n\n전원을 끕니다.") == ("전원을 끕니다.", "<think>\nMCCB-01 이 있겠지\n</think>")
+    assert strip_think("<think> 길이 한도에서 끊김")[0] == ""
+
+    @tool
+    def search_manual(query: str) -> str:
+        """매뉴얼 검색"""
+        return "[OPS-SAFE] 안전 수칙\n1) 주 전원 차단기(MCCB-01)를 OFF 한다. 5) 테스터로 무전압을 확인한다."
+
+    class Scripted(GenericFakeChatModel):
+        def bind_tools(self, tools, **kw):
+            return self
+    # 모델은 답만 한 번 쓴다 — 매뉴얼 검색은 그래프가 먼저 했다(모델은 업무 기능(도구)을 고르지 않았다)
+    model = Scripted(messages=iter([AIMessage("<think>상식으로는…</think>주 전원 차단기 MCCB-01 을 내리고 무전압을 확인합니다.")]))
+    app = build_graph(model, [search_manual], "sys", checkpointer=InMemorySaver(), auto_cite=True, safety_search=True)
+    t = TASKS["ops-m5"]
+    tr = asyncio.run(run_task(app, t["question"]))
+    assert [c["name"] for c in tr["tool_calls"]] == ["search_manual"] and "<think>" not in tr["answer"]
+    assert score(t, tr)["success"]

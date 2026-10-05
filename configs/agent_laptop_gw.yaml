@@ -8,7 +8,7 @@
 name: agent_laptop_gw
 tasks: eval/agent_tasks.jsonl
 embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
-graph: {require_tool: true, auto_cite: true, degraded_notice: true}
+graph: {require_tool: true, auto_cite: true, degraded_notice: true, safety_search: true}
 models:
   - {label: "4B · 엔진 직접", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
      thinking: true, max_tokens: 2048, timeout: 300}

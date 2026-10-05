@@ -62,6 +62,20 @@ def this_turn(messages: list) -> list:
     return messages[idx:]
 
 
+# 안전 질문: 사람이 다칠 수 있는 작업을 묻는 말. 이런 질문은 모델에 맡기지 않고 매뉴얼 검색을 먼저 한다(5주차 safety_search).
+# 프롬프트 규칙으로 부탁했을 때 4B 는 매뉴얼 대신 작업 이력을 찾았고 1.7B 는 아무것도 찾지 않았다(D26).
+SAFETY_Q = re.compile(r"감전|전원\s*(을\s*)?(차단|끄|내리)|잠금|LOTO|잔압|화상|고온|끼임|회전부|안전\s*(수칙|조치)|다치지|사고\s*안")
+THINK = re.compile(r"<think>.*?(</think>|\Z)", re.S)
+
+
+def strip_think(text: str) -> tuple[str, str]:
+    """답에서 생각 글(<think>…</think>)을 떼어 낸다 → (답, 생각 글).
+    엔진의 생각 글 분리기(reasoning parser)가 켜져 있지 않으면 생각 글이 답 본문에 그대로 섞여 온다(5주차 발견, D25).
+    엔진 설정에 기대지 않고 여기서 항상 뗀다. 닫는 태그 없이 길이 한도에서 끊긴 생각 글도 뗀다."""
+    thoughts = "\n".join(m.group(0) for m in THINK.finditer(text))
+    return THINK.sub("", text).strip(), thoughts
+
+
 def on_backup(msg) -> bool:
     """게이트웨이(LiteLLM) 응답 헤더로 대체 엔진이 답했는지 본다(모델에 response_headers 를 켰을 때만 헤더가 있다).
     x-litellm-model-group 이 '-backup' 으로 끝나거나, 대체를 시도한 횟수가 있으면 대체 엔진이다(3주차 장애 대체 시험에서 확인한 헤더)."""
@@ -85,7 +99,8 @@ def cite_sources(raw: str, turn: list) -> str:
 
 
 def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS, max_steps: int = 6, checkpointer=None,
-                require_tool: bool = False, auto_cite: bool = False, after_tool_model=None, degraded_notice: bool = False):
+                require_tool: bool = False, auto_cite: bool = False, after_tool_model=None, degraded_notice: bool = False,
+                safety_search: bool = False):
     """after_tool_model: 이번 질문에 업무 기능(도구) 결과가 하나라도 생긴 뒤에 쓸 모델(5주차 '생각은 첫 단계만').
     생각 모드는 '무엇을 찾을지' 고를 때 효과가 크고(4주차: 54% → 92%), 찾은 결과를 읽고 답을 쓸 때는 시간만 든다는 가정을 잰다.
     결과를 본 뒤에도 업무 기능(도구)을 더 부를 수 있다(여러 단계 과업) — 그때는 생각 없이 고른다."""
@@ -100,7 +115,13 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
         if steps >= max_steps:   # 단계 상한: 업무 기능(도구) 없이 지금까지의 결과로 답하게 한다
             msgs.append(SystemMessage("도구를 더 부르지 말고 지금까지의 결과로 답하라."))
             return {"messages": [await model.ainvoke(msgs)], "steps": steps + 1}
-        has_results = any(isinstance(m, ToolMessage) for m in this_turn(state["messages"]))
+        turn = this_turn(state["messages"])
+        has_results = any(isinstance(m, ToolMessage) for m in turn)
+        if safety_search and "search_manual" in by_name and not has_results and turn and SAFETY_Q.search(str(turn[0].content)):
+            # 안전 질문: 모델을 부르기 전에 매뉴얼 검색부터 — 결과를 본 모델이 그 절차대로 답한다(구조로 보장)
+            call = {"name": "search_manual", "args": {"query": str(turn[0].content)}, "id": f"safety_{steps}", "type": "tool_call"}
+            return {"messages": [AIMessage(content="", tool_calls=[call], response_metadata={"safety_search": True})],
+                    "steps": steps + 1}
         resp = await (llm_after if (llm_after is not None and has_results) else llm_tools).ainvoke(msgs)
         if require_tool and not resp.tool_calls and not any(isinstance(m, ToolMessage) for m in this_turn(state["messages"])):
             # 되돌림: 업무 기능(도구) 선택을 필수로 걸고 한 번 더. 업무 기능(도구)을 고르면 그걸 쓰고(먼저 쓴 답은 버림),
@@ -120,7 +141,7 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
         last = state["messages"][-1]
         if isinstance(last, AIMessage) and last.tool_calls:
             return "gate"
-        return "finalize" if (auto_cite or degraded_notice) else END
+        return "finalize"   # 생각 글 떼기·근거 자동·지연 안내는 모두 finalize 에서
 
     async def gate(state: AgentState):
         last = state["messages"][-1]
@@ -156,7 +177,7 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
 
     async def finalize(state: AgentState):
         last = state["messages"][-1]
-        raw = str(last.content)
+        raw, thoughts = strip_think(str(last.content))   # 사용자에게도, 채점에도 생각 글은 넣지 않는다
         turn = this_turn(state["messages"])
         text = cite_sources(raw, turn) if auto_cite else raw
         degraded = degraded_notice and any(on_backup(m) for m in turn if isinstance(m, AIMessage))
@@ -164,7 +185,8 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
             text = f"{text}\n\n{DEGRADED_NOTICE}"
         # 같은 id 로 돌려주면 MessagesState 가 마지막 답을 바꿔 끼운다(새로 덧붙이지 않는다)
         return {"messages": [AIMessage(content=text, id=last.id,
-                                       response_metadata={**(last.response_metadata or {}), "raw_answer": raw, "degraded": degraded},
+                                       response_metadata={**(last.response_metadata or {}), "raw_answer": raw, "degraded": degraded,
+                                                          "thinking_chars": len(thoughts)},
                                        usage_metadata=getattr(last, "usage_metadata", None))]}
 
     g = StateGraph(AgentState)
@@ -173,7 +195,7 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
     g.add_node("tools", run_tools)
     g.add_node("finalize", finalize)
     g.add_edge(START, "agent")
-    g.add_conditional_edges("agent", route, ["gate", "finalize", END])
+    g.add_conditional_edges("agent", route, ["gate", "finalize"])
     g.add_edge("tools", "agent")
     g.add_edge("finalize", END)
     return g.compile(checkpointer=checkpointer)
