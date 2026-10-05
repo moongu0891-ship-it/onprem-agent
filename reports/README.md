@@ -1,7 +1,7 @@
 # 측정 원본
 
 측정기가 낸 결과표를 고르고 해석 문서 링크와 측정 장소를 맨 위에 붙여 커밋한 것이다(측정기는 `results/` 에 쓰고, 그건 Git 에 올리지 않는다).
-해석과 결정은 [README](../README.md)와 [serving/README.md](../serving/README.md)에 있다.
+해석과 결정은 [README](../README.md), [serving/README.md](../serving/README.md), [agent/README.md](../agent/README.md)에 있다.
 
 | 파일 | 무엇 | 어디서 |
 |---|---|---|
@@ -15,5 +15,6 @@
 | [serving_sglang_graph.md](serving_sglang_graph.md) | 3주차 SGLang CUDA 그래프 상한 8 대 16 | 노트북 |
 | [failover.md](failover.md) | 3주차 장애 대체 (1순위 정상 종료) | 노트북 |
 | [failover_kill.md](failover_kill.md) | 3주차 장애 대체 (1순위 강제 종료, 갑작스러운 고장) | 노트북 |
+| [agent_laptop_v1.md](agent_laptop_v1.md) | 4주차 에이전트 과업 26개: 규칙 · Qwen3-1.7B(SGLang·vLLM) · 4B, 실패 답 발췌 (개선 전) | 노트북 |
 
 노트북 = RTX 5070 Laptop 8GB · WSL2 · Docker.
