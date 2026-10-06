@@ -21,6 +21,7 @@
 | [agent_laptop_v4.md](agent_laptop_v4.md) | 4주차 에이전트 4차: 생각 모드 몫 나누기, 92% 재현, Qwen3-1.7B 생각 켬 85% | 노트북 |
 | [agent_laptop_w5.md](agent_laptop_w5.md) | 5주차 ① 생각 첫 단계만 · 안전 질문 규칙/검색, 재채점(D25) — **Qwen3-4B + 안전 질문 검색 96%** | 노트북 |
 | [agent_laptop_gw.md](agent_laptop_gw.md) | 5주차 ② 게이트웨이 경유 · 과업 도중 1순위 강제 종료와 지연 안내 | 노트북 |
+| [agent_laptop_guard.md](agent_laptop_guard.md) | 6주차 보호 기능(가드레일) 과업 20개: 숨은 지시·개인정보 떠보기·안전 질문·근거 없음·역할 밖·직접 공격, 보호 기능 하나씩·전부, 기존 26과업 과잉 거절 확인 | 노트북 |
 
 노트북 = RTX 5070 Laptop 8GB · WSL2 · Docker.
 측정기 출력의 모델 이름 줄임말(`4B`, `1.7B`)은 보고서에서 `Qwen3-4B`, `Qwen3-1.7B` 로 풀어 적었고, 결과표의 각 행은 '시험 조건'이라고 부른다(용어 규칙: [쉽게 풀어쓴 개념](../docs/쉽게_풀어쓴_개념.md)).
