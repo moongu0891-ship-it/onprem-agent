@@ -23,7 +23,8 @@ from onprem_agent.agent.graph import strip_think  # noqa: E402
 def main():
     src = Path(sys.argv[1])
     res = json.loads(src.read_text(encoding="utf-8"))
-    tasks = {t["id"]: t for t in map(json.loads, (ROOT / "eval/agent_tasks.jsonl").read_text(encoding="utf-8").splitlines())}
+    tasks = {t["id"]: t for f in ("eval/agent_tasks.jsonl", "eval/agent_guard_tasks.jsonl")
+             for t in map(json.loads, (ROOT / f).read_text(encoding="utf-8").splitlines())}
     changed_total = 0
     for m in res["models"]:
         if m.get("error"):

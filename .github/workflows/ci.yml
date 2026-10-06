@@ -25,6 +25,8 @@ jobs:
         run: python scripts/eval_retrieval.py configs/retrieval_baseline.yaml --min-recall3 0.80
       - name: 에이전트 회귀 검사 (규칙 기준선, MCP 서버·승인 절차 포함, 과업 성공 >= 60%)
         run: python scripts/eval_agent.py configs/agent_ci.yaml
+      - name: 가드레일 과업 (규칙 모델, 숨은 지시 자료·채점·장치가 맞물리는지)
+        run: python scripts/eval_agent.py configs/agent_ci_guard.yaml
       - uses: actions/upload-artifact@v4
         with:
           name: retrieval-report

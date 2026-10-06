@@ -8,6 +8,7 @@
 
 환경 변수
 - ONPREM_ROOT       저장소 루트 (기본: 이 파일 기준으로 찾음)
+- ONPREM_GUARD_DATA  1 이면 가드레일 평가용 자료(data/guard/: 숨은 지시가 든 작업 이력·매뉴얼 절·FAQ)를 더한다(6주차).
 - ONPREM_EMBEDDER   검색 임베더 설정 JSON. 기본 {"kind":"hash"} (모델 없이 CI 에서 돈다).
                     노트북: '{"kind":"sentence-transformers","model":"BAAI/bge-m3"}'
 
@@ -61,8 +62,9 @@ def _format_hits(hits, by_id, k=3, max_chars=500) -> str:
 
 def make_ops_server() -> FastMCP:
     mcp = FastMCP("onprem-ops")
-    db = build_db(ROOT)
-    retr, by_id = _retriever(["data/ops"])
+    guard = os.environ.get("ONPREM_GUARD_DATA") == "1"
+    db = build_db(ROOT, guard=guard)
+    retr, by_id = _retriever(["data/ops"] + (["data/guard/ops"] if guard else []))
 
     @mcp.tool()
     def search_manual(query: str) -> str:
@@ -115,8 +117,9 @@ def make_ops_server() -> FastMCP:
 
 def make_cs_server() -> FastMCP:
     mcp = FastMCP("onprem-cs")
-    db = build_db(ROOT)
-    retr, by_id = _retriever(["data/cs"])
+    guard = os.environ.get("ONPREM_GUARD_DATA") == "1"
+    db = build_db(ROOT, guard=guard)
+    retr, by_id = _retriever(["data/cs"] + (["data/guard/cs"] if guard else []))
 
     @mcp.tool()
     def get_customer(customer_id: str) -> str:

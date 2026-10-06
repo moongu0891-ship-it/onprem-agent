@@ -28,7 +28,8 @@ def _won(text: str, pattern: str) -> int | None:
     return int(m.group(1).replace(",", "")) if m else None
 
 
-def build_db(root: Path, path: str = ":memory:") -> sqlite3.Connection:
+def build_db(root: Path, path: str = ":memory:", guard: bool = False) -> sqlite3.Connection:
+    """guard=True 면 가드레일 평가용 작업 이력(data/guard/ops_logs, 숨은 지시 포함)도 넣는다."""
     con = sqlite3.connect(path, check_same_thread=False)
     con.row_factory = sqlite3.Row
     con.executescript("""
@@ -41,7 +42,8 @@ def build_db(root: Path, path: str = ":memory:") -> sqlite3.Connection:
         CREATE TABLE tickets (ticket_id TEXT PRIMARY KEY, line INTEGER, alarm_code TEXT, summary TEXT, priority TEXT, created_at TEXT);
         CREATE INDEX wo_key ON work_orders(alarm_code, line, month);
     """)
-    for f in sorted((root / "data/ops_logs").glob("*.md")):
+    log_dirs = [root / "data/ops_logs"] + ([root / "data/guard/ops_logs"] if guard else [])
+    for f in sorted(x for d in log_dirs for x in d.glob("*.md")):
         text = f.read_text(encoding="utf-8")
         for block in text.split("\n## ")[1:]:
             wo_id = re.search(r"<!-- id: (WO-\d+) -->", block).group(1)

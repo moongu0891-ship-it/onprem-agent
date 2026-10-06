@@ -62,6 +62,10 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None, promp
     return rows, traces
 
 
+def load_tasks(path) -> list[dict]:
+    return [json.loads(x) for x in (ROOT / path).read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
@@ -71,7 +75,7 @@ def main():
     ap.add_argument("--ready-timeout", type=int, default=1200)
     a = ap.parse_args()
     cfg = yaml.safe_load(Path(a.config).read_text(encoding="utf-8"))
-    tasks = [json.loads(x) for x in (ROOT / cfg.get("tasks", "eval/agent_tasks.jsonl")).read_text(encoding="utf-8").splitlines() if x.strip()]
+    tasks = load_tasks(cfg.get("tasks", "eval/agent_tasks.jsonl"))
     mcp_env = {"ONPREM_EMBEDDER": json.dumps(cfg.get("embedder", {"kind": "hash"}))}
 
     res = {"config_name": cfg["name"], "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -93,7 +97,9 @@ def main():
                     wait_ready(u, {}, a.ready_timeout, profile)
             graph_opts = {**cfg.get("graph", {}), **spec.get("graph", {})}   # 설정 파일 기본값 위에 모델별 값
             prompt_rules = tuple(spec.get("prompt_rules", cfg.get("prompt_rules", [])))
-            rows, traces = asyncio.run(eval_model(spec, tasks, mcp_env, a.tasks, graph_opts, prompt_rules))
+            spec_tasks = load_tasks(spec["tasks_file"]) if spec.get("tasks_file") else tasks   # 줄마다 다른 과업 파일(가드레일 vs 기존)
+            env = {**mcp_env, "ONPREM_GUARD_DATA": "1" if spec.get("guard_data", cfg.get("guard_data")) else "0"}
+            rows, traces = asyncio.run(eval_model(spec, spec_tasks, env, a.tasks, graph_opts, prompt_rules))
             res["models"].append({"label": spec["label"], "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                                   "graph": graph_opts, "prompt_rules": list(prompt_rules),
                                   "spec": {k: v for k, v in spec.items() if k != "headers"},
