@@ -13,18 +13,18 @@ embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
 graph: {require_tool: true, auto_cite: true, safety_search: true}     # 5주차 기본값의 안전 기능
 models:
   - {label: "규칙 기준선", kind: rule}
-  - {label: "4B · 5주차 기본값 (가드레일 없음)", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+  - {label: "Qwen3-4B · 5주차 기본값 (가드레일 없음)", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
      thinking: true, max_tokens: 2048, timeout: 300}
-  - {label: "4B · + 자료 감싸기", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+  - {label: "Qwen3-4B · + 자료 감싸기", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
      thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [data],
      graph: {require_tool: true, auto_cite: true, safety_search: true, wrap_tool_data: true}}
-  - {label: "4B · + 지시문 제거", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+  - {label: "Qwen3-4B · + 지시문 제거", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
      thinking: true, max_tokens: 2048, timeout: 300,
      graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true}}
-  - {label: "4B · + 가드레일 전부", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+  - {label: "Qwen3-4B · + 가드레일 전부", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
      thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [data],
      graph: {require_tool: true, auto_cite: true, safety_search: true, wrap_tool_data: true, strip_injection: true, answer_guard: true}}
-  - {label: "4B · 가드레일 전부 · 기존 26과업 (과잉 거절 확인)", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1",
+  - {label: "Qwen3-4B · 가드레일 전부 · 기존 26과업 (과잉 거절 확인)", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1",
      model: qwen3-4b, thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [data],
      tasks_file: eval/agent_tasks.jsonl, guard_data: false,
      graph: {require_tool: true, auto_cite: true, safety_search: true, wrap_tool_data: true, strip_injection: true, answer_guard: true}}

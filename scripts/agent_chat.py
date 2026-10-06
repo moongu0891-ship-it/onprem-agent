@@ -30,11 +30,11 @@ from onprem_agent.agent.runner import make_model, mcp_tools  # noqa: E402
 MODELS = {
     "rule": {"kind": "rule"},
     "sglang": {"kind": "openai", "base_url": "http://localhost:30000/v1", "model": "qwen3-1.7b"},
-    # 4·5주차 측정으로 고른 기본값: 4B + 생각 모드 + 안전 기능 + 안전 질문 검색 (과업 성공 96%)
+    # 4·5주차 측정으로 고른 기본값: Qwen3-4B + 생각 모드 + 안전 기능 + 안전 질문 검색 (과업 성공 96%)
     "sglang-4b": {"kind": "openai", "base_url": "http://localhost:30000/v1", "model": "qwen3-4b",
                   "thinking": True, "max_tokens": 2048, "timeout": 300},
     "vllm": {"kind": "openai", "base_url": "http://localhost:8000/v1", "model": "qwen3-1.7b"},
-    # 5주차 결정: 게이트웨이 이름 agent-llm-4b (4B + 생각 모드, 1순위 장애 시 CPU 대체 → 답에 지연 안내)
+    # 5주차 결정: 게이트웨이 이름 agent-llm-4b (Qwen3-4B + 생각 모드, 1순위 장애 시 CPU 대체 → 답에 지연 안내)
     "gateway": {"kind": "openai", "base_url": "http://localhost:4000/v1", "model": "agent-llm-4b", "api_key": "sk-local-dev",
                 "thinking": True, "max_tokens": 2048, "timeout": 900, "response_headers": True},
 }

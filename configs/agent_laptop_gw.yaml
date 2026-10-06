@@ -1,7 +1,7 @@
 # 에이전트 과업 평가 5주차 ② — 게이트웨이 경유와 엔진 장애 (노트북 RTX 5070 Laptop 8GB)
 #   python scripts/eval_agent.py configs/agent_laptop_gw.yaml --manage
-# 3주차 결정: 에이전트는 엔진 주소를 모르고 게이트웨이(LiteLLM)의 이름만 안다. 5주차 기본값(4B + 생각 모드 + 안전 기능 + 안전 질문 검색)을
-# 게이트웨이 이름 agent-llm-4b 로 부르고, 1순위가 죽으면 CPU llama.cpp(1.7B Q8)로 넘어간다(serving/litellm.yaml).
+# 3주차 결정: 에이전트는 엔진 주소를 모르고 게이트웨이(LiteLLM)의 이름만 안다. 5주차 기본값(Qwen3-4B + 생각 모드 + 안전 기능 + 안전 질문 검색)을
+# 게이트웨이 이름 agent-llm-4b 로 부르고, 1순위가 죽으면 CPU llama.cpp(Qwen3-1.7B Q8)로 넘어간다(serving/litellm.yaml).
 #   ① 엔진 직접 vs 게이트웨이 경유: 같은 과업에서 품질·시간이 같은가 (생각 모드·tool_choice=required 같은 옵션이 그대로 넘어가나)
 #   ② 과업 도중 1순위 강제 종료(docker kill): 과업이 끊기지 않고 끝나나, 대체 엔진이 답한 과업에 지연 안내가 붙나
 #      CPU 에서 생각 모드는 과업당 수 분 걸릴 수 있어 과업 6개만, 2개 뒤에 종료한다.
@@ -10,14 +10,14 @@ tasks: eval/agent_tasks.jsonl
 embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
 graph: {require_tool: true, auto_cite: true, degraded_notice: true, safety_search: true}
 models:
-  - {label: "4B · 엔진 직접", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+  - {label: "Qwen3-4B · 엔진 직접", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
      thinking: true, max_tokens: 2048, timeout: 300}
-  - {label: "4B · 게이트웨이 경유", kind: openai, profile: [sglang-4b, llamacpp-cpu, litellm],
+  - {label: "Qwen3-4B · 게이트웨이 경유", kind: openai, profile: [sglang-4b, llamacpp-cpu, litellm],
      base_url: "http://localhost:4000/v1", model: agent-llm-4b, api_key: sk-local-dev,
      headers: {Authorization: "Bearer sk-local-dev"}, response_headers: true,
      wait_also: ["http://localhost:30000/v1", "http://localhost:18082/v1"],
      thinking: true, max_tokens: 2048, timeout: 300}
-  - {label: "4B · 게이트웨이 · 2과업 뒤 1순위 강제 종료", kind: openai, profile: [sglang-4b, llamacpp-cpu, litellm],
+  - {label: "Qwen3-4B · 게이트웨이 · 2과업 뒤 1순위 강제 종료", kind: openai, profile: [sglang-4b, llamacpp-cpu, litellm],
      base_url: "http://localhost:4000/v1", model: agent-llm-4b, api_key: sk-local-dev,
      headers: {Authorization: "Bearer sk-local-dev"}, response_headers: true,
      wait_also: ["http://localhost:30000/v1", "http://localhost:18082/v1"],

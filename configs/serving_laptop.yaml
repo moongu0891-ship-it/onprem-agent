@@ -23,7 +23,7 @@ engines:
   - {label: "SGLang 캐시 끔", profile: sglang-nopc, base_url: "http://localhost:30000/v1", model: qwen3-1.7b, toolcheck: false}
   - {label: llama.cpp, profile: llamacpp, base_url: "http://localhost:18081/v1", model: qwen3-1.7b,
      info_url: "http://localhost:18081/props"}
-  # 게이트웨이를 거칠 때 얼마나 느려지는지: 같은 vLLM 을 직접 부른 줄과 비교한다
+  # 게이트웨이를 거칠 때 얼마나 느려지는지: 같은 vLLM 을 직접 부른 시험 조건과 비교한다
   - {label: "LiteLLM → vLLM", profile: [vllm, litellm], base_url: "http://localhost:4000/v1", model: vllm,
      headers: {Authorization: "Bearer sk-local-dev"}, wait_for: ["http://localhost:8000/v1"],
      workloads: [rag], toolcheck: false}

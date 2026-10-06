@@ -1,12 +1,12 @@
 # 에이전트 과업 평가 — 노트북 (RTX 5070 Laptop 8GB). 엔진을 하나씩 띄우고 재고 내린다.
 #   python scripts/eval_agent.py configs/agent_laptop.yaml --manage
-#   일부만 다시: --only 4B   (이전에 잰 다른 모델 결과는 남는다)
-# 질문: ① LLM 이 규칙 기준선보다 나은가(특히 자연스러운 말투) ② 1.7B → 4B 로 키우면 나아지나
+#   일부만 다시: --only Qwen3-4B   (이전에 잰 다른 모델 결과는 남는다)
+# 질문: ① LLM 이 규칙 기준선보다 나은가(특히 자연스러운 말투) ② Qwen3-1.7B → Qwen3-4B 로 키우면 나아지나
 #       ③ 엔진에 따라 과업 성공이 달라지나 ④ 그래프의 두 안전 기능(되돌림·근거 자동)가 얼마나 메우나 — 같은 모델을 켜고/끄고 잰다
 # 1차(개선 전): reports/agent_laptop_v1.md, 2차(안전 기능 첫판): reports/agent_laptop_v2.md.
-# 2차부터 업무 기능(도구) 결과의 근거 번호 형식 통일·프롬프트 근거 규칙이 모든 줄에 들어가고, '(안전 기능 끔)' 줄은 그래프 안전 기능만 끈 것이다.
-# 3차: 되돌림 = 업무 기능(도구) 선택 필수(tool_choice=required) + no_tool_needed. 4B 는 생각 모드를 켠 줄도 잰다.
-# 4차: 생각 모드의 몫 나누기 — 4B 생각 켬(안전 기능 끔), 1.7B 생각 켬. 실행: --manage --only 생각   (다른 줄 결과는 남는다)
+# 2차부터 업무 기능(도구) 결과의 근거 번호 형식 통일·프롬프트 근거 규칙이 모든 시험 조건에 들어가고, '(안전 기능 끔)' 시험 조건은 그래프 안전 기능만 끈 것이다.
+# 3차: 되돌림 = 업무 기능(도구) 선택 필수(tool_choice=required) + no_tool_needed. Qwen3-4B 는 생각 모드를 켠 시험 조건도 잰다.
+# 4차: 생각 모드의 몫 나누기 — Qwen3-4B 생각 켬(안전 기능 끔), Qwen3-1.7B 생각 켬. 실행: --manage --only 생각   (다른 시험 조건의 결과는 남는다)
 name: agent_laptop
 tasks: eval/agent_tasks.jsonl
 embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}   # 검색 업무 기능(도구)은 2주차 기본값(라우팅 + bge-m3). GPU 는 엔진이 쓰므로 임베딩은 CPU 로
