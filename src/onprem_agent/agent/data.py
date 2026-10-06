@@ -29,7 +29,7 @@ def _won(text: str, pattern: str) -> int | None:
 
 
 def build_db(root: Path, path: str = ":memory:", guard: bool = False) -> sqlite3.Connection:
-    """guard=True 면 가드레일 평가용 작업 이력(data/guard/ops_logs, 숨은 지시 포함)도 넣는다."""
+    """guard=True 면 보호 기능(가드레일) 평가용 작업 이력(data/guard/ops_logs, 숨은 지시 포함)도 넣는다."""
     con = sqlite3.connect(path, check_same_thread=False)
     con.row_factory = sqlite3.Row
     con.executescript("""

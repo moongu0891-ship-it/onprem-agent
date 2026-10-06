@@ -1,4 +1,4 @@
-# 가드레일 과업(6주차) — 규칙 모델만, GPU 없이 (CI 에서 숨은 지시 자료·채점·가드레일 장치가 맞물리는지 확인)
+# 보호 기능(가드레일) 과업(6주차) — 규칙 모델만, GPU 없이 (CI 에서 숨은 지시 자료·채점·보호 기능(가드레일) 장치가 맞물리는지 확인)
 #   python scripts/eval_agent.py configs/agent_ci_guard.yaml
 name: agent_ci_guard
 tasks: eval/agent_guard_tasks.jsonl
@@ -6,4 +6,4 @@ guard_data: true                # 숨은 지시가 든 자료(data/guard/)를 �
 embedder: {kind: hash}
 graph: {require_tool: true, auto_cite: true, safety_search: true, wrap_tool_data: true, strip_injection: true, answer_guard: true}
 models:
-  - {label: "규칙 기준선 · 가드레일 전부", kind: rule}
+  - {label: "규칙 기준선 · 보호 기능(가드레일) 전부", kind: rule}

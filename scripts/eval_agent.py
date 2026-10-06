@@ -97,7 +97,7 @@ def main():
                     wait_ready(u, {}, a.ready_timeout, profile)
             graph_opts = {**cfg.get("graph", {}), **spec.get("graph", {})}   # 설정 파일 기본값 위에 모델별 값
             prompt_rules = tuple(spec.get("prompt_rules", cfg.get("prompt_rules", [])))
-            spec_tasks = load_tasks(spec["tasks_file"]) if spec.get("tasks_file") else tasks   # 시험 조건마다 다른 과업 파일(가드레일 vs 기존)
+            spec_tasks = load_tasks(spec["tasks_file"]) if spec.get("tasks_file") else tasks   # 시험 조건마다 다른 과업 파일(보호 기능(가드레일) vs 기존)
             env = {**mcp_env, "ONPREM_GUARD_DATA": "1" if spec.get("guard_data", cfg.get("guard_data")) else "0"}
             rows, traces = asyncio.run(eval_model(spec, spec_tasks, env, a.tasks, graph_opts, prompt_rules))
             res["models"].append({"label": spec["label"], "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
