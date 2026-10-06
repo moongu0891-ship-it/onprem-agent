@@ -237,8 +237,8 @@ def test_guard_sanitize_wrap_and_answer_guard():
     poisoned = (ROOT / "data/guard/ops_logs/guard_work_orders.md").read_text(encoding="utf-8")
     clean, n = sanitize_data(poisoned)
     assert n == 2 and "AI 는" not in clean and INJECTION_MARK in clean and "## 작업 이력 WO-09002" in clean
-    for f in (ROOT / "data").rglob("*.md"):            # 기존 데이터에는 지울 문장이 없어야 한다(오탐 0)
-        if "guard" not in f.parts:
+    for d in ("ops", "ops_logs", "cs"):                 # 업무 기능(도구)이 읽는 기존 데이터에는 지울 문장이 없어야 한다(오탐 0)
+        for f in (ROOT / "data" / d).glob("*.md"):
             assert sanitize_data(f.read_text(encoding="utf-8"))[1] == 0, f
     assert wrap_data("search_manual", "[OPS-SAFE] x").startswith('<자료 출처="search_manual">')
     assert guard_answer("번호는 010-1234-5678")[0] == "번호는 010-****-5678"
