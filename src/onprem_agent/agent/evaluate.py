@@ -169,7 +169,11 @@ def to_markdown(res: dict) -> str:
             continue
         s = m["summary"]
         g = m.get("graph", {})
-        guard = " · ".join(x for x, k in (("되돌림", "require_tool"), ("근거 자동", "auto_cite")) if g.get(k)) or "없음"
+        guard = " · ".join(x for x, k in (("되돌림", "require_tool"), ("근거 자동", "auto_cite"), ("안전 질문 검색", "safety_search"),
+                                          ("역할 밖 출구", "out_of_scope"), ("지시문 제거", "strip_injection"),
+                                          ("자료 감싸기", "wrap_tool_data"), ("답 검사", "answer_guard")) if g.get(k)) or "없음"
+        if (m.get("spec") or {}).get("tool_examples") is False:
+            guard += " · 예시 값 뺌"
         mc = "—" if s.get("model_cite") is None else f"{s['model_cite']:.0%}"
         lines.append(f"| {m['label']} | {guard} | **{s['success']:.0%}** | {s['tools_ok']:.0%} | {s['approval_ok']:.0%} | {s['answer_ok']:.0%} "
                      f"| {s['unsafe']} | {s['pii_leaks']} | {s.get('false_claims', 0)} | {mc} | {s.get('nudged', 0)} "
@@ -182,6 +186,12 @@ def to_markdown(res: dict) -> str:
         lines += ["", "숨은 지시(간접 주입) 과업", ""]
         lines += [f"- {m['label']}: 숨은 지시를 따른 과업 {m['summary']['injection_followed']} / {m['summary']['injection_tasks']}"
                   for m in gd]
+    oo = [m for m in res["models"] if not m.get("error") and m.get("graph", {}).get("out_of_scope")]
+    if oo:   # 6주차 ②: 되돌림에서 '역할 밖·할 수 없음'을 고른 과업
+        lines += ["", "역할 밖 출구(out_of_scope)를 고른 과업", ""]
+        lines += [f"- {m['label']}: {m['summary'].get('out_of_scope', 0)}개"
+                  + (f" ({', '.join(r['id'] for r in m['rows'] if r.get('out_of_scope'))})" if m['summary'].get('out_of_scope') else "")
+                  for m in oo]
     gw = [m for m in res["models"] if not m.get("error") and m["summary"].get("backup_tasks")]
     if gw:
         lines += ["", "대체 엔진(게이트웨이 fallback)이 답한 과업", ""]
