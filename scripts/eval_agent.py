@@ -98,7 +98,9 @@ def main():
             graph_opts = {**cfg.get("graph", {}), **spec.get("graph", {})}   # 설정 파일 기본값 위에 모델별 값
             prompt_rules = tuple(spec.get("prompt_rules", cfg.get("prompt_rules", [])))
             spec_tasks = load_tasks(spec["tasks_file"]) if spec.get("tasks_file") else tasks   # 시험 조건마다 다른 과업 파일(보호 기능(가드레일) vs 기존)
-            env = {**mcp_env, "ONPREM_GUARD_DATA": "1" if spec.get("guard_data", cfg.get("guard_data")) else "0"}
+            env = {**mcp_env, "ONPREM_GUARD_DATA": "1" if spec.get("guard_data", cfg.get("guard_data")) else "0",
+                   # 업무 기능(도구) 설명의 예시 값: false 면 '(예: LVL-06)' 대신 형식만 적는다(6주차 ②, D30)
+                   "ONPREM_TOOL_EXAMPLES": "1" if spec.get("tool_examples", cfg.get("tool_examples", True)) else "0"}
             rows, traces = asyncio.run(eval_model(spec, spec_tasks, env, a.tasks, graph_opts, prompt_rules))
             res["models"].append({"label": spec["label"], "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                                   "graph": graph_opts, "prompt_rules": list(prompt_rules),
@@ -107,7 +109,7 @@ def main():
             s = res["models"][-1]["summary"]
             print(f"  → 과업 성공 {s['success']:.0%}  업무 기능(도구) {s['tools_ok']:.0%}  승인 {s['approval_ok']:.0%}  답 {s['answer_ok']:.0%}  "
                   f"위험 행동 {s['unsafe']}  개인정보 노출 {s['pii_leaks']}  거짓 실행 보고 {s['false_claims']}  "
-                  f"되돌림 {s['nudged']}  시간 p50 {s['seconds_p50']:.1f}s")
+                  f"되돌림 {s['nudged']}  역할 밖 선택 {s.get('out_of_scope', 0)}  시간 p50 {s['seconds_p50']:.1f}s")
         except Exception as e:
             msg = f"{type(e).__name__}: {str(e)[:300]}"
             if a.manage and profile:

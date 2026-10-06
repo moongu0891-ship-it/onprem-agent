@@ -9,6 +9,8 @@
 환경 변수
 - ONPREM_ROOT       저장소 루트 (기본: 이 파일 기준으로 찾음)
 - ONPREM_GUARD_DATA  1 이면 보호 기능(가드레일) 평가용 자료(data/guard/: 숨은 지시가 든 작업 이력·매뉴얼 절·FAQ)를 더한다(6주차).
+- ONPREM_TOOL_EXAMPLES 0 이면 업무 기능(도구) 설명에 구체 예시 값('예: LVL-06')을 쓰지 않고 형식만 적는다(6주차 ②).
+                    되돌림이 업무 기능(도구) 선택을 강제하면 모델이 예시 값을 그대로 넣은 호출을 만들었다(문제해결 이력 D30). 기본 1(예전 그대로).
 - ONPREM_EMBEDDER   검색 임베더 설정 JSON. 기본 {"kind":"hash"} (모델 없이 CI 에서 돈다).
                     노트북: '{"kind":"sentence-transformers","model":"BAAI/bge-m3"}'
 
@@ -24,6 +26,7 @@ import os
 import re
 import sys
 from datetime import datetime, timezone
+from inspect import cleandoc
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
@@ -33,6 +36,11 @@ from .data import build_db, mask_name, mask_phone
 ROOT = Path(os.environ.get("ONPREM_ROOT", Path(__file__).resolve().parents[3]))
 CODE_RE = re.compile(r"^[A-Z]{3}-\d{2}$")
 MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
+
+
+def _ex(example: str, fmt: str) -> str:
+    """업무 기능(도구) 설명의 값 안내: 예시 값을 보일지(기본) 형식만 적을지(ONPREM_TOOL_EXAMPLES=0)."""
+    return example if os.environ.get("ONPREM_TOOL_EXAMPLES", "1") != "0" else fmt
 
 
 def _retriever(folders: list[str]):
@@ -73,14 +81,15 @@ def make_ops_server() -> FastMCP:
         결과의 [대괄호] 안은 근거 절 번호다."""
         return _format_hits(retr.search(query, 10), by_id)
 
-    @mcp.tool()
+    code_hint = _ex("(예: LVL-06)", "(영문 대문자 3자-숫자 2자, 질문에 나온 코드를 그대로)")
+
+    @mcp.tool(description=cleandoc(f"""정비 작업 이력을 조회한다. 특정 호기·경보 코드·연월에 무슨 일이 있었고 어떻게 처리했는지 묻는 질문에 쓴다.
+        alarm_code: 경보 코드 {code_hint}. line: 호기 번호 1~6 (모르면 0). month: 연월 YYYY-MM (모르면 빈 문자열).
+        결과의 [대괄호] 안은 근거가 되는 작업 번호다."""))   # 독스트링과 같게 들여쓰기를 걷어 낸다(예시 켬 = 예전과 글자까지 같음)
     def get_work_orders(alarm_code: str, line: int = 0, month: str = "") -> str:
-        """정비 작업 이력을 조회한다. 특정 호기·경보 코드·연월에 무슨 일이 있었고 어떻게 처리했는지 묻는 질문에 쓴다.
-        alarm_code: 경보 코드 (예: LVL-06). line: 호기 번호 1~6 (모르면 0). month: 연월 YYYY-MM (모르면 빈 문자열).
-        결과의 [대괄호] 안은 근거가 되는 작업 번호다."""
         code = alarm_code.strip().upper()
         if not CODE_RE.match(code):
-            return f"오류: 경보 코드 형식이 아니다: {alarm_code!r} (예: LVL-06)"
+            return f"오류: 경보 코드 형식이 아니다: {alarm_code!r} {code_hint}"
         if month and not MONTH_RE.match(month):
             return f"오류: month 는 YYYY-MM 형식이어야 한다: {month!r}"
         sql, args = "SELECT * FROM work_orders WHERE alarm_code = ?", [code]
@@ -121,10 +130,9 @@ def make_cs_server() -> FastMCP:
     db = build_db(ROOT, guard=guard)
     retr, by_id = _retriever(["data/cs"] + (["data/guard/cs"] if guard else []))
 
-    @mcp.tool()
+    @mcp.tool(description=cleandoc(f"""고객 번호로 고객의 요금제, 약정, 미납 금액, 로밍 상품을 조회한다. 이름·전화번호는 가려서 돌려준다.
+        customer_id: 고객 번호 {_ex("(예: C0012)", "(C 와 숫자 4자리, 질문에 나온 번호를 그대로)")}."""))
     def get_customer(customer_id: str) -> str:
-        """고객 번호로 고객의 요금제, 약정, 미납 금액, 로밍 상품을 조회한다. 이름·전화번호는 가려서 돌려준다.
-        customer_id: 고객 번호 (예: C0012)."""
         cid = customer_id.strip().upper()
         r = db.execute("SELECT * FROM customers WHERE customer_id = ?", (cid,)).fetchone()
         if not r:
@@ -133,9 +141,9 @@ def make_cs_server() -> FastMCP:
         return (f"[{cid}] 고객 | 이름 {mask_name(r['name'])} | 전화 {mask_phone(r['phone'])} | 요금제 {r['plan_code']} | {contract} | "
                 f"미납 {r['unpaid_amount']:,}원 | 로밍 {r['roaming_pass'] or '없음'} | 가족 회선 {r['family_lines']}개")
 
-    @mcp.tool()
+    @mcp.tool(description="요금제 코드로 요금제의 월 요금, 선택약정 요금, 데이터 제공량, 부가 혜택을 조회한다. plan_code: "
+                          + _ex("예 PLN-5G59.", "PLN- 으로 시작하는 코드, 질문이나 고객 조회 결과에 나온 코드를 그대로."))
     def get_plan(plan_code: str) -> str:
-        """요금제 코드로 요금제의 월 요금, 선택약정 요금, 데이터 제공량, 부가 혜택을 조회한다. plan_code: 예 PLN-5G59."""
         code = plan_code.strip().upper()
         r = db.execute("SELECT * FROM plans WHERE plan_code = ?", (code,)).fetchone()
         if not r:

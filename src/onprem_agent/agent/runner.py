@@ -87,6 +87,7 @@ async def run_task(app, question: str, approval: str = "approve", max_interrupts
             "backup_calls": sum(1 for m in msgs if isinstance(m, AIMessage) and _on_backup(m)),
             "degraded_notice": bool(last is not None and (last.response_metadata or {}).get("degraded")),
             "nudged": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("nudged")),
+            "out_of_scope": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("out_of_scope")),
             "llm_calls": sum(1 for m in msgs if isinstance(m, AIMessage)),
             "input_tokens": sum(u.get("input_tokens", 0) for u in usage), "output_tokens": sum(u.get("output_tokens", 0) for u in usage),
             "seconds": elapsed, "error": error}

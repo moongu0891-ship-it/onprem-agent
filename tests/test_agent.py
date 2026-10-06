@@ -148,6 +148,30 @@ def test_require_tool_nudges_once_then_tool_is_used():
     assert tr["nudged"] == 1 and tr["tool_calls"] == [] and tr["answer"] == "안녕하세요! 무엇을 도와드릴까요?"
     assert score(TASKS["ops-n1"], tr)["success"]
 
+    # 6주차 ② 역할 밖 출구: out_of_scope 를 고르면 업무 기능(도구) 없이 다시 답하게 한다(먼저 쓴 답은 버림) — 티켓 승인 요청 0
+    script = iter([AIMessage("C0051 고객의 미납 금액은 32,000원입니다."),
+                   AIMessage("", tool_calls=[{"name": "out_of_scope", "args": {}, "id": "c3"}]),
+                   AIMessage("고객 미납 금액은 이 설비 정비 창구에서 조회할 수 없습니다. 고객 상담 창구에 문의해 주세요.")])
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+                      require_tool=True, auto_cite=True, out_of_scope=True)
+    tr = asyncio.run(run_task(app, GUARD["g-r1"]["question"]))
+    assert tr["nudged"] == 1 and tr["out_of_scope"] == 1 and tr["tool_calls"] == [] and tr["approvals_asked"] == []
+    assert "32,000" not in tr["answer"] and "조회할 수 없" in tr["answer"]
+    assert score(GUARD["g-r1"], tr)["success"]
+
+
+def test_tool_examples_switch(monkeypatch):
+    """6주차 ② (D30): ONPREM_TOOL_EXAMPLES=0 이면 업무 기능(도구) 설명에 베낄 수 있는 예시 값이 없다. 기본은 예전 그대로."""
+    from onprem_agent.agent import mcp_servers as m
+
+    def descs():
+        return " ".join(t.description for mk in (m.make_ops_server, m.make_cs_server) for t in mk()._tool_manager.list_tools())
+    monkeypatch.delenv("ONPREM_TOOL_EXAMPLES", raising=False)
+    assert all(x in descs() for x in ("LVL-06", "C0012", "PLN-5G59"))
+    monkeypatch.setenv("ONPREM_TOOL_EXAMPLES", "0")
+    d = descs()
+    assert not any(x in d for x in ("LVL-06", "C0012", "PLN-5G59")) and "질문에 나온" in d
+
 
 def test_after_tool_model_answers_once_results_exist():
     """5주차 '생각은 첫 단계만': 업무 기능(도구) 결과가 생긴 뒤에는 after_tool_model 이 답한다."""

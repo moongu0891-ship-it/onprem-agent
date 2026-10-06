@@ -1,0 +1,28 @@
+# 에이전트 6주차 ② — 되돌림 손보기 (노트북 RTX 5070 Laptop 8GB)
+#   python scripts/eval_agent.py configs/agent_laptop_guard2.yaml --manage
+# 계획: agent/README 6.5 (되돌림 손보기). 6주차 ① 실제 답에서 찾은 되돌림(업무 기능(도구) 선택 필수)의 두 문제를 고치고 다시 잰다.
+#   D28 역할 밖 질문에도 업무 기능(도구)을 하나 골라 티켓 승인 요청을 만듦 → out_of_scope(역할 밖·할 수 없음) 선택지를 더함
+#   D30 고를 게 마땅치 않으면 업무 기능(도구) 설명의 예시 값(LVL-06, C0012)을 베낀 호출을 만듦 → 설명에서 예시 값을 빼고 형식만(tool_examples: false)
+# 모든 시험 조건의 바탕 = 6주차 ① 잠정 결정: 5주차 안전 기능 + 답 검사 + 지시문 제거 (자료 감싸기는 보류라 끔)
+# 잴 것: ① g-r1·g-r2·g-d2·g-i4 의 엉뚱한 호출이 사라지나 ② 기존 26과업이 떨어지지 않나(같은 날 바탕 조건과 비교)
+name: agent_laptop_guard2
+tasks: eval/agent_guard_tasks.jsonl
+guard_data: true
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true}
+models:
+  - {label: "Qwen3-4B · 6주차 ① 바탕 (답 검사 + 지시문 제거)", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300}
+  - {label: "Qwen3-4B · + 역할 밖 출구", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300,
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, out_of_scope: true}}
+  - {label: "Qwen3-4B · + 예시 값 빼기", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tool_examples: false}
+  - {label: "Qwen3-4B · + 둘 다 (6주차 ② 후보)", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tool_examples: false,
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, out_of_scope: true}}
+  - {label: "Qwen3-4B · 6주차 ① 바탕 · 기존 26과업", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · 둘 다 · 기존 26과업", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false, tool_examples: false,
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, out_of_scope: true}}
