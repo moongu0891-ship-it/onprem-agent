@@ -1,0 +1,24 @@
+# 에이전트 6주차 ⑤ — 창구 범위 규칙 (노트북 RTX 5070 Laptop 8GB)
+#   python scripts/eval_agent.py configs/agent_laptop_guard5.yaml --manage
+# 계획: agent/README 6.11. 검색 되돌림(6주차 ④ 기본값) 뒤에도 역할 밖 두 과업이 실패했다 — 설비 창구는 "C0051 관련 정보는 매뉴얼에 없습니다",
+#   상담 창구는 "고객 번호나 요금제 코드 없이 진행 불가능합니다". 모델이 자기 창구가 하지 않는 일을 모른다.
+#   시스템 지시문에 '이 창구가 하지 않는 일'과 보낼 곳을 적는다(prompt_rules: [scope]). 정상 질문까지 거절하지 않는지 기존 26과업으로 본다.
+# 같은 설정 두 번씩. 바탕 = 6주차 ④ 기본값: 5주차 안전 기능 + 검색 되돌림 + 지시문 제거 + 답 검사
+name: agent_laptop_guard5
+tasks: eval/agent_guard_tasks.jsonl
+guard_data: true
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search}
+models:
+  - {label: "Qwen3-4B · 바탕 · 1회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300}
+  - {label: "Qwen3-4B · 바탕 · 2회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300}
+  - {label: "Qwen3-4B · + 창구 범위 · 1회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [scope]}
+  - {label: "Qwen3-4B · + 창구 범위 · 2회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [scope]}
+  - {label: "Qwen3-4B · 바탕 · 기존 26과업", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · + 창구 범위 · 기존 26과업", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false, prompt_rules: [scope]}

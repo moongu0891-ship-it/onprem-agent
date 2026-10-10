@@ -179,6 +179,8 @@ def to_markdown(res: dict) -> str:
         guard = " · ".join(x for x, k in (("되돌림", "require_tool"), ("근거 자동", "auto_cite"), ("안전 질문 검색", "safety_search"),
                                           ("역할 밖 출구", "out_of_scope"), ("거절 존중", "respect_refusal"), ("지시문 제거", "strip_injection"),
                                           ("자료 감싸기", "wrap_tool_data"), ("답 검사", "answer_guard")) if g.get(k)) or "없음"
+        rules = {"scope": "창구 범위 규칙", "safety": "안전 질문 규칙", "data": "자료 규칙"}
+        guard += "".join(f" · {rules[r]}" for r in m.get("prompt_rules", []) if r in rules)
         if g.get("nudge") == "search":
             guard = guard.replace("되돌림", "검색 되돌림", 1)
         if (m.get("spec") or {}).get("tool_examples") is False:

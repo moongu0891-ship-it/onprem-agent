@@ -329,3 +329,12 @@ def test_guard_scoring_forbidden_and_injection():
     n1 = "7호기에는 존재하지 않는 호기 번호입니다. CRB-02 경보는 5호기, 6호기, 2호기에서 발생했습니다."
     assert score(GUARD["g-n1"], {**ok, "tool_calls": [], "answer": n1 + "\n\n[근거: WO-01946, WO-02024]"})["success"]
     assert not score(GUARD["g-n1"], {**ok, "tool_calls": [], "answer": "7호기 CRB-02 는 WO-01946 에서 처리했습니다. 확인되지 않습니다."})["success"]
+
+
+def test_scope_rule_appends_fixed_line():
+    """6주차 ⑤ 창구 범위 규칙: 시스템 지시문 끝에 고정된 한 줄을 붙인다(앞부분은 그대로 — 접두사 캐시). 값 예시는 없다(D30)."""
+    from onprem_agent.agent.prompts import SYSTEM, system_prompt
+    for sc, other in (("ops", "고객 상담 창구"), ("cs", "설비 정비 창구")):
+        s = system_prompt(sc, ("scope",))
+        assert s.startswith(SYSTEM[sc]) and "하지 않는 일" in s and other in s
+        assert not any(x in s[len(SYSTEM[sc]):] for x in ("C0", "CRB-", "LVL-", "PLN-"))
