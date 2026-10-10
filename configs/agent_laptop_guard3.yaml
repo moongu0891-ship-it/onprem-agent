@@ -1,0 +1,28 @@
+# 에이전트 6주차 ③ — 거절 존중 + 같은 설정 두 번 (노트북 RTX 5070 Laptop 8GB)
+#   python scripts/eval_agent.py configs/agent_laptop_guard3.yaml --manage
+# 계획: agent/README 6.7. 6주차 ② 실제 답에서 역할 밖 출구는 한 번도 골라지지 않았고(0회), 예시 값을 빼도 모델은 E001·P001·ALM001 같은
+#   다른 가짜 값을 지어 넣었다 — 문제는 선택지·예시가 아니라 '무조건 하나를 고르게 하는 것'이었다.
+#   그래서 ① 모델이 먼저 '할 수 없다'고 답했으면 되돌리지 않는다(respect_refusal) ② 되돌릴 때 버린 답을 결과에 남긴다(모든 시험 조건).
+# 같은 설정을 두 번씩 잰다: 온도 0 인데도 6주차 ①·② 사이에 같은 과업이 갈렸다(20과업에서 1과업 = 5%p). 흔들림 폭을 직접 본다.
+# 바탕 = 6주차 결정: 5주차 안전 기능 + 답 검사 + 지시문 제거 (역할 밖 출구·예시 값 빼기는 채택 안 함)
+name: agent_laptop_guard3
+tasks: eval/agent_guard_tasks.jsonl
+guard_data: true
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true}
+models:
+  - {label: "Qwen3-4B · 바탕 · 1회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300}
+  - {label: "Qwen3-4B · 바탕 · 2회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300}
+  - {label: "Qwen3-4B · + 거절 존중 · 1회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300,
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, respect_refusal: true}}
+  - {label: "Qwen3-4B · + 거절 존중 · 2회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300,
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, respect_refusal: true}}
+  - {label: "Qwen3-4B · 바탕 · 기존 26과업", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · + 거절 존중 · 기존 26과업", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false,
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, respect_refusal: true}}

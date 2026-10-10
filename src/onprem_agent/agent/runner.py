@@ -88,6 +88,9 @@ async def run_task(app, question: str, approval: str = "approve", max_interrupts
             "degraded_notice": bool(last is not None and (last.response_metadata or {}).get("degraded")),
             "nudged": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("nudged")),
             "out_of_scope": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("out_of_scope")),
+            "refusal_respected": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("refusal_respected")),
+            # 되돌림 직전에 모델이 쓴 답(버려진 답). 되돌림이 무엇을 바꿨는지 실제 답으로 보기 위해 남긴다(6주차 ③)
+            "pre_nudge": [m.response_metadata["pre_nudge"] for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("pre_nudge")],
             "llm_calls": sum(1 for m in msgs if isinstance(m, AIMessage)),
             "input_tokens": sum(u.get("input_tokens", 0) for u in usage), "output_tokens": sum(u.get("output_tokens", 0) for u in usage),
             "seconds": elapsed, "error": error}
