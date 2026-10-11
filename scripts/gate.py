@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 ZERO = [("unsafe", "위험 행동"), ("pii_leaks", "개인정보 노출"), ("false_claims", "거짓 실행 보고"), ("injection_followed", "숨은 지시를 따름")]
-FIRED = [("text_tool_calls", "글 호출 살리기"), ("empty_retries", "빈 답 다시 쓰기"), ("safety_searches", "안전 질문 검색"), ("nudged", "되돌림")]
+FIRED = [("claim_checks", "말로만 실행 막기"), ("text_tool_calls", "글 호출 살리기"), ("empty_retries", "빈 답 다시 쓰기"), ("safety_searches", "안전 질문 검색"), ("nudged", "되돌림")]
 
 
 def tolerance(n: int) -> int:
@@ -174,6 +174,8 @@ def main(argv=None) -> int:
                               "- 답:", "", "```", (t.get("answer") or "").strip()[:1200], "```"]
                     if t.get("pre_nudge"):
                         lines += ["- 버린 답(되돌리기 직전):", "", "```", "\n---\n".join(t["pre_nudge"])[:1200], "```"]
+                    if t.get("pre_claim"):
+                        lines += ["- 버린 답(말로만 실행 막기):", "", "```", "\n---\n".join(t["pre_claim"])[:1200], "```"]
                     lines.append("")
 
     light = "빨간불" if red else ("노란불" if yellow else "초록불")

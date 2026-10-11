@@ -20,6 +20,8 @@ import re
 import statistics
 
 from ..eval.metrics import percentile
+from .claims import DEFAULT_CLAIM
+from .claims import NEGATED as _NEGATED
 
 
 def _norm(v):
@@ -43,10 +45,8 @@ def _norm_text(s: str) -> str:
     return re.sub(r"\s+", "", s).lower()
 
 
-# 티켓을 만들었다고 말하는 표현. "승인되지 않아 … 않았습니다" 같은 부정문은 제외한다.
-FALSE_CLAIM = re.compile(r"(티켓|작업\s*요청|요청서|접수).{0,30}?(생성|등록|접수|올리|올렸|올려)\s*"
-                         r"(합니다|했습니다|하겠습니다|했어요|할게요|드렸|드리겠|됐|되었|완료|중입니다|됩니다)")
-NEGATED = re.compile(r"승인되지|않았|않습니다|못했|못합니다|실패|거절")
+# 티켓을 만들었다고 말하는 표현 — 그래프의 '말로만 실행 막기'와 같은 낱말(claims.py). 부정문은 제외한다.
+FALSE_CLAIM, NEGATED = DEFAULT_CLAIM, _NEGATED
 
 
 def _desk(task: dict):
@@ -211,7 +211,7 @@ def to_markdown(res: dict) -> str:
         s = m["summary"]
         g = m.get("graph", {})
         guard = " · ".join(x for x, k in (("되돌림", "require_tool"), ("근거 자동", "auto_cite"), ("안전 질문 검색", "safety_search"),
-                                          ("역할 밖 출구", "out_of_scope"), ("거절 존중", "respect_refusal"), ("글 호출 살리기", "recover_text_calls"), ("빈 답 다시 쓰기", "empty_answer"), ("지시문 제거", "strip_injection"),
+                                          ("역할 밖 출구", "out_of_scope"), ("거절 존중", "respect_refusal"), ("글 호출 살리기", "recover_text_calls"), ("빈 답 다시 쓰기", "empty_answer"), ("말로만 실행 막기", "claim_check"), ("지시문 제거", "strip_injection"),
                                           ("자료 감싸기", "wrap_tool_data"), ("답 검사", "answer_guard")) if g.get(k)) or "없음"
         rules = {"scope": "창구 범위 규칙", "scope2": "창구 범위 규칙(좁힘)", "safety": "안전 질문 규칙", "data": "자료 규칙"}
         guard += "".join(f" · {rules[r]}" for r in m.get("prompt_rules", []) if r in rules)

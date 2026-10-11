@@ -1,0 +1,24 @@
+# 에이전트 7주차 — '말로만 실행 막기' (노트북 RTX 5070 Laptop 8GB)
+#   make test-full CONFIG=configs/agent_laptop_w7_claim.yaml BASE=바탕        (= 두 번 + 빨간불 검사, 바탕과 견줌)
+# 계획: agent/README 7.9. D42: IT 창구에서 모델이 승인이 필요한 요청을 부르지 않고 "요청합니다"라고만 답했다(두 번 모두).
+# 바탕 = 지금 기본값, 후보 = 바탕 + claim_check (한 번에 하나만). 과업 묶음: IT 23(it-v1 은 tune, it-v2 가 새 확인용) ·
+# 설비·상담 확인용 26 · 기존 26. 결정 기준: 거짓 실행 보고가 두 번 모두 0 이 되고, 과업 성공이 흔들림 폭 넘게 떨어지지 않으면 기본값에.
+name: agent_laptop_w7_claim
+tasks: examples/desks/it/tasks.jsonl
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search,
+        recover_text_calls: true, empty_answer: true}
+prompt_rules: [scope]
+models:
+  - {label: "Qwen3-4B · 바탕 · IT 23", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: examples/desks/it/tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · + 말로만 실행 막기 · IT 23", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: examples/desks/it/tasks.jsonl, guard_data: false, graph: {claim_check: true}}
+  - {label: "Qwen3-4B · 바탕 · 확인용 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_holdout_tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · + 말로만 실행 막기 · 확인용 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_holdout_tasks.jsonl, guard_data: false, graph: {claim_check: true}}
+  - {label: "Qwen3-4B · 바탕 · 기존 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · + 말로만 실행 막기 · 기존 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false, graph: {claim_check: true}}

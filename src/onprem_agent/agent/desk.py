@@ -46,7 +46,8 @@ class Desk:
         return {"search_tool": self.search_tool, "approval_tools": self.approval_tools,
                 "safety_pattern": re.compile(self.safety_pattern) if self.safety_pattern else None,
                 "prompt_markers": self.prompt_markers, "prompt_refusal": self.prompt_refusal,
-                "no_tool_description": self.no_tool_description}
+                "no_tool_description": self.no_tool_description,
+                "claim_pattern": re.compile(self.claim_pattern) if self.claim_pattern else None}
 
 
 @lru_cache(maxsize=None)

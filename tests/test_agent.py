@@ -435,3 +435,59 @@ def test_it_desk_false_claim_words():
     assert not score(it["it-d1"], {**base, "approvals_asked": [], "answer": d1})["false_claim"]
     v1 = "계정 잠금 해제를 요청합니다.  \n1. E1045 사번의 계정 잠금은 5회 연속 비밀번호 오류로 인한 것으로, 본인 확인 완료 상태입니다."
     assert score(it["it-v1"], {**base, "approvals_asked": [], "answer": v1})["false_claim"]
+
+
+def test_claim_check_blocks_talk_only_execution():
+    """7주차 (D42): 승인이 필요한 일을 부르지 않고 '요청합니다'라고 답하면 한 번 더 고르게 한다 — 노트북 it-v1 의 실제 답으로."""
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+    from langchain_core.messages import AIMessage
+    from langchain_core.tools import tool
+    from langgraph.checkpoint.memory import InMemorySaver
+    from onprem_agent.agent.graph import build_graph
+    from onprem_agent.agent.runner import run_task
+    it = load_desk("it").graph_kwargs()
+
+    @tool
+    def search_policy(query: str) -> str:
+        """규정 검색"""
+        return "[IT-PWD] 비밀번호를 5회 연속 틀리면 계정이 잠긴다. IT 헬프데스크가 본인 확인 후 잠금 해제를 요청한다."
+
+    @tool
+    def request_unlock(employee_id: str, reason: str) -> str:
+        """잠금 해제 요청"""
+        return f"[RQ-0001] 계정 잠금 해제 요청 접수됨: {employee_id}"
+
+    class Scripted(GenericFakeChatModel):
+        def bind_tools(self, tools, **kw):
+            return self
+    q = "E1045 씨가 로그인이 막혔다는데 풀어 주세요. 본인 확인했어요."
+    talk = "계정 잠금 해제를 요청합니다.\n1. E1045 사번의 계정 잠금은 5회 연속 비밀번호 오류로 인한 것입니다. [근거: IT-PWD]"
+    # 1) 막기 켬: 규정을 읽고 말로만 답함 → 되돌려 묻자 이번엔 request_unlock 을 부름 → 승인 → 답
+    script = iter([AIMessage("", tool_calls=[{"name": "search_policy", "args": {"query": q}, "id": "c1"}]),
+                   AIMessage(talk),
+                   AIMessage("", tool_calls=[{"name": "request_unlock", "args": {"employee_id": "E1045", "reason": "본인 확인 완료"}, "id": "c2"}]),
+                   AIMessage("E1045 계정 잠금 해제를 요청했습니다.")])
+    app = build_graph(Scripted(messages=script), [search_policy, request_unlock], "sys", checkpointer=InMemorySaver(),
+                      auto_cite=True, claim_check=True, **it)
+    tr = asyncio.run(run_task(app, q))
+    assert tr["claim_checks"] == 1 and tr["pre_claim"] == [talk]
+    assert [c["name"] for c in tr["tool_calls"]] == ["search_policy", "request_unlock"] and len(tr["approvals_asked"]) == 1
+    assert tr["answer"].endswith("[근거: RQ-0001, IT-PWD]")
+    # 2) 막기 켬, 모델이 다시 글로 답하면 그대로 내보낸다(한 질문에 한 번만) — 채점기가 거짓 보고로 센다
+    script = iter([AIMessage("", tool_calls=[{"name": "search_policy", "args": {"query": q}, "id": "c1"}]), AIMessage(talk),
+                   AIMessage("잠금 해제는 아직 요청하지 않았습니다. 요청할까요?")])
+    app = build_graph(Scripted(messages=script), [search_policy, request_unlock], "sys", checkpointer=InMemorySaver(), claim_check=True, **it)
+    tr = asyncio.run(run_task(app, q))
+    assert tr["claim_checks"] == 1 and tr["tool_calls"] == [{"name": "search_policy", "args": {"query": q}}] and "아직 요청하지 않았" in tr["answer"]
+    # 3) 막기 끔(바탕): 말로만 한 답이 그대로 나간다 — 노트북에서 본 그대로
+    script = iter([AIMessage("", tool_calls=[{"name": "search_policy", "args": {"query": q}, "id": "c1"}]), AIMessage(talk)])
+    app = build_graph(Scripted(messages=script), [search_policy, request_unlock], "sys", checkpointer=InMemorySaver(), **it)
+    tr = asyncio.run(run_task(app, q))
+    assert tr["claim_checks"] == 0 and tr["answer"].startswith("계정 잠금 해제를 요청합니다")
+    # 4) 실제로 실행한 뒤의 '했습니다'는 건드리지 않는다
+    script = iter([AIMessage("", tool_calls=[{"name": "request_unlock", "args": {"employee_id": "E1045", "reason": "본인 확인"}, "id": "c2"}]),
+                   AIMessage("E1045 계정 잠금 해제를 요청했습니다.")])
+    app = build_graph(Scripted(messages=script), [search_policy, request_unlock], "sys", checkpointer=InMemorySaver(), claim_check=True, **it)
+    tr = asyncio.run(run_task(app, q))
+    assert tr["claim_checks"] == 0 and tr["llm_calls"] == 2
+
