@@ -34,7 +34,7 @@
 | [docs/문제해결_이력.md](docs/문제해결_이력.md) | 부딪힌 문제: 증상 → 원인 → 해결 → 교훈 |
 | [docs/노트북_환경_구축.md](docs/노트북_환경_구축.md) | Windows 노트북(WSL2 · Docker · GPU)에서 돌리기까지, 결과 읽는 법 |
 | [data/README.md](data/README.md) | 가상 데이터 구성: 설비 매뉴얼 45절·작업 이력 2,400건, 통신사 요금제·약관·고객 60명, 평가셋 |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | 8주 계획, 진행 상황, 주차별로 알게 된 것 |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | 9주 계획(7주차에 '프레임워크로 다듬기'를 넣음), 진행 상황, 주차별로 알게 된 것 |
 | [docs/면접_예상_질문.md](docs/면접_예상_질문.md) | 이 저장소로 나올 만한 질문과 측정 근거를 붙인 답 (30초 답 · 근거 · 꼬리 질문) |
 | [reports/](reports/) | 측정 원본 결과표 (어디서 쟀는지 맨 위에 적음) |
 
