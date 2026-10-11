@@ -12,6 +12,12 @@ docker info 2>/dev/null | grep -i -A1 "Runtimes" | head -3
 echo "### minikube"
 minikube version 2>&1 | head -1
 minikube status -p agent 2>&1 | head -5
+echo "### 준비 기다리기 (새 네임스페이스의 default 서비스 계정 · 장치 플러그인)"
+for i in $(seq 1 30); do kubectl -n lab get sa default >/dev/null 2>&1 && break; sleep 1; done   # 막 만든 네임스페이스는 sa 가 몇 초 뒤 생긴다
+kubectl -n lab get sa default 2>&1 | tail -1
+kubectl -n kube-system rollout status ds/nvidia-device-plugin-daemonset --timeout=120s 2>&1 | tail -1
+for i in $(seq 1 30); do [ -n "$(kubectl get node -o jsonpath='{.items[0].status.allocatable.nvidia\.com/gpu}' 2>/dev/null)" ] && break; sleep 2; done
+kubectl -n kube-system logs ds/nvidia-device-plugin-daemonset 2>&1 | grep -i -E "error|fail|No devices|Registered|GPU" | head -6
 echo "### Pod 에서 GPU 보이나 (nvidia-smi)"
 kubectl -n lab delete pod gpu-probe --ignore-not-found >/dev/null 2>&1
 kubectl -n lab run gpu-probe --restart=Never --image=nvidia/cuda:12.6.3-base-ubuntu24.04 \
