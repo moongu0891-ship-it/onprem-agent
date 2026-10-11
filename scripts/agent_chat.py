@@ -23,22 +23,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from onprem_agent.agent.graph import build_graph  # noqa: E402
-from onprem_agent.agent.desk import list_desks, load_desk  # noqa: E402
-from onprem_agent.agent.prompts import system_prompt  # noqa: E402
-from onprem_agent.agent.runner import make_model, mcp_tools  # noqa: E402
+from onprem_agent.agent.defaults import MODELS, build_default_app  # noqa: E402
+from onprem_agent.agent.desk import list_desks  # noqa: E402
+from onprem_agent.agent.runner import mcp_tools  # noqa: E402
 
-MODELS = {
-    "rule": {"kind": "rule"},
-    "sglang": {"kind": "openai", "base_url": "http://localhost:30000/v1", "model": "qwen3-1.7b"},
-    # 4·5주차 측정으로 고른 기본값: Qwen3-4B + 생각 모드 + 안전 기능 + 안전 질문 검색 (과업 성공 96%)
-    "sglang-4b": {"kind": "openai", "base_url": "http://localhost:30000/v1", "model": "qwen3-4b",
-                  "thinking": True, "max_tokens": 2048, "timeout": 300},
-    "vllm": {"kind": "openai", "base_url": "http://localhost:8000/v1", "model": "qwen3-1.7b"},
-    # 5주차 결정: 게이트웨이 이름 agent-llm-4b (Qwen3-4B + 생각 모드, 1순위 장애 시 CPU 대체 → 답에 지연 안내)
-    "gateway": {"kind": "openai", "base_url": "http://localhost:4000/v1", "model": "agent-llm-4b", "api_key": "sk-local-dev",
-                "thinking": True, "max_tokens": 2048, "timeout": 900, "response_headers": True},
-}
 PG_DSN = "postgresql://agent:agent@localhost:15432/agent"
 
 
@@ -55,15 +43,7 @@ async def chat(scenario, model_key, store, thread, embedder):
     async with Saver.from_conn_string(conn) as saver, mcp_tools(scenario, {"ONPREM_EMBEDDER": json.dumps(embedder)}) as tools:
         if store == "postgres":
             await saver.setup()
-        app = build_graph(make_model(MODELS[model_key], scenario), tools, system_prompt(scenario, ("scope",)), checkpointer=saver,   # 6주차 ⑤ 창구 범위 규칙
-                          require_tool=True, auto_cite=True, safety_search=True,      # 4·5주차 측정으로 켠 안전 기능
-                          strip_injection=True, answer_guard=True,                    # 6주차 측정으로 켠 보호 기능(가드레일)
-                          nudge="search",                                             # 6주차 ④: 검색 되돌림(지어낸 인자 호출 없음)
-                          recover_text_calls=True,                                    # 6주차 ⑦: 글로 쓴 호출 살리기(D37)
-                          empty_answer_model=(make_model({**MODELS[model_key], "thinking": False, "max_tokens": 1024}, scenario)
-                                              if MODELS[model_key].get("thinking") else None),   # 6주차: 빈 답 다시 쓰기(D38)
-                          degraded_notice=model_key == "gateway",
-                          **load_desk(scenario).graph_kwargs())                       # 창구 정의(desk.yaml)
+        app = build_default_app(scenario, model_key, tools, checkpointer=saver)   # 지금 기본값(onprem_agent.agent.defaults)
         cfg = {"configurable": {"thread_id": thread}}
         print(f"[{scenario} · {model_key} · 저장 {store} · 대화 번호 {thread}]  업무 기능(도구): {', '.join(t.name for t in tools)}  (끝내려면 빈 줄)")
         pending = (await app.aget_state(cfg)).interrupts

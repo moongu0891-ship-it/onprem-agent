@@ -16,6 +16,7 @@ openai = ["httpx>=0.27"]
 serving = ["httpx>=0.27"]
 agent = ["httpx>=0.27", "langgraph>=1.2", "langgraph-checkpoint-sqlite>=3.0", "mcp>=1.30,<2",
          "langchain-mcp-adapters>=0.3.2,<0.4", "langchain-openai>=1.0"]
+web = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
 agent-pg = ["langgraph-checkpoint-postgres>=3.0", "psycopg[binary,pool]>=3.2"]
 stores = ["chromadb>=0.5", "qdrant-client>=1.12,<1.14", "pymilvus>=2.5", "milvus-lite>=2.4; sys_platform == 'linux'",
           "elasticsearch>=8.15,<9", "weaviate-client>=4.10", "psycopg[binary]>=3.2", "pgvector>=0.3"]
@@ -27,6 +28,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"onprem_agent.web" = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

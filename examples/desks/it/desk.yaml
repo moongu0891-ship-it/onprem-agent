@@ -20,3 +20,27 @@ claim_pattern: (잠금|계정|대여|장비|요청|티켓|접수).{0,30}?(해제
 prompt_rules:
   safety: ''
   scope: '- 이 창구가 하지 않는 일: 생산 설비(호기·경보)·정비는 설비 정비 창구, 고객 요금·요금제·약관은 고객 상담 창구의 일이다. 이런 요청은 사번이나 자산 번호로 조회하거나 요청을 만들지 말고, ''이 창구에서는 처리할 수 없습니다''라고 말한 뒤 맞는 창구에 문의하라고 안내한다.'
+
+# 화면(onprem_agent.web)에 보이는 말 — 사용자는 업무 기능(도구) 이름 대신 이 말을 본다. 핵심 동작에는 쓰지 않는다
+ui:
+  order: 3                 # 화면의 창구 버튼 순서
+  title: IT 헬프데스크
+  placeholder: 사번, 장비 번호, 오류 코드… 무엇이든 물어보세요
+  tools:
+    search_policy: IT 규정 검색
+    get_employee: 직원 계정 조회
+    get_asset: 장비 조회
+    request_unlock: 잠금 해제 요청
+    request_loan: 장비 대여 요청
+  approvals:
+    request_unlock:
+      title: 계정 잠금 해제를 요청하려고 합니다
+      button: 승인하고 요청
+      done: 잠금 해제를 요청했습니다
+      fields: {employee_id: 사번, reason: 사유}
+    request_loan:
+      title: 장비 대여를 요청하려고 합니다
+      button: 승인하고 요청
+      done: 장비 대여를 요청했습니다
+      fields: {employee_id: 사번, item: 장비, days: 기간}
+      suffix: {days: 일}

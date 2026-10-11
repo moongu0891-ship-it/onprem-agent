@@ -7,6 +7,7 @@
 #       REF=results/reference           또는 예전에 받아들인 결과(같은 이름의 시험 조건)와 견줌 — 매일 밤
 #   make accept CONFIG=configs/…        방금 test-full 결과를 '받아들인 결과'로 둔다(사람이 실제 답을 읽은 뒤에만)
 #   make check-docs                     문서 링크·앵커 검사
+#   make web [MODEL=sglang-4b]          웹 화면 (상담 / · 관리자 /admin)
 
 PY ?= python3
 CONFIG ?=
@@ -14,7 +15,7 @@ BASE ?=
 REF ?=
 NAME = $(shell $(PY) -c "import yaml; print(yaml.safe_load(open('$(CONFIG)', encoding='utf-8'))['name'])")
 
-.PHONY: test-unit test-module test-full accept check-docs test
+.PHONY: test-unit test-module test-full accept check-docs test web
 
 test-unit:
 	$(PY) -m pytest -q -m "not module"
@@ -45,3 +46,6 @@ check-docs:
 	$(PY) scripts/check_links.py
 
 test: test-unit test-module check-docs
+
+web:                                    ## 웹 화면 (MODEL=sglang-4b 처럼 바꿀 수 있다)
+	$(PY) scripts/web.py --model $(or $(MODEL),rule)

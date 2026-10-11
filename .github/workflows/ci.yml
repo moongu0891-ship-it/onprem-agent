@@ -14,7 +14,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: 설치
-        run: pip install -e ".[chroma,serving,agent,dev]"
+        run: pip install -e ".[chroma,serving,agent,web,dev]"
       - name: 단위 시험 (함수 하나씩)
         run: make test-unit
       - name: 데이터가 생성 스크립트와 일치하는지 확인

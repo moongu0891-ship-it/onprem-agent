@@ -39,6 +39,7 @@ class Desk:
     no_tool_description: str | None = None
     claim_pattern: str | None = None    # 채점기: '실행했다'고 말하는 표현(거짓 실행 보고). 없으면 핵심의 기본(티켓·작업 요청·접수)
     prompt_rules: dict = field(default_factory=dict)
+    ui: dict = field(default_factory=dict)     # 화면에 보이는 말(업무 기능(도구)의 사용자용 이름, 승인 카드 문구) — 핵심 동작에는 안 쓴다
 
     def graph_kwargs(self) -> dict:
         """그래프에 넘길 창구별 값."""
@@ -63,7 +64,7 @@ def load_desk(name: str) -> Desk:
                         safety_pattern=spec.get("safety_pattern"), prompt_markers=tuple(spec.get("prompt_markers") or []),
                         prompt_refusal=spec.get("prompt_refusal"), no_tool_description=spec.get("no_tool_description"),
                         claim_pattern=spec.get("claim_pattern"),
-                        prompt_rules=dict(spec.get("prompt_rules") or {}))
+                        prompt_rules=dict(spec.get("prompt_rules") or {}), ui=dict(spec.get("ui") or {}))
     raise FileNotFoundError(f"창구 '{name}' 의 desk.yaml 이 없다: {[str(d) for d in desk_dirs()]}")
 
 
