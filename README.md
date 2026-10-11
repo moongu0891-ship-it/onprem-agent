@@ -59,7 +59,7 @@ flowchart LR
   ENV[노트북 환경 구축] --> RP
 ```
 
-**앞으로 생길 문서**는 [ROADMAP](docs/ROADMAP.md) 표의 '결과물' 칸에 주차별로 적는다(`SUMMARY.md` · `docs/새_창구_붙이는_법.md` · `docs/재는_방법.md` · `deploy/README.md`).
+**앞으로 생길 문서**는 [ROADMAP](docs/ROADMAP.md) 표의 '결과물' 칸에 주차별로 적는다(`SUMMARY.md` · `docs/새_창구_붙이는_법.md` · `docs/재는_방법.md` · `docs/클라우드_실습_워크북.md` + `deploy/`).
 
 ## 계층 구성과 지금 기본값
 
