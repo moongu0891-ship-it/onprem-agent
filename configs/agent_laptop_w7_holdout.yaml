@@ -1,0 +1,12 @@
+# 에이전트 7주차 ③ — 확인용(holdout) 과업 26개로 지금 기본값 두 번 (노트북 RTX 5070 Laptop 8GB)
+#   make test-full CONFIG=configs/agent_laptop_w7_holdout.yaml        (= eval_agent --manage --run-tag r1, r2 + 빨간불 검사)
+# 계획: agent/README 7.6. 6주차의 100% 는 실패를 보고 고친 과업(tune)의 점수였다. 이 과업은 처음 보는 문장·값으로 같은 종류를 묻고,
+# 실패를 보고 규칙을 고치지 않는다(docs/재는_방법.md 1-4). 숨은 지시 자료는 더하지 않는다(guard_data: false).
+name: agent_laptop_w7_holdout
+tasks: eval/agent_holdout_tasks.jsonl
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+models:
+  - {label: "Qwen3-4B · 지금 기본값 · 확인용 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_holdout_tasks.jsonl, guard_data: false, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search,
+             recover_text_calls: true, empty_answer: true}}

@@ -13,3 +13,4 @@ models:
   - {label: "규칙 · 지금 기본값 · 기존 26", kind: rule, tasks_file: eval/agent_tasks.jsonl, guard_data: false}
   - {label: "규칙 · 지금 기본값 · 보호 20", kind: rule, tasks_file: eval/agent_guard_tasks.jsonl, guard_data: true}
   - {label: "규칙 · 지금 기본값 · 경계 6", kind: rule, tasks_file: eval/agent_boundary_tasks.jsonl, guard_data: false}
+  - {label: "규칙 · 지금 기본값 · 확인용 26", kind: rule, tasks_file: eval/agent_holdout_tasks.jsonl, guard_data: false}
