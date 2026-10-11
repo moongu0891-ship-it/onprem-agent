@@ -50,9 +50,22 @@ FEATURES = [
 ]
 
 
+def model_spec(model_key: str) -> dict:
+    """모델 설정. 환경 변수로 주소와 키를 바꿔 끼운다(8주차: 클러스터 안에서는 서비스 이름으로 붙고, 키는 Secret 에서 온다).
+    ONPREM_MODEL_URL=http://sglang.lab:30000/v1 · ONPREM_MODEL_KEY=<게이트웨이 키>"""
+    import os
+    spec = dict(MODELS[model_key])
+    if spec.get("kind") == "openai":
+        if os.environ.get("ONPREM_MODEL_URL"):
+            spec["base_url"] = os.environ["ONPREM_MODEL_URL"]
+        if os.environ.get("ONPREM_MODEL_KEY"):
+            spec["api_key"] = os.environ["ONPREM_MODEL_KEY"]
+    return spec
+
+
 def build_default_app(desk_name: str, model_key: str, tools, checkpointer=None):
     """지금 기본값으로 창구 하나의 에이전트를 만든다."""
-    spec = MODELS[model_key]
+    spec = model_spec(model_key)
     desk = load_desk(desk_name)
     return build_graph(
         make_model(spec, desk_name), tools, system_prompt(desk, PROMPT_RULES), checkpointer=checkpointer,

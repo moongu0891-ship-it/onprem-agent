@@ -1,0 +1,55 @@
+# 04장: 상담 화면 한 개 + 안에서 부르는 이름(Service). 창구 정의는 ConfigMap, 모델 키는 Secret 에서 온다(04-config.sh 가 만든다).
+# 05장은 이 Deployment 의 replicas 만 늘린다. 07장은 ONPREM_MODEL 을 sglang-4b 로 바꾼다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: console
+  namespace: lab
+  labels: {app: console}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: console}
+  template:
+    metadata:
+      labels: {app: console}
+    spec:
+      containers:
+        - name: console
+          image: onprem-agent:v1
+          imagePullPolicy: Never            # 03장에서 minikube 노드에 직접 넣은 이미지 — 밖에서 받지 않는다
+          ports: [{containerPort: 8080, name: http}]
+          env:
+            - {name: ONPREM_MODEL, value: "rule"}                       # 04·05장: 규칙 모델(GPU 없이). 07장에서 sglang-4b
+            - {name: ONPREM_MODEL_URL, value: "http://sglang:30000/v1"}  # 07장의 모델 서버 Service 이름(규칙 모델일 땐 안 씀)
+            - name: ONPREM_MODEL_KEY
+              valueFrom: {secretKeyRef: {name: model-keys, key: gateway}}
+          volumeMounts:
+            - name: desk-it                 # ConfigMap 의 desk.yaml 이 이미지 속 파일을 덮는다 → 이미지를 다시 만들지 않고 창구 설정을 바꾼다
+              mountPath: /app/examples/desks/it/desk.yaml
+              subPath: desk.yaml
+            - {name: var, mountPath: /app/var}            # 대화·승인 대기(SQLite) — Pod 와 함께 사라진다(05장에서 확인, 10장에서 DB 로)
+          resources:
+            requests: {cpu: 200m, memory: 384Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          livenessProbe:                    # 살아 있나 — 안 되면 컨테이너를 다시 띄운다
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          readinessProbe:                   # 받을 준비가 됐나 — 안 되면 Service 가 요청을 안 보낸다
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: desk-it
+          configMap: {name: desk-it}
+        - name: var
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: console
+  namespace: lab
+spec:
+  selector: {app: console}                  # 이 라벨을 가진 Pod 전부에 나눠 준다(05장의 로드 밸런서)
+  ports: [{port: 80, targetPort: http}]

@@ -46,6 +46,10 @@ def test_scan_results_reads_agent_results(tmp_path):
 def test_console_ticket_flow_and_admin(tmp_path):
     with TestClient(create_app("rule", store="memory", results_dir=tmp_path)) as c:
         assert c.get("/").status_code == 200 and "AI가 처리한 순서" in c.get("/").text
+        # 8주차: 살아 있나/준비됐나 응답과 어느 Pod 가 답했는지 머리말(규칙 모델은 엔진이 없으니 바로 준비됨)
+        h = c.get("/healthz")
+        assert h.status_code == 200 and h.json()["ok"] and h.headers["X-Served-By"]
+        assert c.get("/readyz").json()["ready"] is True
         desks = {d["name"]: d for d in c.get("/api/desks").json()}
         assert {"ops", "cs", "it"} <= set(desks) and desks["ops"]["title"] == "설비 정비 상담"
 

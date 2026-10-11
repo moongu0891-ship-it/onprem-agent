@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -23,7 +24,8 @@ from onprem_agent.agent.defaults import MODELS  # noqa: E402
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--model", default="rule", choices=list(MODELS))
+    ap.add_argument("--model", default=os.environ.get("ONPREM_MODEL", "rule"), choices=list(MODELS),
+                    help="기본 rule. 컨테이너에서는 환경 변수 ONPREM_MODEL 로도 정한다(8주차)")
     ap.add_argument("--store", default="sqlite", choices=["sqlite", "memory"], help="대화·승인 대기 저장 (sqlite: var/web_state.db)")
     ap.add_argument("--host", default="127.0.0.1", help="기본은 이 컴퓨터에서만. 다른 컴퓨터에서 보려면 0.0.0.0 (인증이 없으니 사내망 안에서만)")
     ap.add_argument("--port", type=int, default=8080)

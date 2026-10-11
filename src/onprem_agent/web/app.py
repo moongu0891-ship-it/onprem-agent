@@ -31,7 +31,7 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.types import Command
 from pydantic import BaseModel, Field
 
-from ..agent.defaults import EMPTY_ANSWER, FEATURES, GRAPH, MODELS, PROMPT_RULES, build_default_app
+from ..agent.defaults import EMPTY_ANSWER, FEATURES, GRAPH, MODELS, PROMPT_RULES, build_default_app, model_spec
 from ..agent.desk import list_desks, load_desk
 from ..agent.runner import ROOT, mcp_tools
 from .events import TurnTracker, approval_event, split_answer, tool_label
@@ -171,6 +171,27 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
     async def console():
         return FileResponse(STATIC / "console.html")
 
+    @app.get("/healthz")
+    async def healthz():
+        """살아 있나(liveness) — 서버 프로세스가 응답하면 200. 8주차 워크북의 Probe 가 쓴다."""
+        return {"ok": True, "pod": os.environ.get("HOSTNAME", ""), "model": model_key}
+
+    @app.get("/readyz")
+    async def readyz():
+        """받을 준비가 됐나(readiness) — 창구 정의를 읽을 수 있고, 실제 모델이면 엔진에 닿아야 200."""
+        spec = model_spec(model_key)
+        ok = bool(list_desks()) and (await engine_reachable(spec)) is not False
+        if not ok:
+            raise HTTPException(503, "모델 엔진에 닿지 않는다")
+        return {"ready": True, "pod": os.environ.get("HOSTNAME", "")}
+
+    @app.middleware("http")
+    async def pod_header(request, call_next):
+        """어느 Pod 가 답했는지(05장 로드 밸런서 관찰). HOSTNAME 은 Kubernetes 가 Pod 이름으로 채운다."""
+        resp = await call_next(request)
+        resp.headers["X-Served-By"] = os.environ.get("HOSTNAME", "local")
+        return resp
+
     @app.get("/admin")
     async def admin():
         return FileResponse(STATIC / "admin.html")
@@ -263,7 +284,7 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
 
     @app.get("/api/admin")
     async def overview():
-        spec = MODELS[model_key]
+        spec = model_spec(model_key)
         on = {"nudge": GRAPH.get("require_tool") and GRAPH.get("nudge") == "search",
               "empty_answer": EMPTY_ANSWER and bool(spec.get("thinking")), "scope": "scope" in PROMPT_RULES}
         features = [{"name": n, "label": label, "what": what, "group": group, "on": bool(on.get(n, GRAPH.get(n)))}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 01장: minikube(docker 드라이버) 안의 Pod 가 노트북 GPU 를 볼 수 있는지 — 결과가 뒤 장의 모양을 정한다.
 #   bash deploy/scripts/probe-gpu.sh          결과는 results/cloud/01_gpu_probe.txt 에도 남는다
-# 되면: 모델 서버(SGLang)를 클러스터 안 Pod 로 올린다(05장). 안 되면: 모델 서버는 호스트 Docker 에 두고 클러스터는 host.minikube.internal 로 붙는다.
+# 되면: 모델 서버(SGLang)를 클러스터 안 Pod 로 올린다(07장). 안 되면: 모델 서버는 호스트 Docker 에 두고 클러스터는 host.minikube.internal 로 붙는다.
 set -u
 OUT=results/cloud; mkdir -p "$OUT"; LOG="$OUT/01_gpu_probe.txt"
 {
