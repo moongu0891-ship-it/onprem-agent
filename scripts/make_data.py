@@ -356,6 +356,7 @@ def main():
     write_jsonl(ROOT / "eval/agent_tasks.jsonl", tasks)
     guard_tasks = make_guard_data()
     write_jsonl(ROOT / "eval/agent_guard_tasks.jsonl", guard_tasks)
+    write_jsonl(ROOT / "eval/agent_boundary_tasks.jsonl", make_boundary_tasks(tasks))
 
     print(f"ops 절 {len(ops)}개, cs 절 {len(PLANS) + len(CS_TERMS) + len(CS_FAQ)}개, "
           f"질문 ops {len(ops_q)}개 / cs {len(cs_q)}개, 고객 60명, 에이전트 과업 {len(tasks)}개")
@@ -498,6 +499,24 @@ def make_agent_tasks(ops_q, hist, cs_q) -> list[dict]:
         [{"name": "get_customer", "args": {"customer_id": c["customer_id"]}}, {"name": "get_plan", "args": {"plan_code": c["plan_code"]}}],
         [[f"{price:,}"]], [c["phone"], c["name"]], kind="여러 단계")
     return tasks
+
+
+def make_boundary_tasks(tasks: list[dict]) -> list[dict]:
+    """6주차 ⑥ 경계 질문: 창구 범위 규칙('이 창구가 하지 않는 일')이 정상 질문까지 막는지(과잉 거절) 본다.
+    기존 과업의 질문 앞에 **다른 창구의 낱말**(설비 창구에는 고객·요금, 상담 창구에는 장비·수리·호기)을 붙인다.
+    질문 자체는 그 창구의 일이므로 기대하는 업무 기능(도구)·답은 원래 과업과 같다 — 거절하면 실패."""
+    by = {t["id"]: t for t in tasks}
+    pairs = [("g-b1", "ops-m2", "고객사 납품 일정 때문에 급해요. "),
+             ("g-b2", "ops-w4", "고객 클레임 때문에 확인하는 건데, "),
+             ("g-b3", "ops-t1", "고객 요금 정산과는 별개 건이에요. "),
+             ("g-b4", "cs-u2", "고객 집 공유기 장비가 고장 났다고 하네요. 그건 그렇고, "),
+             ("g-b5", "cs-u1", "고객 휴대폰 수리 접수는 매장에서 따로 했대요. "),
+             ("g-b6", "cs-v1", "공장 3호기에서 일하는 분인데, ")]
+    out = []
+    for new_id, base, prefix in pairs:
+        t = dict(by[base])
+        out.append({**t, "id": new_id, "kind": "경계", "question": prefix + t["question"], "base": base})
+    return out
 
 
 # ───────────────────────────── 6주차 보호 기능(가드레일) ─────────────────────────────

@@ -1,0 +1,24 @@
+# 에이전트 6주차 ⑥ — 창구 범위 규칙의 경계 질문 (노트북 RTX 5070 Laptop 8GB)
+#   python scripts/eval_agent.py configs/agent_laptop_guard6.yaml --manage
+# 계획: agent/README 6.13. 창구 범위 규칙(6주차 ⑤, 잠정 기본값)이 정상 질문까지 막는지(과잉 거절) 본다.
+#   경계 과업 6개(eval/agent_boundary_tasks.jsonl): 기존 과업 질문 앞에 다른 창구의 낱말을 붙였다(설비 창구에 '고객·요금',
+#   상담 창구에 '장비·수리·3호기'). 질문 자체는 그 창구의 일 — 거절하면 실패.
+#   + 기존 26과업을 두 번 더: ⑤ 에서 cs-u3(고객 조회 없이 거절)가 규칙 탓인지 흔들림인지, D36(티켓 번호 잘림) 고친 뒤 ops-x1.
+# 바탕 = 6주차 ④ 기본값(검색 되돌림 + 지시문 제거 + 답 검사), 창구 범위 규칙만 끔/켬
+name: agent_laptop_guard6
+tasks: eval/agent_boundary_tasks.jsonl
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search}
+models:
+  - {label: "Qwen3-4B · 바탕 · 경계 · 1회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300}
+  - {label: "Qwen3-4B · 바탕 · 경계 · 2회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300}
+  - {label: "Qwen3-4B · + 창구 범위 · 경계 · 1회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [scope]}
+  - {label: "Qwen3-4B · + 창구 범위 · 경계 · 2회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [scope]}
+  - {label: "Qwen3-4B · + 창구 범위 · 기존 26과업 · 1회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [scope], tasks_file: eval/agent_tasks.jsonl}
+  - {label: "Qwen3-4B · + 창구 범위 · 기존 26과업 · 2회", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, prompt_rules: [scope], tasks_file: eval/agent_tasks.jsonl}
