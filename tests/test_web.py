@@ -94,7 +94,7 @@ def test_console_ticket_flow_and_admin(tmp_path):
         a = c.get("/api/admin").json()
         assert a["model"]["kind"] == "rule" and a["model"]["reachable"] is None
         off = {f["name"] for f in a["features"] if not f["on"]}
-        assert off == {"empty_answer", "claim_check"}       # 규칙 모델은 생각 모드가 없어 빈 답 다시 쓰기는 꺼짐 · 말로만 실행 막기는 측정 전(기본 끔)
+        assert off == {"empty_answer"}       # 규칙 모델은 생각 모드가 없어 빈 답 다시 쓰기만 꺼짐(말로만 실행 막기는 7주차 측정 뒤 기본값에)
         assert {d["name"]: d["open"] for d in a["desks"]} == {"ops": True, "cs": True, "it": True}
         assert [r["status"] for r in a["recent"]] == ["답함", "답함", "답함"]       # 승인·취소 뒤 답까지 마친 상담 셋
         assert c.get("/admin").status_code == 200

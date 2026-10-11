@@ -327,8 +327,14 @@ def build_graph(model, tools, system_prompt: str, approval_tools=frozenset(), ma
                 said = said.group(0) if said else text[:40]
                 if claim_check == "force":
                     forced = await llm_claim.ainvoke([*msgs, AIMessage(content=text), SystemMessage(FORCE_NOTE_CLAIM.format(said=said))])
-                    calls = [tc for tc in forced.tool_calls if tc["name"] in approval_tools]
-                    meta = {**(resp.response_metadata or {}), "claim_check": "force", "pre_claim": text[:800]}
+                    calls, seen = [], set()
+                    for tc in forced.tool_calls:          # 강제 선택에서 같은 호출을 두 번 내놓은 적이 있다(노트북 it-v1: RQ-0003·0004) — 하나만
+                        key = (tc["name"], json.dumps(tc["args"], sort_keys=True, ensure_ascii=False))
+                        if tc["name"] in approval_tools and key not in seen:
+                            seen.add(key)
+                            calls.append(tc)
+                    meta = {**(resp.response_metadata or {}), "claim_check": "force", "pre_claim": text[:800],
+                            "dup_calls_dropped": len([tc for tc in forced.tool_calls if tc["name"] in approval_tools]) - len(calls)}
                     if calls:
                         resp = AIMessage(content="", tool_calls=calls, id=forced.id, response_metadata=meta,
                                          usage_metadata=getattr(forced, "usage_metadata", None))

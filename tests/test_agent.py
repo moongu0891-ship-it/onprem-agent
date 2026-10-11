@@ -501,7 +501,9 @@ def test_claim_check_blocks_talk_only_execution():
             if kw.get("tool_choice") == "required":
                 assert set(names) == {"request_unlock", "not_done"}      # 검색은 선택지에 없다
                 picked = self.picks.pop(0)
-                return GenericFakeChatModel(messages=iter([AIMessage("", tool_calls=[{"name": picked, "args": ({"employee_id": "E1045", "reason": "본인 확인"} if picked == "request_unlock" else {}), "id": "f1"}])]))
+                call = {"name": picked, "args": ({"employee_id": "E1045", "reason": "본인 확인"} if picked == "request_unlock" else {}), "id": "f1"}
+                # 노트북에서 본 대로 같은 호출을 두 번 내놓는다 — 그래프가 하나로 줄여야 한다
+                return GenericFakeChatModel(messages=iter([AIMessage("", tool_calls=[call, {**call, "id": "f2"}])]))
             return self
     # 5a) 업무 기능(도구)을 고르면 승인 관문으로
     model = Forced(messages=iter([AIMessage("", tool_calls=[{"name": "search_policy", "args": {"query": q}, "id": "c1"}]), AIMessage(talk),
@@ -510,6 +512,8 @@ def test_claim_check_blocks_talk_only_execution():
     app = build_graph(model, [search_policy, request_unlock], "sys", checkpointer=InMemorySaver(), auto_cite=True, claim_check="force", **it)
     tr = asyncio.run(run_task(app, q))
     assert tr["claim_checks"] == 1 and tr["not_done"] == 0 and len(tr["approvals_asked"]) == 1 and tr["answer"].endswith("[근거: RQ-0001, IT-PWD]")
+    assert [c["name"] for c in tr["tool_calls"]] == ["search_policy", "request_unlock"]       # 같은 호출 둘 → 하나 (요청이 두 번 접수되지 않는다)
+    assert len(tr["approvals_asked"][0]["tool_calls"]) == 1
     # 5b) not_done 을 고르면 모델이 다시 쓰지 않고 프로그램이 머리말을 붙인다 → 채점기의 거짓 보고에 안 걸린다(부정문)
     model = Forced(messages=iter([AIMessage("", tool_calls=[{"name": "search_policy", "args": {"query": q}, "id": "c1"}]), AIMessage(talk)]))
     model.picks = ["not_done"]
