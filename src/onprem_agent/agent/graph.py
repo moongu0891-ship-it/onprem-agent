@@ -24,6 +24,8 @@
 
 from __future__ import annotations
 
+import ast
+import json
 import re
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -147,6 +149,38 @@ def on_backup(msg) -> bool:
     return h.get("x-litellm-model-group", "").endswith("-backup") or tried > 0
 
 
+def text_tool_call(text: str, tool_args: dict[str, set]) -> dict | None:
+    """모델이 업무 기능(도구) 호출을 **글로** 써 버린 것을 알아본다(6주차 ⑦, D37). 엔진의 호출 해석기가 못 알아들은 형태:
+    '.create_ticket\n{"line": 2, ...}', '.create_ticket(line=2, alarm_code="CRB-03")', 'create_ticket: {"line": 2, ...}'.
+    tool_args: 업무 기능(도구) 이름 → 받는 인자 이름들. 인자가 하나도 없거나 모르는 인자가 있으면 호출로 보지 않는다."""
+    for name, allowed in tool_args.items():
+        for m in re.finditer(rf"(?<![\w]){re.escape(name)}\s*[:\n(]?\s*", text):
+            rest = text[m.end() - (1 if text[m.end() - 1:m.end()] == "(" else 0):]
+            args = None
+            if rest.startswith("{"):
+                depth = 0
+                for i, ch in enumerate(rest):
+                    depth += ch == "{"
+                    depth -= ch == "}"
+                    if depth == 0:
+                        try:
+                            args = json.loads(rest[:i + 1])
+                        except ValueError:
+                            args = None
+                        break
+            elif rest.startswith("("):
+                end = rest.find(")")
+                if end > 0:
+                    try:
+                        call = ast.parse(f"f{rest[:end + 1]}", mode="eval").body
+                        args = {k.arg: ast.literal_eval(k.value) for k in call.keywords if k.arg}
+                    except (SyntaxError, ValueError):
+                        args = None
+            if isinstance(args, dict) and args and set(args) <= allowed:
+                return {"name": name, "args": args}
+    return None
+
+
 def cite_sources(raw: str, turn: list) -> str:
     """모델이 쓴 근거 표기를 지우고, 이번 질문에서 성공한 업무 기능(도구) 결과의 근거 번호를 붙인다."""
     ids = []
@@ -163,7 +197,8 @@ def cite_sources(raw: str, turn: list) -> str:
 def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS, max_steps: int = 6, checkpointer=None,
                 require_tool: bool = False, auto_cite: bool = False, after_tool_model=None, degraded_notice: bool = False,
                 safety_search: bool = False, wrap_tool_data: bool = False, strip_injection: bool = False, answer_guard: bool = False,
-                out_of_scope: bool = False, respect_refusal: bool = False, nudge: str = "required"):
+                out_of_scope: bool = False, respect_refusal: bool = False, nudge: str = "required",
+                recover_text_calls: bool = False):
     """after_tool_model: 이번 질문에 업무 기능(도구) 결과가 하나라도 생긴 뒤에 쓸 모델(5주차 '생각은 첫 단계만').
     생각 모드는 '무엇을 찾을지' 고를 때 효과가 크고(4주차: 54% → 92%), 찾은 결과를 읽고 답을 쓸 때는 시간만 든다는 가정을 잰다.
     결과를 본 뒤에도 업무 기능(도구)을 더 부를 수 있다(여러 단계 과업) — 그때는 생각 없이 고른다.
@@ -173,6 +208,8 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
     respect_refusal: 모델이 먼저 쓴 답이 거절·다른 창구 안내(REFUSAL)이면 되돌리지 않고 그 답을 쓴다(6주차 ③). 6주차 ② 에서 역할 밖 출구는
     한 번도 골라지지 않았고(0회), 되돌림은 역할 밖 질문마다 엉뚱한 호출(C0051 을 경보 코드로 조회 등)을 만들었다.
     되돌릴 때마다 먼저 쓴 답은 response_metadata["pre_nudge"] 에 남긴다 — 무엇을 버렸는지 봐야 되돌림을 판단할 수 있다.
+    recover_text_calls: 이번 질문에 아직 결과가 없을 때 모델이 업무 기능(도구) 호출을 글로 써 버렸으면(D37) 그 호출을 그대로 살려 쓴다.
+    승인이 필요한 업무 기능(도구)은 그대로 승인 관문을 거친다.
     nudge: "required"(기본, 3~5주차) = 모든 업무 기능(도구) 중 하나를 반드시 고르게 한다. "search"(6주차 ④) = '찾아보기/필요 없음'
     중에서만 고르게 하고, 찾아보기면 프로그램이 검색 업무 기능(도구)을 질문 그대로 부른다. 6주차 ②·③ 실제 답에서 강제 선택은
     바르게 거절한 답을 버리고(g-r1, 네 번 모두) 지어낸 인자('전기', 'C0051', 'C0012')로 엉뚱한 호출을 만들었다."""
@@ -181,6 +218,7 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
     llm_after = after_tool_model.bind_tools(tools) if after_tool_model is not None else None
     extra = [NO_TOOL_SPEC, OUT_OF_SCOPE_SPEC] if out_of_scope else [NO_TOOL_SPEC]
     search_tool = next((n for n in ("search_manual", "search_terms") if n in by_name), None)
+    tool_args = {t.name: set((getattr(t, "args", None) or {}).keys()) for t in tools}
     search_nudge = nudge == "search" and search_tool is not None
     if search_nudge:
         llm_forced = model.bind_tools([LOOK_UP_SPEC, NO_TOOL_SPEC], tool_choice="required") if require_tool else None
@@ -204,6 +242,13 @@ def build_graph(model, tools, system_prompt: str, approval_tools=APPROVAL_TOOLS,
                     "steps": steps + 1}
         resp = await (llm_after if (llm_after is not None and has_results) else llm_tools).ainvoke(msgs)
         first_text = strip_think(str(resp.content))[0] if not resp.tool_calls else ""
+        if recover_text_calls and not resp.tool_calls and not has_results:
+            found = text_tool_call(first_text, tool_args)
+            if found:   # 글로 쓴 호출을 진짜 호출로 — 되돌림·검색 되돌림보다 먼저(모델이 하려던 일 그대로)
+                return {"messages": [AIMessage(content="", id=resp.id, usage_metadata=getattr(resp, "usage_metadata", None),
+                                               tool_calls=[{**found, "id": f"text_{steps}", "type": "tool_call"}],
+                                               response_metadata={**(resp.response_metadata or {}), "text_tool_call": first_text[:400]})],
+                        "steps": steps + 1}
         declined = respect_refusal and bool(REFUSAL.search(first_text))
         if declined and require_tool and not resp.tool_calls and not has_results:
             resp = AIMessage(content=resp.content, id=resp.id, usage_metadata=getattr(resp, "usage_metadata", None),

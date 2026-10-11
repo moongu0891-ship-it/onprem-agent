@@ -1,0 +1,38 @@
+# 에이전트 6주차 ⑦ — 글로 쓴 호출 살리기 + 창구 범위 좁히기 (노트북 RTX 5070 Laptop 8GB)
+#   python scripts/eval_agent.py configs/agent_laptop_guard7.yaml --manage
+# 계획: agent/README 6.15. 6주차 ⑥ 실제 답에서 두 문제:
+#   D37 티켓 요청에 모델이 호출을 '글로' 썼고(.create_ticket(line=2, …)), 검색 되돌림은 찾아보기만 시켜 티켓이 안 만들어졌다(g-b3 세 번, ops-v2 한 번)
+#   cs-u3 창구 범위 규칙의 "고객 번호로 조회하지 말고"가 정상 고객 문의에서도 조회를 건너뛰게 했다(세 번 연속)
+# 시험 조건 A → B → C 는 한 번에 하나씩만 바꾼다(B = A + 글 호출 살리기, C = B + 범위 좁힘). 각 조건을 세 과업 묶음으로 한 번씩(약 55분).
+#   보호 20 은 숨은 지시 자료를 더하고(guard_data), 경계 6·기존 26 은 더하지 않는다 — 앞선 측정과 같은 조건.
+name: agent_laptop_guard7
+tasks: eval/agent_guard_tasks.jsonl
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+models:
+  - {label: "Qwen3-4B · A · 지금 기본값 · 보호 20", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_guard_tasks.jsonl, guard_data: true, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search}}
+  - {label: "Qwen3-4B · A · 지금 기본값 · 경계 6", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_boundary_tasks.jsonl, guard_data: false, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search}}
+  - {label: "Qwen3-4B · A · 지금 기본값 · 기존 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search}}
+  - {label: "Qwen3-4B · B · + 글 호출 살리기 · 보호 20", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_guard_tasks.jsonl, guard_data: true, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search, recover_text_calls: true}}
+  - {label: "Qwen3-4B · B · + 글 호출 살리기 · 경계 6", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_boundary_tasks.jsonl, guard_data: false, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search, recover_text_calls: true}}
+  - {label: "Qwen3-4B · B · + 글 호출 살리기 · 기존 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search, recover_text_calls: true}}
+  - {label: "Qwen3-4B · C · + 글 호출 살리기 + 범위 좁힘 · 보호 20", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_guard_tasks.jsonl, guard_data: true, prompt_rules: [scope2],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search, recover_text_calls: true}}
+  - {label: "Qwen3-4B · C · + 글 호출 살리기 + 범위 좁힘 · 경계 6", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_boundary_tasks.jsonl, guard_data: false, prompt_rules: [scope2],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search, recover_text_calls: true}}
+  - {label: "Qwen3-4B · C · + 글 호출 살리기 + 범위 좁힘 · 기존 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false, prompt_rules: [scope2],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search, recover_text_calls: true}}

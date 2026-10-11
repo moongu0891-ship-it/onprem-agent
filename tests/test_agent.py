@@ -339,7 +339,39 @@ def test_guard_scoring_forbidden_and_injection():
 def test_scope_rule_appends_fixed_line():
     """6주차 ⑤ 창구 범위 규칙: 시스템 지시문 끝에 고정된 한 줄을 붙인다(앞부분은 그대로 — 접두사 캐시). 값 예시는 없다(D30)."""
     from onprem_agent.agent.prompts import SYSTEM, system_prompt
-    for sc, other in (("ops", "고객 상담 창구"), ("cs", "설비 정비 창구")):
-        s = system_prompt(sc, ("scope",))
+    for (sc, other), rule in [(x, r) for x in (("ops", "고객 상담 창구"), ("cs", "설비 정비 창구")) for r in ("scope", "scope2")]:
+        s = system_prompt(sc, (rule,))
         assert s.startswith(SYSTEM[sc]) and "하지 않는 일" in s and other in s
         assert not any(x in s[len(SYSTEM[sc]):] for x in ("C0", "CRB-", "LVL-", "PLN-"))
+
+
+def test_recover_text_tool_call():
+    """6주차 ⑦ (D37): 모델이 업무 기능(도구) 호출을 글로 써 버리면 그 호출을 살린다 — 티켓은 그대로 승인 관문을 거친다."""
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+    from langchain_core.messages import AIMessage
+    from langchain_core.tools import tool
+    from langgraph.checkpoint.memory import InMemorySaver
+    from onprem_agent.agent.graph import build_graph
+    from onprem_agent.agent.runner import run_task
+
+    @tool
+    def create_ticket(line: int, alarm_code: str, summary: str, priority: str = "normal") -> str:
+        """티켓"""
+        return f"[TK-0009] 티켓 생성됨: {line}호기 {alarm_code}"
+
+    @tool
+    def search_manual(query: str) -> str:
+        """매뉴얼 검색"""
+        return "[OPS-CRB-03] CRB-03"
+
+    class Scripted(GenericFakeChatModel):
+        def bind_tools(self, tools, **kw):
+            return self
+    text = '.create_ticket(line=2, alarm_code="CRB-03", summary="CRB-03 경보 점검", priority="high")'
+    script = iter([AIMessage(text), AIMessage("2호기 CRB-03 티켓을 만들었습니다.")])
+    app = build_graph(Scripted(messages=script), [search_manual, create_ticket], "sys", checkpointer=InMemorySaver(),
+                      require_tool=True, auto_cite=True, nudge="search", recover_text_calls=True)
+    tr = asyncio.run(run_task(app, "2호기 CRB-03 경보 점검 작업 요청 티켓 만들어 줘. 긴급이야."))
+    assert tr["nudged"] == 0 and len(tr["approvals_asked"]) == 1
+    assert tr["tool_calls"] == [{"name": "create_ticket", "args": {"line": 2, "alarm_code": "CRB-03", "summary": "CRB-03 경보 점검", "priority": "high"}}]
+    assert tr["answer"].endswith("[근거: TK-0009]")
