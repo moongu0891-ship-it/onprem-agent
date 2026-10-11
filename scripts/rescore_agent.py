@@ -23,8 +23,10 @@ from onprem_agent.agent.graph import strip_think  # noqa: E402
 def main():
     src = Path(sys.argv[1])
     res = json.loads(src.read_text(encoding="utf-8"))
-    tasks = {t["id"]: t for f in sorted((ROOT / "eval").glob("agent*_tasks.jsonl"))      # 과업 묶음 전부(기존·보호·경계·확인용)
-             for t in map(json.loads, f.read_text(encoding="utf-8").splitlines()) if t}
+    from onprem_agent.agent.desk import desk_dirs
+    files = [*sorted((ROOT / "eval").glob("agent*_tasks.jsonl")),                      # 과업 묶음 전부(기존·보호·경계·확인용)
+             *(f for d in desk_dirs() for f in sorted(d.glob("*/tasks*.jsonl")))]       # 창구 폴더의 과업(예: IT 헬프데스크)
+    tasks = {t["id"]: t for f in files for t in map(json.loads, f.read_text(encoding="utf-8").splitlines()) if t}
     changed_total = 0
     for m in res["models"]:
         if m.get("error"):
@@ -46,7 +48,7 @@ def main():
         m["rows"], m["summary"] = rows, summarize(rows)
         print(f"{m['label']}: {before:.0%} → {m['summary']['success']:.0%} (바뀐 과업 {changed})")
         changed_total += changed
-    res["rescored"] = "생각 글(<think>)을 뗀 답으로 다시 채점 (scripts/rescore_agent.py)"
+    res["rescored"] = "저장된 답을 지금 채점기로 다시 채점(생각 글은 떼고, 모델은 다시 돌리지 않음) — scripts/rescore_agent.py"
     out = src.with_name(src.stem + "_rescored")
     out.with_suffix(".json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
     out.with_suffix(".md").write_text(to_markdown(res), encoding="utf-8")
