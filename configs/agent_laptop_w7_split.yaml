@@ -1,0 +1,22 @@
+# 에이전트 7주차 ① — 핵심과 예제를 나눈 뒤 지금 기본값 한 번 (노트북 RTX 5070 Laptop 8GB)
+#   python scripts/eval_agent.py configs/agent_laptop_w7_split.yaml --manage
+# 계획: agent/README 7.4. 나누기는 동작을 바꾸지 않는다 — 모델이 읽는 글(시스템 지시문·업무 기능(도구) 설명)이 모두 같은 것은
+# 클라우드 작업 환경에서 확인했다. 노트북에서는 실제 모델로 6주차 ⑦ 의 B(= A 와 52과업 같은 결과)와 과업별로 견준다.
+# 지금 기본값 = ⑦ B + 빈 답 다시 쓰기(빈 답일 때만 작동). 세 과업 묶음을 한 번씩(약 20분).
+#   보호 20 은 숨은 지시 자료를 더하고(guard_data), 경계 6·기존 26 은 더하지 않는다 — 앞선 측정과 같은 조건.
+name: agent_laptop_w7_split
+tasks: eval/agent_guard_tasks.jsonl
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+models:
+  - {label: "Qwen3-4B · 지금 기본값 · 보호 20", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_guard_tasks.jsonl, guard_data: true, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search,
+             recover_text_calls: true, empty_answer: true}}
+  - {label: "Qwen3-4B · 지금 기본값 · 경계 6", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_boundary_tasks.jsonl, guard_data: false, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search,
+             recover_text_calls: true, empty_answer: true}}
+  - {label: "Qwen3-4B · 지금 기본값 · 기존 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search,
+             recover_text_calls: true, empty_answer: true}}

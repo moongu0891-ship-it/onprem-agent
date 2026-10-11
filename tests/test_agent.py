@@ -9,14 +9,18 @@ import pytest
 pytest.importorskip("langgraph")
 pytest.importorskip("mcp")
 
-from onprem_agent.agent.data import build_db, mask_name, mask_phone  # noqa: E402
+from onprem_agent.agent.desk import load_desk  # noqa: E402
 from onprem_agent.agent.evaluate import score  # noqa: E402
+from onprem_agent.agent.tool_server import mask_name, mask_phone  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
+OPS = load_desk("ops").graph_kwargs()        # 설비 정비 창구(예제)의 정의 — 그래프 시험은 이 값으로 돈다
 TASKS = {t["id"]: t for t in map(json.loads, (ROOT / "eval/agent_tasks.jsonl").read_text(encoding="utf-8").splitlines())}
 
 
-def test_business_db_parses_every_record():
+def test_business_db_parses_every_record(monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT / "examples/desks"))     # 두 예제 창구가 같이 쓰는 업무 DB
+    from shared_db import build_db
     db = build_db(ROOT)
     assert db.execute("SELECT COUNT(*) FROM work_orders").fetchone()[0] == 2400
     assert db.execute("SELECT COUNT(*) FROM customers").fetchone()[0] == 60
@@ -42,13 +46,14 @@ def test_score_flags_unsafe_ticket_and_pii():
 def ops_run():
     from langgraph.checkpoint.memory import InMemorySaver
     from onprem_agent.agent.graph import build_graph
-    from onprem_agent.agent.prompts import SYSTEM
+    from onprem_agent.agent.prompts import system_prompt
     from onprem_agent.agent.runner import make_model, mcp_tools, run_task
 
     async def go():
         out = {}
         async with mcp_tools("ops") as tools:
-            app = build_graph(make_model({"kind": "rule"}, "ops"), tools, SYSTEM["ops"], checkpointer=InMemorySaver())
+            app = build_graph(make_model({"kind": "rule"}, "ops"), tools, system_prompt("ops"), checkpointer=InMemorySaver(),
+                              **OPS)
             for tid in ("ops-w1", "ops-t1", "ops-t3", "ops-x1", "ops-n1"):
                 t = TASKS[tid]
                 out[tid] = (t, await run_task(app, t["question"], t["approval"] or "approve"))
@@ -114,7 +119,7 @@ def test_cite_sources_replaces_model_citations():
     many = [HumanMessage("q"), ToolMessage("[OPS-SPK-06] 매뉴얼", tool_call_id="a", name="search_manual", status="success"),
             ToolMessage("\n".join(f"[WO-0{i}000] 이력" for i in range(1, 6)), tool_call_id="b", name="get_work_orders", status="success"),
             ToolMessage("[TK-0003] 티켓 생성됨", tool_call_id="c", name="create_ticket", status="success")]
-    assert "TK-0003" in cite_sources("티켓 생성 완료", many)
+    assert "TK-0003" in cite_sources("티켓 생성 완료", many, OPS["approval_tools"])
 
 
 def test_require_tool_nudges_once_then_tool_is_used():
@@ -137,7 +142,7 @@ def test_require_tool_nudges_once_then_tool_is_used():
     script = iter([AIMessage("CRB-06 은 수직 풀링 문제입니다. [근거: 1]"),                       # 1) 업무 기능(도구) 없이 지어냄 → 되돌림
                    AIMessage("", tool_calls=[{"name": "search_manual", "args": {"query": "CRB-06"}, "id": "c1"}]),
                    AIMessage("보조 순환 펌프 P-22 를 점검합니다. [근거: 1]")])
-    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(), **OPS,
                       require_tool=True, auto_cite=True)
     tr = asyncio.run(run_task(app, TASKS["ops-m1"]["question"]))
     assert tr["nudged"] == 1 and [c["name"] for c in tr["tool_calls"]] == ["search_manual"]
@@ -147,7 +152,7 @@ def test_require_tool_nudges_once_then_tool_is_used():
     # 인사: 되돌려도 no_tool_needed 를 고르면 먼저 쓴 답을 그대로, 업무 기능(도구) 호출은 0
     script = iter([AIMessage("안녕하세요! 무엇을 도와드릴까요?"),
                    AIMessage("", tool_calls=[{"name": "no_tool_needed", "args": {}, "id": "c2"}])])
-    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(), **OPS,
                       require_tool=True, auto_cite=True)
     tr = asyncio.run(run_task(app, TASKS["ops-n1"]["question"]))
     assert tr["nudged"] == 1 and tr["tool_calls"] == [] and tr["answer"] == "안녕하세요! 무엇을 도와드릴까요?"
@@ -157,7 +162,7 @@ def test_require_tool_nudges_once_then_tool_is_used():
     script = iter([AIMessage("C0051 고객의 미납 금액은 32,000원입니다."),
                    AIMessage("", tool_calls=[{"name": "out_of_scope", "args": {}, "id": "c3"}]),
                    AIMessage("고객 미납 금액은 이 설비 정비 창구에서 조회할 수 없습니다. 고객 상담 창구에 문의해 주세요.")])
-    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(), **OPS,
                       require_tool=True, auto_cite=True, out_of_scope=True)
     tr = asyncio.run(run_task(app, GUARD["g-r1"]["question"]))
     assert tr["nudged"] == 1 and tr["out_of_scope"] == 1 and tr["tool_calls"] == [] and tr["approvals_asked"] == []
@@ -166,7 +171,7 @@ def test_require_tool_nudges_once_then_tool_is_used():
 
     # 6주차 ③ 거절 존중: 먼저 쓴 답이 '할 수 없다'면 되돌리지 않는다(모델 호출 1번, 업무 기능(도구) 호출 0)
     script = iter([AIMessage("고객 미납 금액은 이 설비 정비 창구에서 조회할 수 없습니다. 고객 상담 창구에 문의해 주세요.")])
-    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(), **OPS,
                       require_tool=True, auto_cite=True, respect_refusal=True)
     tr = asyncio.run(run_task(app, GUARD["g-r1"]["question"]))
     assert tr["nudged"] == 0 and tr["refusal_respected"] == 1 and tr["tool_calls"] == [] and tr["llm_calls"] == 1
@@ -175,7 +180,7 @@ def test_require_tool_nudges_once_then_tool_is_used():
     script = iter([AIMessage("CRB-06 은 수직 풀링 문제입니다."),
                    AIMessage("", tool_calls=[{"name": "search_manual", "args": {"query": "CRB-06"}, "id": "c4"}]),
                    AIMessage("보조 순환 펌프 P-22 를 점검합니다.")])
-    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(), **OPS,
                       require_tool=True, auto_cite=True, respect_refusal=True)
     tr = asyncio.run(run_task(app, TASKS["ops-m1"]["question"]))
     assert tr["nudged"] == 1 and tr["refusal_respected"] == 0 and tr["pre_nudge"] == ["CRB-06 은 수직 풀링 문제입니다."]
@@ -185,14 +190,14 @@ def test_require_tool_nudges_once_then_tool_is_used():
     script = iter([AIMessage("원격 진단 포트의 연결 방법은 제공된 도구에서 확인할 수 없습니다."),
                    AIMessage("", tool_calls=[{"name": "look_up", "args": {}, "id": "c5"}]),
                    AIMessage("제어반 뒤쪽 진단 포트에 연결합니다.")])
-    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(), **OPS,
                       require_tool=True, auto_cite=True, nudge="search")
     tr = asyncio.run(run_task(app, q))
     assert tr["nudged"] == 1 and tr["tool_calls"] == [{"name": "search_manual", "args": {"query": q}}]
     assert tr["pre_nudge"] == ["원격 진단 포트의 연결 방법은 제공된 도구에서 확인할 수 없습니다."]
     # 인사: no_tool_needed 면 먼저 쓴 답 그대로
     script = iter([AIMessage("안녕하세요!"), AIMessage("", tool_calls=[{"name": "no_tool_needed", "args": {}, "id": "c6"}])])
-    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(),
+    app = build_graph(Scripted(messages=script), [search_manual], "sys", checkpointer=InMemorySaver(), **OPS,
                       require_tool=True, auto_cite=True, nudge="search")
     tr = asyncio.run(run_task(app, "안녕하세요"))
     assert tr["nudged"] == 1 and tr["tool_calls"] == [] and tr["answer"] == "안녕하세요!"
@@ -200,10 +205,16 @@ def test_require_tool_nudges_once_then_tool_is_used():
 
 def test_tool_examples_switch(monkeypatch):
     """6주차 ② (D30): ONPREM_TOOL_EXAMPLES=0 이면 업무 기능(도구) 설명에 베낄 수 있는 예시 값이 없다. 기본은 예전 그대로."""
-    from onprem_agent.agent import mcp_servers as m
+    import importlib.util
+
+    def server(desk):
+        spec = importlib.util.spec_from_file_location(f"server_{desk}", load_desk(desk).server)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return getattr(mod, f"make_{desk}_server")
 
     def descs():
-        return " ".join(t.description for mk in (m.make_ops_server, m.make_cs_server) for t in mk()._tool_manager.list_tools())
+        return " ".join(t.description for mk in (server("ops"), server("cs")) for t in mk()._tool_manager.list_tools())
     monkeypatch.delenv("ONPREM_TOOL_EXAMPLES", raising=False)
     assert all(x in descs() for x in ("LVL-06", "C0012", "PLN-5G59"))
     monkeypatch.setenv("ONPREM_TOOL_EXAMPLES", "0")
@@ -218,7 +229,7 @@ def test_after_tool_model_answers_once_results_exist():
     from langchain_core.tools import tool
     from langgraph.checkpoint.memory import InMemorySaver
     from onprem_agent.agent.graph import build_graph
-    from onprem_agent.agent.prompts import SYSTEM, system_prompt
+    from onprem_agent.agent.prompts import system_prompt
     from onprem_agent.agent.runner import run_task
 
     @tool
@@ -231,12 +242,13 @@ def test_after_tool_model_answers_once_results_exist():
             return self
     first = Scripted(messages=iter([AIMessage("", tool_calls=[{"name": "search_manual", "args": {"query": "감전"}, "id": "c1"}])]))
     after = Scripted(messages=iter([AIMessage("주 전원 차단기 MCCB-01 을 내립니다.")]))
-    app = build_graph(first, [search_manual], "sys", checkpointer=InMemorySaver(), auto_cite=True, after_tool_model=after)
+    app = build_graph(first, [search_manual], "sys", checkpointer=InMemorySaver(), **OPS, auto_cite=True, after_tool_model=after)
     tr = asyncio.run(run_task(app, TASKS["ops-m5"]["question"]))
     assert tr["answer"].startswith("주 전원 차단기 MCCB-01") and tr["answer"].endswith("[근거: OPS-SAFE]")
     assert score(TASKS["ops-m5"], tr)["success"]
-    assert system_prompt("ops", ["safety"]).startswith(SYSTEM["ops"]) and "search_manual" in system_prompt("ops", ["safety"])[len(SYSTEM["ops"]):]
-    assert system_prompt("cs", ["safety"]) == SYSTEM["cs"]
+    base = system_prompt("ops")
+    assert system_prompt("ops", ["safety"]).startswith(base) and "search_manual" in system_prompt("ops", ["safety"])[len(base):]
+    assert system_prompt("cs", ["safety"]) == system_prompt("cs")
 
 
 def test_degraded_notice_when_gateway_used_backup():
@@ -283,7 +295,7 @@ def test_strip_think_and_safety_search():
             return self
     # 모델은 답만 한 번 쓴다 — 매뉴얼 검색은 그래프가 먼저 했다(모델은 업무 기능(도구)을 고르지 않았다)
     model = Scripted(messages=iter([AIMessage("<think>상식으로는…</think>주 전원 차단기 MCCB-01 을 내리고 무전압을 확인합니다.")]))
-    app = build_graph(model, [search_manual], "sys", checkpointer=InMemorySaver(), auto_cite=True, safety_search=True)
+    app = build_graph(model, [search_manual], "sys", checkpointer=InMemorySaver(), **OPS, auto_cite=True, safety_search=True)
     t = TASKS["ops-m5"]
     tr = asyncio.run(run_task(app, t["question"]))
     assert [c["name"] for c in tr["tool_calls"]] == ["search_manual"] and "<think>" not in tr["answer"]
@@ -338,11 +350,13 @@ def test_guard_scoring_forbidden_and_injection():
 
 def test_scope_rule_appends_fixed_line():
     """6주차 ⑤ 창구 범위 규칙: 시스템 지시문 끝에 고정된 한 줄을 붙인다(앞부분은 그대로 — 접두사 캐시). 값 예시는 없다(D30)."""
-    from onprem_agent.agent.prompts import SYSTEM, system_prompt
+    from onprem_agent.agent.prompts import system_prompt
     for (sc, other), rule in [(x, r) for x in (("ops", "고객 상담 창구"), ("cs", "설비 정비 창구")) for r in ("scope", "scope2")]:
-        s = system_prompt(sc, (rule,))
-        assert s.startswith(SYSTEM[sc]) and "하지 않는 일" in s and other in s
-        assert not any(x in s[len(SYSTEM[sc]):] for x in ("C0", "CRB-", "LVL-", "PLN-"))
+        s, base = system_prompt(sc, (rule,)), system_prompt(sc)
+        assert s.startswith(base) and "하지 않는 일" in s and other in s
+        assert not any(x in s[len(base):] for x in ("C0", "CRB-", "LVL-", "PLN-"))
+    with pytest.raises(KeyError):
+        system_prompt("ops", ("없는_규칙",))
 
 
 def test_recover_text_tool_call():
@@ -369,7 +383,7 @@ def test_recover_text_tool_call():
             return self
     text = '.create_ticket(line=2, alarm_code="CRB-03", summary="CRB-03 경보 점검", priority="high")'
     script = iter([AIMessage(text), AIMessage("2호기 CRB-03 티켓을 만들었습니다.")])
-    app = build_graph(Scripted(messages=script), [search_manual, create_ticket], "sys", checkpointer=InMemorySaver(),
+    app = build_graph(Scripted(messages=script), [search_manual, create_ticket], "sys", checkpointer=InMemorySaver(), **OPS,
                       require_tool=True, auto_cite=True, nudge="search", recover_text_calls=True)
     tr = asyncio.run(run_task(app, "2호기 CRB-03 경보 점검 작업 요청 티켓 만들어 줘. 긴급이야."))
     assert tr["nudged"] == 0 and len(tr["approvals_asked"]) == 1
@@ -397,7 +411,7 @@ def test_empty_answer_retry():
     main = Scripted(messages=iter([AIMessage("", tool_calls=[{"name": "search_manual", "args": {"query": "CRB-06"}, "id": "c1"}]),
                                    AIMessage("<think>" + "생각 " * 50)]))          # 닫히지 않은 생각 글 = 길이 한도에서 잘림
     backup = Scripted(messages=iter([AIMessage("보조 순환 펌프 P-22 를 점검합니다.")]))
-    app = build_graph(main, [search_manual], "sys", checkpointer=InMemorySaver(), require_tool=True, auto_cite=True,
+    app = build_graph(main, [search_manual], "sys", checkpointer=InMemorySaver(), **OPS, require_tool=True, auto_cite=True,
                       empty_answer_model=backup)
     tr = asyncio.run(run_task(app, TASKS["ops-m1"]["question"]))
     assert tr["answer"].startswith("보조 순환 펌프 P-22") and tr["answer"].endswith("[근거: OPS-CRB-06]")

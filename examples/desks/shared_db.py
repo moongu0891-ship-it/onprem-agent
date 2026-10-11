@@ -1,4 +1,4 @@
-"""에이전트 업무 기능(도구)이 조회하는 업무 DB (SQLite).
+"""예제 창구(설비 정비·고객 상담)의 업무 기능(도구)이 조회하는 업무 DB (SQLite). 핵심 코드가 아니라 예제다.
 
 저장소의 가상 데이터 파일에서 결정적으로 만든다. 실제 회사라면 MES·CRM 같은 기존 시스템의 DB 자리다.
 - work_orders : 정비 작업 이력 2,400건 (data/ops_logs/*.md 를 구조화)
@@ -71,15 +71,3 @@ def build_db(root: Path, path: str = ":memory:", guard: bool = False) -> sqlite3
     con.commit()
     return con
 
-
-def mask_phone(phone: str) -> str:
-    """010-1234-5678 → 010-****-5678 (상담원 화면에 흔히 쓰는 마스킹)."""
-    parts = phone.split("-")
-    return f"{parts[0]}-****-{parts[-1]}" if len(parts) == 3 else "***"
-
-
-def mask_name(name: str) -> str:
-    """이하은 → 이*은, 김선 → 김*."""
-    if len(name) <= 1:
-        return "*"
-    return name[0] + "*" * (len(name) - 2) + name[-1] if len(name) > 2 else name[0] + "*"

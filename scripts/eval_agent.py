@@ -23,6 +23,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from onprem_agent.agent.evaluate import score, summarize, to_markdown  # noqa: E402
+from onprem_agent.agent.desk import load_desk  # noqa: E402
 from onprem_agent.agent.graph import build_graph  # noqa: E402
 from onprem_agent.agent.prompts import system_prompt  # noqa: E402
 from onprem_agent.agent.runner import make_model, mcp_tools, run_task  # noqa: E402
@@ -35,10 +36,11 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None, promp
     only_ids = only_ids or spec.get("tasks")          # 모델별로 일부 과업만(장애 시험처럼 느린 시험 조건)
     kill = spec.get("kill")                            # {"after": N, "service": "sglang-4b"}: N 과업 뒤 엔진 강제 종료
     done = 0
-    for scenario in ("ops", "cs"):
+    for scenario in dict.fromkeys(t["scenario"] for t in tasks):     # 창구: 과업 파일에 처음 나온 순서대로
         ts = [t for t in tasks if t["scenario"] == scenario and (not only_ids or t["id"] in only_ids)]
         if not ts:
             continue
+        desk = load_desk(scenario)
         async with mcp_tools(scenario, mcp_env) as tools:
             after = (make_model({**spec, "thinking": False, "max_tokens": spec.get("answer_max_tokens", 512)}, scenario)
                      if spec.get("thinking") == "first" else None)   # 생각은 첫 단계(무엇을 찾을지)만
@@ -47,6 +49,7 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None, promp
                               # 빈 답 다시 쓰기(D38): graph.empty_answer: true 면 생각을 끈 모델로 한 번 더
                               empty_answer_model=(make_model({**spec, "thinking": False, "max_tokens": 1024}, scenario)
                                                   if graph_opts.get("empty_answer") else None),
+                              **desk.graph_kwargs(),      # 창구 정의: 검색·승인 업무 기능(도구), 안전 질문 낱말, 답 검사 머리말
                               **{k: v for k, v in graph_opts.items() if k != "empty_answer"})
             for t in ts:
                 if kill and done == kill["after"]:
@@ -56,7 +59,7 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None, promp
                     subprocess.run(COMPOSE + _pargs(spec.get("profile") or []) + ["kill", kill["service"]], check=False)
                 done += 1
                 tr = await run_task(app, t["question"], approval=t["approval"] or "approve")
-                r = score(t, tr)
+                r = score(t, tr, desk.approval_tools)
                 rows.append(r)
                 traces.append({"id": t["id"], **tr})
                 mark = "성공" if r["success"] else "실패"
@@ -84,7 +87,8 @@ def main():
 
     res = {"config_name": cfg["name"], "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "n_tasks": len(tasks), "n_ops": sum(t["scenario"] == "ops" for t in tasks),
-           "n_cs": sum(t["scenario"] == "cs" for t in tasks), "embedder": cfg.get("embedder"), "models": []}
+           "n_cs": sum(t["scenario"] == "cs" for t in tasks),
+           "n_by_desk": {d: sum(t["scenario"] == d for t in tasks) for d in dict.fromkeys(t["scenario"] for t in tasks)}, "embedder": cfg.get("embedder"), "models": []}
     specs = [sp for sp in cfg["models"] if not a.only or any(o in sp["label"] for o in a.only)]
     running = None   # --manage: 지금 떠 있는 엔진 프로필. 다음 모델이 같은 엔진이면 내리지 않고 이어 쓴다(재시작 1~3분 절약)
     for i, spec in enumerate(specs):

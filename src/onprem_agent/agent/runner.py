@@ -17,20 +17,25 @@ ROOT = Path(__file__).resolve().parents[3]
 
 @asynccontextmanager
 async def mcp_tools(scenario: str, env: dict | None = None):
-    """MCP 서버를 한 번 띄워 연결을 유지한 채 업무 기능(도구)을 쓴다.
-    (기본 방식은 업무 기능(도구)을 부를 때마다 서버 프로세스를 새로 띄워, 검색 색인을 매번 다시 만든다 — 실험으로 확인.)"""
+    """창구(scenario)의 업무 기능(도구) 서버(desk.yaml 의 server)를 한 번 띄워 연결을 유지한 채 업무 기능(도구)을 쓴다.
+    (기본 방식은 업무 기능(도구)을 부를 때마다 서버 프로세스를 새로 띄워, 검색 색인을 매번 다시 만든다 — 실험으로 확인.)
+    서버는 핵심(src)과 창구 묶음 폴더(예제의 공통 DB 등)를 import 할 수 있게 PYTHONPATH 를 받는다."""
     from langchain_mcp_adapters.client import MultiServerMCPClient
     from langchain_mcp_adapters.tools import load_mcp_tools
-    e = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "ONPREM_ROOT": str(ROOT), **(env or {})}
+
+    from .desk import load_desk
+    desk = load_desk(scenario)
+    path = os.pathsep.join([str(ROOT / "src"), str(desk.root.parent)])
+    e = {**os.environ, "PYTHONPATH": path, "ONPREM_ROOT": str(ROOT), **(env or {})}
     client = MultiServerMCPClient({scenario: {"command": sys.executable, "transport": "stdio", "env": e,
-                                              "args": ["-m", "onprem_agent.agent.mcp_servers", scenario]}})
+                                              "args": [str(desk.server)]}})
     async with client.session(scenario) as session:
         yield await load_mcp_tools(session)
 
 
 def make_model(spec: dict, scenario: str):
     """spec: {kind: rule} 또는 {kind: openai, base_url, model, api_key?, headers?}
-    OpenAI 호환이면 게이트웨이(LiteLLM agent-llm)든 엔진 직접이든 같은 코드로 부른다."""
+    OpenAI 호환이면 게이트웨이(LiteLLM agent-llm)든 엔진 직접이든 같은 코드로 부른다. 규칙 모델은 창구의 rules.py 를 쓴다."""
     if spec["kind"] == "rule":
         from .rule_model import RuleModel
         return RuleModel(scenario=scenario)

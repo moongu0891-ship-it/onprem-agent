@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from onprem_agent.agent.graph import build_graph  # noqa: E402
+from onprem_agent.agent.desk import list_desks, load_desk  # noqa: E402
 from onprem_agent.agent.prompts import system_prompt  # noqa: E402
 from onprem_agent.agent.runner import make_model, mcp_tools  # noqa: E402
 
@@ -61,7 +62,8 @@ async def chat(scenario, model_key, store, thread, embedder):
                           recover_text_calls=True,                                    # 6주차 ⑦: 글로 쓴 호출 살리기(D37)
                           empty_answer_model=(make_model({**MODELS[model_key], "thinking": False, "max_tokens": 1024}, scenario)
                                               if MODELS[model_key].get("thinking") else None),   # 6주차: 빈 답 다시 쓰기(D38)
-                          degraded_notice=model_key == "gateway")
+                          degraded_notice=model_key == "gateway",
+                          **load_desk(scenario).graph_kwargs())                       # 창구 정의(desk.yaml)
         cfg = {"configurable": {"thread_id": thread}}
         print(f"[{scenario} · {model_key} · 저장 {store} · 대화 번호 {thread}]  업무 기능(도구): {', '.join(t.name for t in tools)}  (끝내려면 빈 줄)")
         pending = (await app.aget_state(cfg)).interrupts
@@ -88,7 +90,7 @@ async def chat(scenario, model_key, store, thread, embedder):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("scenario", choices=["ops", "cs"])
+    ap.add_argument("scenario", choices=list_desks(), help="창구(examples/desks 또는 ONPREM_DESKS 의 폴더 이름)")
     ap.add_argument("--model", default="rule", choices=list(MODELS))
     ap.add_argument("--store", default="sqlite", choices=["sqlite", "postgres"])
     ap.add_argument("--thread", default=None, help="대화 번호 (같은 번호면 이어서)")

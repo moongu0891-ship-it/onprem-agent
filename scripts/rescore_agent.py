@@ -23,8 +23,8 @@ from onprem_agent.agent.graph import strip_think  # noqa: E402
 def main():
     src = Path(sys.argv[1])
     res = json.loads(src.read_text(encoding="utf-8"))
-    tasks = {t["id"]: t for f in ("eval/agent_tasks.jsonl", "eval/agent_guard_tasks.jsonl")
-             for t in map(json.loads, (ROOT / f).read_text(encoding="utf-8").splitlines())}
+    tasks = {t["id"]: t for f in sorted((ROOT / "eval").glob("agent*_tasks.jsonl"))      # 과업 묶음 전부(기존·보호·경계·확인용)
+             for t in map(json.loads, f.read_text(encoding="utf-8").splitlines()) if t}
     changed_total = 0
     for m in res["models"]:
         if m.get("error"):
