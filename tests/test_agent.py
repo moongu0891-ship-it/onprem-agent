@@ -375,3 +375,30 @@ def test_recover_text_tool_call():
     assert tr["nudged"] == 0 and len(tr["approvals_asked"]) == 1
     assert tr["tool_calls"] == [{"name": "create_ticket", "args": {"line": 2, "alarm_code": "CRB-03", "summary": "CRB-03 경보 점검", "priority": "high"}}]
     assert tr["answer"].endswith("[근거: TK-0009]")
+
+
+def test_empty_answer_retry():
+    """6주차 (D38): 업무 기능(도구) 결과를 받은 뒤 답이 비면(생각 글만 있고 본문 없음) 생각을 끈 모델로 한 번 더 답한다."""
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+    from langchain_core.messages import AIMessage
+    from langchain_core.tools import tool
+    from langgraph.checkpoint.memory import InMemorySaver
+    from onprem_agent.agent.graph import build_graph
+    from onprem_agent.agent.runner import run_task
+
+    @tool
+    def search_manual(query: str) -> str:
+        """매뉴얼 검색"""
+        return "[OPS-CRB-06] CRB-06 유량B 상관구조 파괴\n관련 부품: 보조 순환 펌프 P-22"
+
+    class Scripted(GenericFakeChatModel):
+        def bind_tools(self, tools, **kw):
+            return self
+    main = Scripted(messages=iter([AIMessage("", tool_calls=[{"name": "search_manual", "args": {"query": "CRB-06"}, "id": "c1"}]),
+                                   AIMessage("<think>" + "생각 " * 50)]))          # 닫히지 않은 생각 글 = 길이 한도에서 잘림
+    backup = Scripted(messages=iter([AIMessage("보조 순환 펌프 P-22 를 점검합니다.")]))
+    app = build_graph(main, [search_manual], "sys", checkpointer=InMemorySaver(), require_tool=True, auto_cite=True,
+                      empty_answer_model=backup)
+    tr = asyncio.run(run_task(app, TASKS["ops-m1"]["question"]))
+    assert tr["answer"].startswith("보조 순환 펌프 P-22") and tr["answer"].endswith("[근거: OPS-CRB-06]")
+    assert score(TASKS["ops-m1"], tr)["success"]

@@ -58,6 +58,9 @@ async def chat(scenario, model_key, store, thread, embedder):
                           require_tool=True, auto_cite=True, safety_search=True,      # 4·5주차 측정으로 켠 안전 기능
                           strip_injection=True, answer_guard=True,                    # 6주차 측정으로 켠 보호 기능(가드레일)
                           nudge="search",                                             # 6주차 ④: 검색 되돌림(지어낸 인자 호출 없음)
+                          recover_text_calls=True,                                    # 6주차 ⑦: 글로 쓴 호출 살리기(D37)
+                          empty_answer_model=(make_model({**MODELS[model_key], "thinking": False, "max_tokens": 1024}, scenario)
+                                              if MODELS[model_key].get("thinking") else None),   # 6주차: 빈 답 다시 쓰기(D38)
                           degraded_notice=model_key == "gateway")
         cfg = {"configurable": {"thread_id": thread}}
         print(f"[{scenario} · {model_key} · 저장 {store} · 대화 번호 {thread}]  업무 기능(도구): {', '.join(t.name for t in tools)}  (끝내려면 빈 줄)")

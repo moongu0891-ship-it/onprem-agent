@@ -43,7 +43,11 @@ async def eval_model(spec, tasks, mcp_env, only_ids=None, graph_opts=None, promp
             after = (make_model({**spec, "thinking": False, "max_tokens": spec.get("answer_max_tokens", 512)}, scenario)
                      if spec.get("thinking") == "first" else None)   # 생각은 첫 단계(무엇을 찾을지)만
             app = build_graph(make_model(spec, scenario), tools, system_prompt(scenario, prompt_rules), checkpointer=InMemorySaver(),
-                              max_steps=spec.get("max_steps", 6), after_tool_model=after, **graph_opts)
+                              max_steps=spec.get("max_steps", 6), after_tool_model=after,
+                              # 빈 답 다시 쓰기(D38): graph.empty_answer: true 면 생각을 끈 모델로 한 번 더
+                              empty_answer_model=(make_model({**spec, "thinking": False, "max_tokens": 1024}, scenario)
+                                                  if graph_opts.get("empty_answer") else None),
+                              **{k: v for k, v in graph_opts.items() if k != "empty_answer"})
             for t in ts:
                 if kill and done == kill["after"]:
                     import subprocess
