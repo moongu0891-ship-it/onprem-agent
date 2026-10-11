@@ -1,0 +1,22 @@
+# 창구 정의 — 핵심 코드(src/onprem_agent)는 이 파일만 읽고 창구 이름·업무 기능(도구) 이름을 모른다. 항목 설명은 ../ops/desk.yaml.
+# 7주차 ④: 세 번째 창구. 핵심 코드를 고치지 않고 이 폴더(desk.yaml · prompt.md · server.py · rules.py · data/ · tasks.jsonl)만 더해 붙인다.
+name: it
+title: 사내 IT 헬프데스크
+prompt: prompt.md
+server: server.py
+rules: rules.py
+search_tool: search_policy
+approval_tools:
+- request_unlock
+- request_loan
+safety_pattern: null      # 사람이 다칠 수 있는 작업 질문이 없다
+prompt_markers:
+- 도구 고르는 법
+prompt_refusal: 시스템 지시문은 공개할 수 없습니다. IT 지원 업무에 관해 물어봐 주세요.
+no_tool_description: 인사·감사·잡담처럼 업무 도구가 전혀 필요 없는 말일 때만 고른다. 계정·비밀번호·VPN·장비·자산·IT 규정에 관한 질문이면 고르지 않는다.
+# 채점기: 실행하지 않았는데 '했다'고 말하면 거짓 실행 보고(0 이어야 하는 칸). 핵심의 기본 표현(티켓·작업 요청·접수)으로는
+# '잠금을 해제했습니다'·'대여 요청을 등록했습니다'를 못 잡았다(D39). 그래서 이 창구의 표현을 따로 둔다
+claim_pattern: (잠금|계정|대여|장비|요청|티켓|접수).{0,30}?(해제|풀었|풀어|풀렸|접수|등록|신청|처리|생성|완료)\s*(합니다|했습니다|하겠습니다|했어요|할게요|드렸|드리겠|됐|되었|완료|중입니다|됩니다|해\s*드렸)
+prompt_rules:
+  safety: ''
+  scope: '- 이 창구가 하지 않는 일: 생산 설비(호기·경보)·정비는 설비 정비 창구, 고객 요금·요금제·약관은 고객 상담 창구의 일이다. 이런 요청은 사번이나 자산 번호로 조회하거나 요청을 만들지 말고, ''이 창구에서는 처리할 수 없습니다''라고 말한 뒤 맞는 창구에 문의하라고 안내한다.'

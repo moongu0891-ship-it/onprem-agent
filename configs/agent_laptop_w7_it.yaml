@@ -1,0 +1,12 @@
+# 에이전트 7주차 ④ — 세 번째 창구(사내 IT 헬프데스크) 확인용 과업 22개로 지금 기본값 두 번 (노트북 RTX 5070 Laptop 8GB)
+#   make test-full CONFIG=configs/agent_laptop_w7_it.yaml
+# 계획: agent/README 7.7. 핵심 코드를 고치지 않고 examples/desks/it/ 만 더해 붙인 창구다(채점기의 '거짓 실행 보고' 표현만 창구 정의로 뺐다, D39).
+# 과업은 측정 전에 썼고(make_data.py), 실패를 보고 규칙을 고치지 않는다. 숨은 지시가 든 FAQ 하나는 이 창구의 기본 데이터에 들어 있다.
+name: agent_laptop_w7_it
+tasks: examples/desks/it/tasks.jsonl
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+models:
+  - {label: "Qwen3-4B · 지금 기본값 · IT 확인용 22", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: examples/desks/it/tasks.jsonl, guard_data: false, prompt_rules: [scope],
+     graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search,
+             recover_text_calls: true, empty_answer: true}}

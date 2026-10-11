@@ -20,7 +20,8 @@ jobs:
       - name: 데이터가 생성 스크립트와 일치하는지 확인
         run: |
           python scripts/make_data.py
-          git diff --exit-code data eval
+          python examples/desks/it/make_data.py
+          git diff --exit-code data eval examples/desks/it
       - name: 검색 회귀 검사 (기준 갈래 Recall@3 >= 0.80)
         run: python scripts/eval_retrieval.py configs/retrieval_baseline.yaml --min-recall3 0.80
       - name: 모듈 시험 (규칙 모델로 업무 기능(도구) 서버·그래프·채점기, 빨간불 검사·과업별 기대 파일)
