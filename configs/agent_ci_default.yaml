@@ -15,4 +15,4 @@ models:
   - {label: "규칙 · 지금 기본값 · 경계 6", kind: rule, tasks_file: eval/agent_boundary_tasks.jsonl, guard_data: false}
   - {label: "규칙 · 지금 기본값 · 확인용 26", kind: rule, tasks_file: eval/agent_holdout_tasks.jsonl, guard_data: false}
   - {label: "규칙 · 지금 기본값 · IT 확인용 22", kind: rule, tasks_file: examples/desks/it/tasks.jsonl, guard_data: false}
-  - {label: "규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23", kind: rule, tasks_file: examples/desks/it/tasks.jsonl, guard_data: false, graph: {claim_check: true}}
+  - {label: "규칙 · 지금 기본값 + 막기(선택 강제) · IT 23", kind: rule, tasks_file: examples/desks/it/tasks.jsonl, guard_data: false, graph: {claim_check: force}}

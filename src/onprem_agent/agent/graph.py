@@ -71,6 +71,15 @@ FORCE_NOTE = ("방금 도구 없이 답하려 했다. 업무 질문이면 알맞
 CLAIM_NOTE = ("방금 쓴 답은 '{said}'라고 말했지만, 이번 질문에서 그 일은 아직 실행되지 않았다. "
               "사용자가 그 일을 요청했다면 알맞은 도구를 불러라 — 실행 전에 담당자 확인을 거친다. "
               "요청하지 않았거나 할 수 없는 일이면, 실행하지 않았다고 분명히 말하는 답을 다시 써라.")
+# 선택 강제판(7주차 둘째 후보, D43): 글로 되묻지 않고 승인 업무 기능(도구)들과 '실행하지 않음' 중 하나만 고르게 한다
+NOT_DONE = "not_done"
+NOT_DONE_SPEC = {"type": "function", "function": {
+    "name": NOT_DONE,
+    "description": "사용자가 실행을 요청하지 않았거나 할 수 없는 일일 때 고른다. 그 일은 실행하지 않은 것으로 답한다.",
+    "parameters": {"type": "object", "properties": {}}}}
+FORCE_NOTE_CLAIM = ("방금 쓴 답은 '{said}'라고 말했지만 그 일은 아직 실행되지 않았다. 사용자가 그 일을 요청했으면 알맞은 도구를 골라 불러라"
+                    "(실행 전에 담당자 확인을 거친다). 요청하지 않았거나 할 수 없으면 not_done 을 골라라.")
+NOT_DONE_PREFIX = "※ 요청하신 일은 아직 실행하지 않았습니다. 실행이 필요하면 다시 말씀해 주세요.\n\n"
 DEGRADED_NOTICE = ("※ 지금은 대체 엔진으로 답하고 있어 평소보다 느리고 정확도가 낮을 수 있습니다. "
                    "작업 요청처럼 중요한 일은 내용을 한 번 더 확인해 주세요.")
 SOURCE_ID = re.compile(r"\[([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)\]")          # [OPS-CRB-06] [WO-00125] [TK-0001] [C0050] [CS-PLN-5G89]
@@ -205,13 +214,15 @@ def build_graph(model, tools, system_prompt: str, approval_tools=frozenset(), ma
                 out_of_scope: bool = False, respect_refusal: bool = False, nudge: str = "required",
                 recover_text_calls: bool = False, empty_answer_model=None,
                 search_tool: str | None = None, safety_pattern=None, prompt_markers=(), prompt_refusal: str | None = None,
-                no_tool_description: str | None = None, claim_check: bool = False, claim_pattern=None):
+                no_tool_description: str | None = None, claim_check=False, claim_pattern=None):
     """창구별 값(Desk.graph_kwargs() 가 준다): approval_tools(사람 승인이 필요한 업무 기능(도구)), search_tool(검색 되돌림·안전 질문 검색이
     질문 그대로 부를 검색 업무 기능(도구)), safety_pattern(안전 질문 낱말, 컴파일된 정규식), prompt_markers(답 검사가 볼 창구 지시문 머리말 —
     핵심의 '공통 규칙'에 더한다), prompt_refusal(지시문을 옮겨 적은 답 대신 쓸 말), no_tool_description(no_tool_needed 설명).
     claim_check: 말로만 실행 막기(7주차, D42) — 이번 질문에서 승인이 필요한 업무 기능(도구)이 실행되지 않았는데 답이 '했다'고 말하면
-    (창구의 claim_pattern, 없으면 기본 표현) 그 답을 버리고 모델에게 한 번 더 고르게 한다: 업무 기능(도구)을 부르거나(그러면 승인 관문으로),
-    실행하지 않았다고 다시 쓰거나. 한 질문에 한 번만. 버린 답은 response_metadata["pre_claim"] 에 남긴다.
+    (창구의 claim_pattern, 없으면 기본 표현) 그 답을 버리고 한 번 더 고르게 한다. 한 질문에 한 번만. 버린 답은 response_metadata["pre_claim"].
+      "ask"(또는 True): 글로 되묻는다 — 노트북에서 모델이 다시 글로, 더 단정적으로 거짓 보고해 채택 안 함(D43). 기록용으로 남긴다.
+      "force": 승인 업무 기능(도구)들 + not_done 중 하나를 API 로 강제 선택(tool_choice="required"). 업무 기능(도구)이면 승인 관문으로,
+               not_done 이면 프로그램이 "아직 실행하지 않았습니다" 머리말을 원래 답 앞에 붙인다(모델이 다시 쓰지 않는다). 검색 되돌림과 같은 설계.
     after_tool_model: 이번 질문에 업무 기능(도구) 결과가 하나라도 생긴 뒤에 쓸 모델(5주차 '생각은 첫 단계만').
     생각 모드는 '무엇을 찾을지' 고를 때 효과가 크고(4주차: 54% → 92%), 찾은 결과를 읽고 답을 쓸 때는 시간만 든다는 가정을 잰다.
     결과를 본 뒤에도 업무 기능(도구)을 더 부를 수 있다(여러 단계 과업) — 그때는 생각 없이 고른다.
@@ -241,6 +252,8 @@ def build_graph(model, tools, system_prompt: str, approval_tools=frozenset(), ma
         raise ValueError(f"검색 업무 기능(도구) '{search_tool}' 가 업무 기능(도구) 서버에 없다: {sorted(by_name)}")
     tool_args = {t.name: set((getattr(t, "args", None) or {}).keys()) for t in tools}
     search_nudge = nudge == "search" and search_tool is not None
+    llm_claim = (model.bind_tools([*(t for t in tools if t.name in approval_tools), NOT_DONE_SPEC], tool_choice="required")
+                 if claim_check == "force" and approval_tools else None)
     if search_nudge:
         llm_forced = model.bind_tools([LOOK_UP_SPEC, no_tool], tool_choice="required") if require_tool else None
         force_note = FORCE_NOTE_SEARCH
@@ -312,10 +325,21 @@ def build_graph(model, tools, system_prompt: str, approval_tools=frozenset(), ma
             if text and not ran and not checked and claims_done(text, m):
                 said = (m.search(text) if m else None)
                 said = said.group(0) if said else text[:40]
-                again = await llm_tools.ainvoke([*msgs, AIMessage(content=text), SystemMessage(CLAIM_NOTE.format(said=said))])
-                meta = {**(again.response_metadata or {}), "claim_check": True, "pre_claim": text[:800]}
-                resp = AIMessage(content=again.content, tool_calls=again.tool_calls, id=again.id, response_metadata=meta,
-                                 usage_metadata=getattr(again, "usage_metadata", None))
+                if claim_check == "force":
+                    forced = await llm_claim.ainvoke([*msgs, AIMessage(content=text), SystemMessage(FORCE_NOTE_CLAIM.format(said=said))])
+                    calls = [tc for tc in forced.tool_calls if tc["name"] in approval_tools]
+                    meta = {**(resp.response_metadata or {}), "claim_check": "force", "pre_claim": text[:800]}
+                    if calls:
+                        resp = AIMessage(content="", tool_calls=calls, id=forced.id, response_metadata=meta,
+                                         usage_metadata=getattr(forced, "usage_metadata", None))
+                    else:   # not_done 또는 아무것도 안 고름: 모델이 다시 쓰지 않는다 — 프로그램이 머리말을 붙인다
+                        resp = AIMessage(content=NOT_DONE_PREFIX + text, id=resp.id, response_metadata={**meta, "not_done": True},
+                                         usage_metadata=getattr(resp, "usage_metadata", None))
+                else:
+                    again = await llm_tools.ainvoke([*msgs, AIMessage(content=text), SystemMessage(CLAIM_NOTE.format(said=said))])
+                    meta = {**(again.response_metadata or {}), "claim_check": "ask", "pre_claim": text[:800]}
+                    resp = AIMessage(content=again.content, tool_calls=again.tool_calls, id=again.id, response_metadata=meta,
+                                     usage_metadata=getattr(again, "usage_metadata", None))
         return {"messages": [resp], "steps": steps + 1}
 
     def route(state: AgentState):

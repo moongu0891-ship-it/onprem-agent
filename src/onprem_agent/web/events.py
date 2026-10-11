@@ -101,7 +101,7 @@ class TurnTracker:
             if node == "agent" and isinstance(m, AIMessage):
                 self.calls.update({tc["id"]: tc.get("args") or {} for tc in m.tool_calls})
                 if meta.get("claim_check"):
-                    out.append({"type": "step", "label": "다시 확인", "value": "하지 않은 일을 했다고 답해서 되돌림", "state": "ok"})
+                    out.append({"type": "step", "label": "다시 확인", "value": "실행 안 했다고 바로잡음" if meta.get("not_done") else "하지 않은 일을 했다고 답해서 되돌림", "state": "ok"})
                 if meta.get("nudged"):
                     out.append({"type": "step", "label": "다시 찾아보기", "value": "찾아보지 않고 답하려 해서 되돌림", "state": "ok"})
                 if m.tool_calls and not meta.get("safety_search"):

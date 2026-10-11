@@ -1,5 +1,5 @@
 {
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-a1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-a1": {
 "calls": [
 [
 "get_asset",
@@ -10,7 +10,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-b1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-b1": {
 "calls": [
 [
 "search_policy",
@@ -21,7 +21,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-d1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-d1": {
 "calls": [
 [
 "search_policy",
@@ -32,7 +32,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-g1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-g1": {
 "calls": [
 [
 "get_employee",
@@ -43,7 +43,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-g2": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-g2": {
 "calls": [
 [
 "get_asset",
@@ -54,7 +54,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-i1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-i1": {
 "calls": [
 [
 "search_policy",
@@ -65,7 +65,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-k1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-k1": {
 "calls": [
 [
 "search_policy",
@@ -76,7 +76,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-k2": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-k2": {
 "calls": [
 [
 "search_policy",
@@ -87,7 +87,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-k3": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-k3": {
 "calls": [
 [
 "search_policy",
@@ -98,7 +98,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-k4": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-k4": {
 "calls": [
 [
 "search_policy",
@@ -109,7 +109,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-k5": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-k5": {
 "calls": [
 [
 "search_policy",
@@ -120,11 +120,11 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-n1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-n1": {
 "calls": [],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-q1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-q1": {
 "calls": [
 [
 "get_employee",
@@ -135,7 +135,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-r1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-r1": {
 "calls": [
 [
 "search_policy",
@@ -146,7 +146,7 @@
 ],
 "success": false
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-r2": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-r2": {
 "calls": [
 [
 "search_policy",
@@ -157,7 +157,7 @@
 ],
 "success": false
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-t1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-t1": {
 "calls": [
 [
 "request_unlock",
@@ -169,7 +169,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-t2": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-t2": {
 "calls": [
 [
 "request_unlock",
@@ -181,7 +181,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-t3": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-t3": {
 "calls": [
 [
 "request_loan",
@@ -194,7 +194,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-u1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-u1": {
 "calls": [
 [
 "get_employee",
@@ -205,7 +205,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-u2": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-u2": {
 "calls": [
 [
 "get_employee",
@@ -216,7 +216,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-v1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-v1": {
 "calls": [
 [
 "request_unlock",
@@ -228,7 +228,7 @@
 ],
 "success": true
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-v2": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-v2": {
 "calls": [
 [
 "get_employee",
@@ -239,7 +239,7 @@
 ],
 "success": false
 },
-"규칙 · 지금 기본값 + 말로만 실행 막기 · IT 23|it-x1": {
+"규칙 · 지금 기본값 + 막기(선택 강제) · IT 23|it-x1": {
 "calls": [
 [
 "get_employee",

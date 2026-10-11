@@ -98,6 +98,7 @@ async def run_task(app, question: str, approval: str = "approve", max_interrupts
             "pre_nudge": [m.response_metadata["pre_nudge"] for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("pre_nudge")],
             # 안전 기능이 작동한 횟수(7주차 ②): 글로 쓴 호출을 살림(D37) · 빈 답을 생각 없이 다시 씀(D38) · 안전 질문이라 검색부터 함
             "text_tool_calls": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("text_tool_call")),
+            "not_done": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("not_done")),
             "claim_checks": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("claim_check")),
             "pre_claim": [m.response_metadata["pre_claim"] for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("pre_claim")],
             "empty_retries": sum(1 for m in msgs if isinstance(m, AIMessage) and (m.response_metadata or {}).get("empty_retry")),

@@ -217,6 +217,8 @@ def to_markdown(res: dict) -> str:
         guard += "".join(f" · {rules[r]}" for r in m.get("prompt_rules", []) if r in rules)
         if g.get("nudge") == "search":
             guard = guard.replace("되돌림", "검색 되돌림", 1)
+        if g.get("claim_check") == "force":
+            guard = guard.replace("말로만 실행 막기", "말로만 실행 막기(선택 강제)", 1)
         if (m.get("spec") or {}).get("tool_examples") is False:
             guard += " · 예시 값 뺌"
         mc = "—" if s.get("model_cite") is None else f"{s['model_cite']:.0%}"

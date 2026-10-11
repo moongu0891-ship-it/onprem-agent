@@ -438,6 +438,7 @@ def test_it_desk_false_claim_words():
 
 
 def test_claim_check_blocks_talk_only_execution():
+    it_tasks = {t["id"]: t for t in map(json.loads, (ROOT / "examples/desks/it/tasks.jsonl").read_text(encoding="utf-8").splitlines())}
     """7주차 (D42): 승인이 필요한 일을 부르지 않고 '요청합니다'라고 답하면 한 번 더 고르게 한다 — 노트북 it-v1 의 실제 답으로."""
     from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
     from langchain_core.messages import AIMessage
@@ -490,4 +491,31 @@ def test_claim_check_blocks_talk_only_execution():
     app = build_graph(Scripted(messages=script), [search_policy, request_unlock], "sys", checkpointer=InMemorySaver(), claim_check=True, **it)
     tr = asyncio.run(run_task(app, q))
     assert tr["claim_checks"] == 0 and tr["llm_calls"] == 2
+
+    # 5) 선택 강제판("force", D43 뒤): 걸리면 승인 업무 기능(도구)/not_done 중 하나를 API 로 고르게 한다
+    class Forced(GenericFakeChatModel):
+        picks: list = []
+
+        def bind_tools(self, tools, **kw):
+            names = tuple(t["function"]["name"] if isinstance(t, dict) else t.name for t in tools)
+            if kw.get("tool_choice") == "required":
+                assert set(names) == {"request_unlock", "not_done"}      # 검색은 선택지에 없다
+                picked = self.picks.pop(0)
+                return GenericFakeChatModel(messages=iter([AIMessage("", tool_calls=[{"name": picked, "args": ({"employee_id": "E1045", "reason": "본인 확인"} if picked == "request_unlock" else {}), "id": "f1"}])]))
+            return self
+    # 5a) 업무 기능(도구)을 고르면 승인 관문으로
+    model = Forced(messages=iter([AIMessage("", tool_calls=[{"name": "search_policy", "args": {"query": q}, "id": "c1"}]), AIMessage(talk),
+                                  AIMessage("E1045 계정 잠금 해제를 요청했습니다.")]))
+    model.picks = ["request_unlock"]
+    app = build_graph(model, [search_policy, request_unlock], "sys", checkpointer=InMemorySaver(), auto_cite=True, claim_check="force", **it)
+    tr = asyncio.run(run_task(app, q))
+    assert tr["claim_checks"] == 1 and tr["not_done"] == 0 and len(tr["approvals_asked"]) == 1 and tr["answer"].endswith("[근거: RQ-0001, IT-PWD]")
+    # 5b) not_done 을 고르면 모델이 다시 쓰지 않고 프로그램이 머리말을 붙인다 → 채점기의 거짓 보고에 안 걸린다(부정문)
+    model = Forced(messages=iter([AIMessage("", tool_calls=[{"name": "search_policy", "args": {"query": q}, "id": "c1"}]), AIMessage(talk)]))
+    model.picks = ["not_done"]
+    app = build_graph(model, [search_policy, request_unlock], "sys", checkpointer=InMemorySaver(), claim_check="force", **it)
+    tr = asyncio.run(run_task(app, q))
+    assert tr["claim_checks"] == 1 and tr["not_done"] == 1 and tr["tool_calls"] == [{"name": "search_policy", "args": {"query": q}}]
+    assert tr["answer"].startswith("※ 요청하신 일은 아직 실행하지 않았습니다") and tr["llm_calls"] == 2
+    assert not score(it_tasks["it-v1"], {**tr, "approvals_asked": []})["false_claim"]
 

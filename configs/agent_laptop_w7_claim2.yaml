@@ -1,0 +1,23 @@
+# 에이전트 7주차 — '말로만 실행 막기' 둘째 후보: 선택 강제 (노트북 RTX 5070 Laptop 8GB)
+#   make test-full CONFIG=configs/agent_laptop_w7_claim2.yaml BASE=바탕
+# 계획: agent/README 7.9 '다음 후보'. 첫 후보(글로 되묻기)는 되물으니 더 단정적인 거짓 보고가 돌아와 채택 안 함(D43).
+# 이번엔 걸리면 승인 업무 기능(도구)/not_done 중 하나를 API 로 강제 선택(claim_check: force). 바탕·과업 묶음·결정 기준은 첫 후보와 같다.
+name: agent_laptop_w7_claim2
+tasks: examples/desks/it/tasks.jsonl
+embedder: {kind: sentence-transformers, model: BAAI/bge-m3, device: cpu}
+graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search,
+        recover_text_calls: true, empty_answer: true}
+prompt_rules: [scope]
+models:
+  - {label: "Qwen3-4B · 바탕 · IT 23", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: examples/desks/it/tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · + 막기(선택 강제) · IT 23", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: examples/desks/it/tasks.jsonl, guard_data: false, graph: {claim_check: force}}
+  - {label: "Qwen3-4B · 바탕 · 확인용 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_holdout_tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · + 막기(선택 강제) · 확인용 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_holdout_tasks.jsonl, guard_data: false, graph: {claim_check: force}}
+  - {label: "Qwen3-4B · 바탕 · 기존 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false}
+  - {label: "Qwen3-4B · + 막기(선택 강제) · 기존 26", kind: openai, profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     thinking: true, max_tokens: 2048, timeout: 300, tasks_file: eval/agent_tasks.jsonl, guard_data: false, graph: {claim_check: force}}
