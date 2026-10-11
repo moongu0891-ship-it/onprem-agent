@@ -28,6 +28,7 @@
 | [agent_laptop_guard5.md](agent_laptop_guard5.md) | 6주차 ⑤ 창구 범위 규칙(이 창구가 하지 않는 일과 보낼 곳), 같은 설정 두 번, 기존 26과업 | 노트북 |
 | [agent_laptop_guard6.md](agent_laptop_guard6.md) | 6주차 ⑥ 경계 질문 6과업(다른 창구 낱말을 붙인 정상 질문) 창구 범위 규칙 끔/켬 두 번씩, 규칙 켠 기존 26과업 두 번 | 노트북 |
 | [agent_laptop_guard7.md](agent_laptop_guard7.md) | 6주차 ⑦ 글로 쓴 호출 살리기·창구 범위 좁히기, A→B→C 한 번에 하나씩 × 보호 20·경계 6·기존 26 | 노트북 |
+| [agent_laptop_w7_claim.md](agent_laptop_w7_claim.md) | 7주차 '말로만 실행 막기' 바탕/후보 × IT 23·확인용 26·기존 26, 두 번 — 채택 안 함(되물으니 더 단정적인 거짓 보고) | 노트북 |
 | [agent_laptop_w7.md](agent_laptop_w7.md) | 7주차 나눈 뒤 지금 기본값(52과업) · 확인용 26 두 번 · IT 헬프데스크 22 두 번(빨간불), 실패 과업의 실제 답 | 노트북 |
 
 노트북 = RTX 5070 Laptop 8GB · WSL2 · Docker.
