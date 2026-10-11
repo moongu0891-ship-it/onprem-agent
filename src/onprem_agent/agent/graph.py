@@ -150,9 +150,11 @@ def on_backup(msg) -> bool:
 def cite_sources(raw: str, turn: list) -> str:
     """모델이 쓴 근거 표기를 지우고, 이번 질문에서 성공한 업무 기능(도구) 결과의 근거 번호를 붙인다."""
     ids = []
-    for m in turn:
-        if isinstance(m, ToolMessage) and m.status == "success":
-            ids += [x for x in SOURCE_ID.findall(str(m.content)) if x not in ids]
+    # 실행 결과(티켓 번호 등 상태를 바꾼 업무 기능(도구)의 번호)를 먼저 — 근거는 6개까지만 붙이므로, 조회 결과가 많으면
+    # 티켓 번호가 잘려 사용자가 번호를 못 받았다(D36: 매뉴얼 1 + 작업 이력 5 + 티켓 1 → 티켓이 7번째로 잘림)
+    msgs = [m for m in turn if isinstance(m, ToolMessage) and m.status == "success"]
+    for m in sorted(msgs, key=lambda m: m.name not in APPROVAL_TOOLS):
+        ids += [x for x in SOURCE_ID.findall(str(m.content)) if x not in ids]
     text = MODEL_CITE.sub("", raw)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
     return text + (f"\n\n[근거: {', '.join(ids[:6])}]" if ids else "")

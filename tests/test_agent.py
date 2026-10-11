@@ -110,6 +110,11 @@ def test_cite_sources_replaces_model_citations():
     out = cite_sources("2025-07-11 에 감시 강화.\n근거: [근거: 1, 2]", turn)
     assert out.endswith("[근거: WO-00125]") and "1, 2" not in out
     assert cite_sources("안녕하세요 [근거: ]", [HumanMessage("안녕")]) == "안녕하세요"   # 업무 기능(도구)을 안 썼으면 근거도 없다
+    # D36: 조회 결과가 많아도 티켓 번호는 잘리지 않는다(실행 결과를 먼저)
+    many = [HumanMessage("q"), ToolMessage("[OPS-SPK-06] 매뉴얼", tool_call_id="a", name="search_manual", status="success"),
+            ToolMessage("\n".join(f"[WO-0{i}000] 이력" for i in range(1, 6)), tool_call_id="b", name="get_work_orders", status="success"),
+            ToolMessage("[TK-0003] 티켓 생성됨", tool_call_id="c", name="create_ticket", status="success")]
+    assert "TK-0003" in cite_sources("티켓 생성 완료", many)
 
 
 def test_require_tool_nudges_once_then_tool_is_used():

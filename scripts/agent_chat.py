@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from onprem_agent.agent.graph import build_graph  # noqa: E402
-from onprem_agent.agent.prompts import SYSTEM  # noqa: E402
+from onprem_agent.agent.prompts import system_prompt  # noqa: E402
 from onprem_agent.agent.runner import make_model, mcp_tools  # noqa: E402
 
 MODELS = {
@@ -54,7 +54,7 @@ async def chat(scenario, model_key, store, thread, embedder):
     async with Saver.from_conn_string(conn) as saver, mcp_tools(scenario, {"ONPREM_EMBEDDER": json.dumps(embedder)}) as tools:
         if store == "postgres":
             await saver.setup()
-        app = build_graph(make_model(MODELS[model_key], scenario), tools, SYSTEM[scenario], checkpointer=saver,
+        app = build_graph(make_model(MODELS[model_key], scenario), tools, system_prompt(scenario, ("scope",)), checkpointer=saver,   # 6주차 ⑤ 창구 범위 규칙
                           require_tool=True, auto_cite=True, safety_search=True,      # 4·5주차 측정으로 켠 안전 기능
                           strip_injection=True, answer_guard=True,                    # 6주차 측정으로 켠 보호 기능(가드레일)
                           nudge="search",                                             # 6주차 ④: 검색 되돌림(지어낸 인자 호출 없음)
