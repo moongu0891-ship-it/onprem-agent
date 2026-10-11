@@ -31,3 +31,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "module: 업무 기능(도구) 서버를 실제로 띄워 그래프·채점기와 맞물려 보는 모듈 시험 (make test-module)",
+]

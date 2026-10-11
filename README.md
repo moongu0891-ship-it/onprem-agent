@@ -215,6 +215,7 @@ flowchart LR
 
 지금은 설비·상담 두 창구에 맞춘 에이전트 하나다. 창구 하나를 설정 파일 하나로 선언하게 하고, 핵심(그래프·안전 기능·보호 기능(가드레일)·평가기)과 예제(두 창구)를 나누고, 시험 세 단계(단위·모듈·전체)와 '바탕보다 떨어지면 빨간불'을 만들고, 고칠 때 쓰는 과업과 확인에만 쓰는 과업을 나눈 뒤, **세 번째 창구(사내 IT 헬프데스크)를 핵심 코드 수정 없이** 붙여 처음 보는 과업으로 잰다 — [계획](agent/README.md#7-7주차-프레임워크로-다듬기-계획)
 
+- **② 시험 세 단계와 빨간불 (완료):** `make test-unit` · `make test-module` · `make test-full` · `make check-docs`. 빨간불 = 0 이어야 하는 칸 1건, 또는 과업 성공이 두 번 모두 바탕보다 흔들림 폭(과업 수의 10%) 넘게 떨어짐, 또는 규칙 모델 결과가 과업별 기대 파일과 다름. 실패 과업의 실제 답·버린 답을 보고서에 남긴다. CI 도 같은 명령을 부른다 — [결과](agent/README.md#75-두-번째-단계-결과--시험-세-단계와-빨간불)
 - **① 핵심과 예제 나누기 (완료, 노트북 확인 전):** 창구 하나 = `examples/desks/<창구>/` 폴더 하나(`desk.yaml` · 지시문 · 업무 기능(도구) 서버 · 규칙). 핵심 코드는 창구 이름·업무 기능(도구) 이름을 모른다. 규칙 모델로 124과업 결과, 업무 기능(도구) 설명, 시스템 지시문 12개가 나누기 전과 모두 같다 — [결과](agent/README.md#74-첫-단계-결과--핵심과-예제-나누기)
 
 ---
@@ -224,7 +225,7 @@ flowchart LR
 ```bash
 pip install -e ".[chroma,dev]"
 python scripts/make_data.py                                   # 가상 데이터·평가셋 생성 (결정적)
-pytest -q
+make test-unit && make test-module && make check-docs              # 단위·모듈 시험(GPU 없이)·문서 링크 — 시험 세 단계는 docs/재는_방법.md 4절
 
 # 검색
 python scripts/eval_retrieval.py configs/retrieval_baseline.yaml --min-recall3 0.80   # 모델 없이

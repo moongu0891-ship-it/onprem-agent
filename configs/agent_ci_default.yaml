@@ -1,0 +1,15 @@
+# 에이전트 모듈 시험 — 규칙 모델 + '지금 기본값' 그래프로 세 과업 묶음 (GPU·모델 없이, make test-module · CI)
+#   python scripts/eval_agent.py configs/agent_ci_default.yaml
+#   python scripts/gate.py results/agent_ci_default.json --expect tests/expected/agent_ci_default.json
+# 규칙 모델은 흔들리지 않으므로 과업별 결과(성공 여부·업무 기능(도구) 호출과 인자)가 기대 파일과 하나라도 다르면 코드가 바뀐 것이다(7주차 ②).
+# 의도해서 동작을 바꿨으면 --write-expect 로 기대 파일을 고치고, 커밋에 이유를 적는다.
+name: agent_ci_default
+tasks: eval/agent_tasks.jsonl
+embedder: {kind: hash}
+graph: {require_tool: true, auto_cite: true, safety_search: true, strip_injection: true, answer_guard: true, nudge: search,
+        recover_text_calls: true, empty_answer: true}
+prompt_rules: [scope]
+models:
+  - {label: "규칙 · 지금 기본값 · 기존 26", kind: rule, tasks_file: eval/agent_tasks.jsonl, guard_data: false}
+  - {label: "규칙 · 지금 기본값 · 보호 20", kind: rule, tasks_file: eval/agent_guard_tasks.jsonl, guard_data: true}
+  - {label: "규칙 · 지금 기본값 · 경계 6", kind: rule, tasks_file: eval/agent_boundary_tasks.jsonl, guard_data: false}

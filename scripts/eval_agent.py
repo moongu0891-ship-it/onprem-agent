@@ -80,6 +80,7 @@ def main():
     ap.add_argument("--tasks", nargs="*", help="이 과업 id 만")
     ap.add_argument("--manage", action="store_true", help="모델마다 docker compose 로 엔진을 띄우고 내린다")
     ap.add_argument("--ready-timeout", type=int, default=1200)
+    ap.add_argument("--run-tag", default="", help="결과 파일 이름 뒤에 붙일 표시(같은 설정을 두 번 잴 때 r1·r2)")
     a = ap.parse_args()
     cfg = yaml.safe_load(Path(a.config).read_text(encoding="utf-8"))
     tasks = load_tasks(cfg.get("tasks", "eval/agent_tasks.jsonl"))
@@ -134,7 +135,7 @@ def main():
 
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
-    name = cfg["name"] + ("_partial" if a.tasks else "")   # 일부 과업만 돌린 결과는 전체 결과와 섞지 않는다
+    name = cfg["name"] + ("_partial" if a.tasks else "") + (f"_{a.run_tag}" if a.run_tag else "")   # 일부 과업만 돌린 결과는 전체 결과와 섞지 않는다
     prev_path = out / f"{name}.json"
     if a.only and prev_path.exists():
         # --only 로 일부 모델만 다시 돌렸으면, 이전에 잰 다른 모델 결과는 지우지 않고 남긴다(설정 파일 순서 유지)

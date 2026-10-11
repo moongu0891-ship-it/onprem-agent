@@ -15,18 +15,18 @@ jobs:
           cache: pip
       - name: 설치
         run: pip install -e ".[chroma,serving,agent,dev]"
-      - name: 단위 테스트
-        run: pytest -q
+      - name: 단위 시험 (함수 하나씩)
+        run: make test-unit
       - name: 데이터가 생성 스크립트와 일치하는지 확인
         run: |
           python scripts/make_data.py
           git diff --exit-code data eval
       - name: 검색 회귀 검사 (기준 갈래 Recall@3 >= 0.80)
         run: python scripts/eval_retrieval.py configs/retrieval_baseline.yaml --min-recall3 0.80
-      - name: 에이전트 회귀 검사 (규칙 기준선, MCP 서버·승인 절차 포함, 과업 성공 >= 60%)
-        run: python scripts/eval_agent.py configs/agent_ci.yaml
-      - name: 보호 기능(가드레일) 과업 (규칙 모델, 숨은 지시 자료·채점·장치가 맞물리는지)
-        run: python scripts/eval_agent.py configs/agent_ci_guard.yaml
+      - name: 모듈 시험 (규칙 모델로 업무 기능(도구) 서버·그래프·채점기, 빨간불 검사·과업별 기대 파일)
+        run: make test-module
+      - name: 문서 링크·앵커 검사
+        run: make check-docs
       - uses: actions/upload-artifact@v4
         with:
           name: retrieval-report

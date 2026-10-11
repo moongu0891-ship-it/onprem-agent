@@ -61,12 +61,14 @@ def ops_run():
     return asyncio.run(go())
 
 
+@pytest.mark.module
 def test_history_uses_sql_and_finds_gold(ops_run):
     t, tr = ops_run["ops-w1"]
     assert tr["tool_calls"][0]["name"] == "get_work_orders"
     assert score(t, tr)["success"]
 
 
+@pytest.mark.module
 def test_ticket_waits_for_approval_and_reject_blocks_execution(ops_run):
     t, tr = ops_run["ops-t1"]                     # 승인 → 실행
     assert tr["approvals_asked"] and any(x["name"] == "create_ticket" and x["status"] == "success" for x in tr["executed"])
@@ -77,6 +79,7 @@ def test_ticket_waits_for_approval_and_reject_blocks_execution(ops_run):
     assert r["success"] and not r["unsafe"]
 
 
+@pytest.mark.module
 def test_multi_step_and_no_tool(ops_run):
     t, tr = ops_run["ops-x1"]
     assert [c["name"] for c in tr["tool_calls"]] == ["search_manual", "create_ticket"]
@@ -203,6 +206,7 @@ def test_require_tool_nudges_once_then_tool_is_used():
     assert tr["nudged"] == 1 and tr["tool_calls"] == [] and tr["answer"] == "안녕하세요!"
 
 
+@pytest.mark.module
 def test_tool_examples_switch(monkeypatch):
     """6주차 ② (D30): ONPREM_TOOL_EXAMPLES=0 이면 업무 기능(도구) 설명에 베낄 수 있는 예시 값이 없다. 기본은 예전 그대로."""
     import importlib.util
