@@ -27,6 +27,7 @@
 
 | 문서 | 담긴 것 |
 |---|---|
+| [SUMMARY.md](SUMMARY.md) | **1쪽 요약** — 지금 기본값과 근거, 감과 달랐던 것, 재는 방법, 한계 |
 | 이 README | 계층 구성, 지금 기본값, 주차별 결과와 결정 |
 | [serving/README.md](serving/README.md) | 서빙 결과 읽는 법, 결과표 전체와 해석, 장애 대체 시험 |
 | [agent/README.md](agent/README.md) | 에이전트 설계(승인·개인정보·업무 기능(도구)), 실행·데모, 과업 평가 읽는 법과 결과 |
