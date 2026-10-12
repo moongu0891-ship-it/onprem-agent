@@ -51,10 +51,12 @@ spec:
           startupProbe:                            # 첫 시작은 FP8 커널 즉석 컴파일(sm120 용)이 10분을 넘긴다 — 60회(10분)로 두자 컴파일 중에 죽여 되풀이됐다(C11). 캐시가 PVC 에 남으면 1~3분
             httpGet: {path: /health, port: http}
             periodSeconds: 10
+            timeoutSeconds: 5                      # 이 SGLang 의 /health 는 토큰 하나를 실제로 생성해 1초를 넘긴다 — 기본 1초면 영원히 Ready 가 안 된다(C11)
             failureThreshold: 180                  # 30분
           readinessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: models
           persistentVolumeClaim: {claimName: models}
