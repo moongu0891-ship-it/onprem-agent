@@ -139,3 +139,14 @@ HTTP/2 200  etag: "b107963e…"   두 번째(If-None-Match): 304
 console → sglang: 200
 ```
 (첫 실행: `failed calling webhook "validate.nginx.ingress.kubernetes.io" … connection refused` — 컨트롤러 준비 전 apply, 스크립트 고침)
+
+## 09장 관문 (2026-10-12)
+
+```
+없이  401 / 계정  200
+40 동시:  4 200 / 36 503
+LiteLLM: 틀린 키 → 400 / 맞는 키 → 200
+{"model":"agent-llm-4b", … "content":"파랑" …}
+deployment "console" successfully rolled out   (ONPREM_MODEL=gateway)
+```
+(첫 실행: `annotation nginx.ingress.kubernetes.io/auth-realm contains invalid value` — 한글 realm, ASCII 로 고침)
