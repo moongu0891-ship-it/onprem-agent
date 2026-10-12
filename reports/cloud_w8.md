@@ -111,3 +111,18 @@ console-559b967cd4-gxbc8   4m   746Mi
      30 200 console-559b967cd4-gxbc8
 합계: 30 줄
 ```
+
+## 07장 모델 서버 Pod (2026-10-12)
+
+```
+download-qwen3-4b: condition met, real 2m47s (세 번째 Pod 가 성공)
+노드 이미지: lmsysorg/sglang:latest  36.4GB
+시도 1 (기본 flashinfer): 노드 9.8GiB/10GiB CPU 507% → 12GiB 로 올려도 11.94/12 CPU 1258%, API 서버 TLS handshake timeout
+시도 2 (triton attention, 상한 7Gi): JIT 빌드 실패 sgl_kernel_jit_fp8_blockwise_scaled_mm (4분), 10분마다 재시작(startupProbe 60×10s)
+시도 3 (JIT 캐시 PVC, MAX_JOBS=2, prefill 그래프 끔, 상한 9Gi, probe 30분): OOMKilled 반복 — 12:45:45 11.76GiB → 12:46:16 2.77GiB … (6분 주기)
+시도 4 (--fp8-gemm-backend triton): 서버 기동, /health 가 10초마다 'Prefill batch #new-token: 1' — Pod 는 0/1 (probe timeout 1s)
+시도 5 (probe timeoutSeconds 5): deployment "sglang" successfully rolled out — real 0m58s
+docker stats agent: 7.862GiB/12GiB (모델 서버만, 상담 화면 0)  → 11.13GiB/12GiB (상담 화면 1 + 전환 직후)
+상담 화면: ONPREM_MODEL=sglang-4b → 관리자 화면 모델 qwen3-4b, http://sglang:30000/v1, 생각 모드 켬
+"E1063 계정 잠금 해제 요청해 줘…" → 질문 이해: 잠금 해제 요청 → 담당자 확인 카드(사번 E1063 · 사유 '비밀번호 5회 오류로 잠김, 본인 확인 완료')
+```
