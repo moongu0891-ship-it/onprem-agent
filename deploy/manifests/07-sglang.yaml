@@ -33,16 +33,19 @@ spec:
           args: ["--model-path", "Qwen/Qwen3-4B-FP8", "--served-model-name", "qwen3-4b",
                  "--host", "0.0.0.0", "--port", "30000", "--context-length", "8192", "--mem-fraction-static", "0.80",
                  "--tool-call-parser", "qwen", "--enable-cache-report", "--cuda-graph-max-bs-decode", "16",
-                 "--attention-backend", "triton"]   # flashinfer 는 RTX 5070 용 커널을 즉석 컴파일하며 RAM 을 다 먹었다(C11) — triton 은 컴파일 없음
+                 "--attention-backend", "triton",          # flashinfer 의 즉석 컴파일을 피한다(C11)
+                 "--cuda-graph-backend-prefill", "disabled"]   # 새 SGLang 이 더한 prefill 그래프 42종 녹화는 끈다 — 3주차 설정(디코드 그래프만)에 맞춤
           env:
             - {name: HF_HOME, value: /models/hf}
             - {name: HF_HUB_OFFLINE, value: "1"}    # 가중치는 PVC 에 있다 — 인터넷을 보지 않는다
+            - {name: MAX_JOBS, value: "2"}          # FP8 커널 즉석 컴파일(sm120 용, C11)의 동시 작업 수 — RAM 을 아낀다
           ports: [{containerPort: 30000, name: http}]
           resources:
             requests: {cpu: "1", memory: 3Gi, nvidia.com/gpu: 1}
-            limits: {nvidia.com/gpu: 1, memory: 7Gi}   # 모자라면 노드가 아니라 이 컨테이너만 죽게(C11: 상한 없이 두자 노드 12GB 를 다 먹어 제어부가 멈췄다)
+            limits: {nvidia.com/gpu: 1, memory: 9Gi}   # 모자라면 노드가 아니라 이 컨테이너만 죽게(C11: 상한 없이 두자 노드 12GB 를 다 먹어 제어부가 멈췄다)
           volumeMounts:
             - {name: models, mountPath: /models}
+            - {name: models, mountPath: /root/.cache/sglang, subPath: jit-cache}   # 즉석 컴파일 결과 보관 — 두 번째 시작부터는 컴파일 없음
             - {name: shm, mountPath: /dev/shm}
           startupProbe:                            # 모델 읽기·CUDA 그래프 준비에 1~3분 — 그동안은 죽이지 않는다
             httpGet: {path: /health, port: http}
