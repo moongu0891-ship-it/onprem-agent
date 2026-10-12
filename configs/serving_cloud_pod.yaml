@@ -1,0 +1,16 @@
+# 8주차 07장: 클러스터 안 SGLang Pod (port-forward 30000) — Qwen3-4B(FP8). 호스트 Docker(serving_cloud_host.yaml)와 같은 요청으로 견준다.
+#   kubectl -n lab port-forward svc/sglang 30000:30000 &
+#   python scripts/bench_serving.py configs/serving_cloud_pod.yaml
+name: serving_cloud_pod
+model_note: "Qwen3-4B(FP8) · SGLang · minikube Pod(GPU 넘김) · 생각 모드 끔 · 최대 길이 8192"
+max_tokens: 128
+requests_per_level: 48
+levels: [1, 4, 8]
+workloads: [chat, rag, multiturn]
+slo: {ttft_ms: 1000, tpot_ms: 50}
+extra:
+  ignore_eos: true
+  chat_template_kwargs: {enable_thinking: false}
+engines:
+  - {label: "SGLang Pod", base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     info_url: "http://localhost:30000/get_server_info", toolcheck: false}

@@ -1,0 +1,25 @@
+# 07장: 모델 가중치를 PVC 에 한 번 받아 두는 Job (Qwen3-4B(FP8) 약 4.4GB). 실제 클라우드의 'S3 에서 가중치 내려받기'에 해당.
+# 이미 받았으면 huggingface-cli 가 캐시를 보고 바로 끝난다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-qwen3-4b
+  namespace: lab
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: dl
+          image: python:3.12-slim
+          command: ["sh", "-c"]
+          args:
+            - pip install -q "huggingface_hub[cli]" && hf download Qwen/Qwen3-4B-FP8
+              && du -sh /models/hf/hub && ls /models/hf/hub
+          env: [{name: HF_HOME, value: /models/hf}]
+          volumeMounts: [{name: models, mountPath: /models}]
+      volumes:
+        - name: models
+          persistentVolumeClaim: {claimName: models}

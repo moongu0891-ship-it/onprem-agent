@@ -1,0 +1,21 @@
+# 06장: 상담 화면 Pod 를 CPU 사용률로 1 → 4 개까지 자동으로 늘리고 줄인다. metrics-server 애드온이 켜져 있어야 한다.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: console
+  namespace: lab
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: console}
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 50}   # requests.cpu(200m) 의 50% = 100m 를 평균으로 넘으면 늘린다
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0                            # 실습이라 바로 늘린다(기본 0)
+      policies: [{type: Pods, value: 2, periodSeconds: 15}]
+    scaleDown:
+      stabilizationWindowSeconds: 60                           # 줄이기는 60초 안정 뒤(기본 300초 — 실습이라 줄임)

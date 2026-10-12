@@ -1,0 +1,16 @@
+# 8주차 07장의 바탕: 같은 모델을 3주차 그대로 호스트 Docker(compose sglang-4b 프로필)에서. Pod 로 올려 느려지는지 본다.
+#   (SGLang Pod 를 먼저 내린다: kubectl -n lab scale deploy/sglang --replicas=0)
+#   python scripts/bench_serving.py configs/serving_cloud_host.yaml --manage
+name: serving_cloud_host
+model_note: "Qwen3-4B(FP8) · SGLang · 호스트 Docker(3주차 compose) · 생각 모드 끔 · 최대 길이 8192"
+max_tokens: 128
+requests_per_level: 48
+levels: [1, 4, 8]
+workloads: [chat, rag, multiturn]
+slo: {ttft_ms: 1000, tpot_ms: 50}
+extra:
+  ignore_eos: true
+  chat_template_kwargs: {enable_thinking: false}
+engines:
+  - {label: "SGLang 호스트 Docker", profile: sglang-4b, base_url: "http://localhost:30000/v1", model: qwen3-4b,
+     info_url: "http://localhost:30000/get_server_info", toolcheck: false}
