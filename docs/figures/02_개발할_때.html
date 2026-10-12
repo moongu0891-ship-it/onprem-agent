@@ -1,0 +1,76 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>그림 2 · 개발할 때</title><link rel="stylesheet" href="style.css"></head><body><div class="page">
+<h1>개발할 때 내 노트북에서 실제로 벌어지는 일</h1>
+<p class="sub">프로그램 2개(+모델 서버)를 켜 두고 브라우저로 8080번 문을 엽니다 — 상담 화면은 창구 서버를 스스로 띄우고, 모델 서버 30000번 문에 묻습니다</p>
+
+<div class="cols2" style="grid-template-columns:640px 1fr">
+<div class="box plain" style="padding:18px 20px">
+<h3 style="font-size:22px">저장소의 폴더 구조</h3><p class="small">onprem-agent/ · ★ = 창구를 붙일 때 직접 고치는 파일</p>
+<div class="tree">onprem-agent/
+├── src/onprem_agent/        <span class="small">← 핵심 코드 (창구를 붙여도 안 고침)</span>
+│   ├── agent/graph.py           에이전트 그래프 · 안전 기능 · 보호 기능(가드레일)
+│   ├── agent/desk.py            창구 정의(desk.yaml) 읽기
+│   ├── agent/defaults.py        지금 기본값 (재서 고른 설정 한곳에)
+│   ├── agent/evaluate.py        채점기 · 0 이어야 하는 칸
+│   ├── web/                     상담 화면 · 관리자 화면 (FastAPI + SSE)
+│   ├── retrieval/ · stores/     검색(BM25 · 벡터 · 라우팅) · 저장소(메모리 · pgvector …)
+│   └── serving/                 서빙 측정기
+├── examples/desks/          <span class="small">← 창구 하나 = 폴더 하나</span>
+│   ├── ops/   설비 정비    <b>★</b> desk.yaml · prompt.md · server.py · rules.py · tasks.jsonl
+│   ├── cs/    고객 상담    <b>★</b> (같은 꼴)
+│   └── it/    IT 헬프데스크 <b>★</b> (같은 꼴) + data/ (규정 · 직원 · 장비)
+├── data/                        매뉴얼 · 정비 이력 · 요금제 (가상 자료)
+├── eval/ · configs/             과업 파일(시험지) · 시험 조건 설정
+├── scripts/                     web.py · eval_agent.py · gate.py · bench_serving.py
+├── tests/                       단위 · 모듈 시험 (pytest)
+├── results/  (Git 제외)         측정기 출력      →  reports/  확정본
+├── deploy/                      8주차 — Dockerfile · 매니페스트 · 스크립트
+└── docs/                        쉽게 풀어쓴 개념 · 문제해결 이력 · 워크북 · 이 그림</div>
+<div class="box orange" style="margin-top:12px"><h3>실행 순서 — 준비 하나 + 창 두 개</h3>
+<p><b>준비</b> <code>source .venv/bin/activate</code> (한 번) · 모델은 Hugging Face 에서 한 번 받아 둠</p>
+<p>① <b>모델 서버</b> <code>docker compose -f serving/compose.yml --profile sglang-4b up</code> → 30000번 문</p>
+<p>② <b>상담 화면</b> <code>python scripts/web.py --model sglang-4b</code> → 8080번 문 (창구 서버 셋은 이게 띄웁니다)</p>
+<p>③ 브라우저에서 <b>http://127.0.0.1:8080</b> · 관리자는 <b>/admin</b></p>
+<p class="small">모델 없이 흐름만 볼 땐 <code>python scripts/web.py</code> (규칙 모델 — 시험 때 쓰는 가짜 AI)</p></div>
+</div>
+
+<div>
+<div class="box plain" style="padding:0;overflow:hidden">
+<div style="background:#eef1f5;padding:8px 14px;font-size:13px;color:var(--gray)"><span class="mono">http://127.0.0.1:8080</span> &nbsp; 웹 브라우저 — 사용자가 보는 곳</div>
+<div style="padding:14px 16px" class="cols2">
+<div class="box blue" style="margin:0"><h3 style="font-size:16px">상담 화면 → 그래프 → 창구 서버 → 모델</h3>
+<p class="small">① 창구 고르기 · 질문 입력</p><p style="background:#eefbf3;border:1px solid #1f8a4c;border-radius:8px;padding:4px 8px;font-size:13px">AI가 처리한 순서: 위험 작업 확인 → 질문 이해 → 잠금 해제 요청 → <b>담당자 확인</b></p>
+<p class="small">② 승인 카드 → <b>승인하고 요청</b> → 답 + [RQ-0001]</p></div>
+<div><p style="margin:0 0 6px"><b>여기서 실행되는 것 = 정적 화면 코드</b></p>
+<p class="small">① 주소창 8080 → FastAPI 가 화면 파일(HTML/JS/CSS)을 배달<br>② 질문은 <code>/api/chat</code> 로 보내고 답은 <b>SSE</b> 로 한 사건씩 흘러옴(단계 · 자료 · 승인 카드 · 답)<br>③ 승인은 <code>/api/approve</code> — 그래프가 멈춰 둔 자리에서 이어감<br>④ 브라우저는 모델 서버와 직접 대화하지 않음</p></div>
+</div></div>
+
+<div class="cols3" style="margin-top:14px">
+<div class="term"><span class="t">>_ 창 ① (serving)</span>
+$ docker compose --profile sglang-4b up
+<span class="g">sglang-4b</span>  Load weight end 4.19 GB
+<span class="g">sglang-4b</span>  Capture cuda graph bs=[1…16]
+<span class="g">sglang-4b</span>  <span class="y">The server is fired up and ready!</span>
+  Uvicorn running on 0.0.0.0:30000
+<span class="foot">= SGLang · 30000번 문 · Qwen3-4B(FP8)</span></div>
+<div class="term green"><span class="t">>_ 창 ② (저장소)</span>
+(.venv) $ python scripts/web.py --model sglang-4b
+상담 화면 http://127.0.0.1:8080/
+관리자 화면 http://127.0.0.1:8080/admin
+모델 sglang-4b
+<span class="y">[창구 서버 ops · cs · it 를 표준 입출력으로 띄움]</span>
+<span class="foot">= FastAPI · 8080번 문 · 그래프 + 창구 서버</span></div>
+<div class="term purple"><span class="t">>_ 창 ③ (시험할 때)</span>
+(.venv) $ make test-unit      <span class="y"># 15초</span>
+41 passed
+(.venv) $ make test-module    <span class="y"># 1분, 규칙 모델</span>
+# 빨간불 검사: 초록불
+(.venv) $ make test-full CONFIG=…   <span class="y"># 1시간, GPU</span>
+<span class="foot">= 시험 세 단계 (그림 6)</span></div>
+</div>
+
+<div class="box orange" style="margin-top:14px"><h3>포트(port) = 한 컴퓨터 안의 '문 번호'</h3>
+<p><b style="color:var(--blue)">8080</b> = 상담 화면 &nbsp; <b style="color:var(--orange)">30000</b> = SGLang(모델) &nbsp; <b style="color:var(--teal)">4000</b> = LiteLLM 게이트웨이(켤 때) &nbsp; <b style="color:var(--purple)">5432</b> = PostgreSQL(8주차) — 모두 같은 노트북 안입니다.</p>
+<p>창구 서버는 문이 없습니다 — 상담 화면이 자식 프로세스로 띄우고 <b>표준 입출력(MCP stdio)</b> 으로 말합니다. 그래서 창구 폴더를 저장소 밖에 두어도(ONPREM_DESKS) 됩니다.</p>
+<p class="small">실제 서비스(8주차)에서는 상담 화면 · 모델 서버 · DB 가 서로 다른 Pod 에 있어도 원리는 똑같습니다 — 문 번호가 서비스 이름(console · sglang · postgres)으로 바뀔 뿐.</p></div>
+</div></div>
+</div></body></html>

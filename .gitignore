@@ -7,3 +7,4 @@ results/
 .env
 milvus_lite.db
 var/
+docs/figures/out/

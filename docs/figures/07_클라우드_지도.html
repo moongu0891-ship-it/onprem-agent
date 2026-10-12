@@ -1,0 +1,29 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>그림 7 · 클라우드 지도</title><link rel="stylesheet" href="style.css"></head><body><div class="page">
+<h1>한 장짜리 지도 — 클라우드의 층마다 무엇을 올렸고 무엇을 쟀나</h1>
+<p class="sub">8주차: 그림 1 의 네 상자를 실제 클라우드 서비스의 층대로 minikube(노트북 한 대) 위에 올렸습니다. 왼쪽이 층, 가운데가 올린 것, 오른쪽이 잰 숫자</p>
+
+<div class="flow" style="width:1000px;margin:0 auto">
+<div class="pill">브라우저 (https://console.local · 로그인)</div>
+<div class="arrow" style="--c:#8a93a1;margin-left:420px">https · 308 되돌림 · Basic Auth · 초당 5 요청</div>
+<div class="box red"><h3>① 엣지 · 관문 <span class="tag">08 · 09장</span></h3><div class="cols2"><p>Ingress-NGINX + 자체 서명 인증서 · http→https 308 · 기본 인증 · 요청 제한 · NetworkPolicy(모델 서버는 앱만) · 정적 파일 304 캐시</p><p class="small"><b>잰 것</b> 308/200/304 ✔ · 401/200 ✔ · 40 동시 중 36 차단 · NetworkPolicy 는 기본 CNI 라 <b>미집행(200)</b> — 노트북의 한계로 적음</p></div></div>
+<div class="arrow" style="--c:#d33a3a;margin-left:420px">Service console (라벨이 같은 Pod 전부에 나눠 줌)</div>
+<div class="box blue"><h3>② 나눠 주기 · 늘리기 — 상담 화면 ×N <span class="tag">04 · 05 · 06장</span></h3><div class="cols2"><p>Deployment console(이미지 214MB, ConfigMap 으로 desk.yaml, Secret 으로 키) · Service · HPA 1→4(CPU 50%)</p><p class="small"><b>잰 것</b> 이미지 43초/1초(캐시) · Ready 5.9초 · 30회 요청 9·8·10 · HPA 1→4 즉시(지표 60초 지연) → 1 로 106초 · <b>Pod 를 죽이니 승인이 409</b> → 무상태가 아니었다</p></div></div>
+<div class="arrow" style="--c:#1b6fb8;margin-left:420px">Bearer 키 · http://litellm:4000 → http://sglang:30000</div>
+<div class="box orange"><h3>③ 게이트웨이 · GPU 모델 서버 <span class="tag">07 · 09장</span></h3><div class="cols2"><p>LiteLLM Pod(키 검사) → SGLang Pod(nvidia.com/gpu: 1, 가중치는 PVC, 이미지 digest 고정)</p><p class="small"><b>잰 것</b> GPU 가 Pod 에 보임(판정 A) · 첫 시작 <b>2시간 40분</b>(C11: FP8 커널 즉석 컴파일 · 메모리 · 점검 시간의 연쇄) → 캐시 뒤 <b>58초</b> · 안정 메모리 <b>7.9GB</b>(예산 4~5GB 는 틀림) · 게이트웨이 틀린 키 400 / "파랑"</p></div></div>
+<div class="arrow" style="--c:#d97a06;margin-left:420px">체크포인트 · pgvector · DSN postgresql://…@postgres:5432</div>
+<div class="box teal"><h3>④ 데이터 — PostgreSQL + pgvector 하나로 <span class="tag">10장</span></h3><div class="cols2"><p>StatefulSet + PVC · 대화·승인 대기(체크포인터)와 검색 색인(chunks_ops · cs · it)을 한 DB 에 · 색인은 Job 이 한 번</p><p class="small"><b>잰 것</b> 같은 시험(승인 대기 중 Pod 삭제)이 409 → <b>200</b>, 다른 Pod 가 이어서 RQ-0001 실행 · DB Pod 를 죽여도 7/12 유지 · 색인 Job 7초</p></div></div>
+<div class="arrow" style="--c:#0f8b8d;margin-left:420px">/metrics (15초) · 올릴 때 · 밤 2시</div>
+<div class="box green"><h3>⑤ 옆단 — 관측 · CI/CD · IaC <span class="tag">11 · 12 · 13장</span></h3><div class="cols2"><p>Prometheus + Grafana(앱이 /metrics 를 글자로 직접) · Jenkins 제어부는 클러스터, <b>일꾼은 노트북 GPU</b>(올릴 때 단위·모듈, 밤엔 전체) · <code>make cloud-up</code></p><p class="small"><b>잰 것</b> p95 18.6초(실제 모델) · 빌드 70초 SUCCESS, 빨간불 검사 초록불 ×3 · 다시 올리기 1분 30초</p></div></div>
+</div>
+
+<div class="cols3" style="margin-top:16px">
+<div class="box red"><h3>감과 달랐던 것 ①</h3><p><b>메모리 예산.</b> "노드 6GB + 모델 4~5GB" 로 적었는데 모델 서버는 안정 7.9GB, 첫 시작 땐 12GB 를 넘겼다. 호스트 Docker 에선 상한이 없어 그 비용이 보이지 않았다.</p></div>
+<div class="box red"><h3>감과 달랐던 것 ②</h3><p><b>무상태는 저절로 되지 않는다.</b> Pod 를 셋으로 늘리고 로드 밸런서가 골고루 나눠 줘도, 승인 대기가 Pod 안 SQLite 에 있으면 늘린 게 아니다(409). DB 로 옮기자 200.</p></div>
+<div class="box red"><h3>감과 달랐던 것 ③</h3><p><b>측정기부터 의심.</b> 30회 중 3회가 빠진 건 요청이 아니라 <code>kubectl run -i</code> 가 앞 줄을 잃은 것(D45). 코드를 찍게 고치고, logs 로 읽게 고치자 30/30.</p></div>
+</div>
+
+<div class="box gray"><h3>노트북 한 대라 못 한 것 — 그렇게 적었다</h3><p>NetworkPolicy 집행(기본 CNI 가 안 함, 실제 클라우드의 CNI 는 함) · CDN(머리말만) · 노드 자동 확장(Pod 만 늘림) · Langfuse(ClickHouse·Redis 가 더 필요) · 5주차의 CPU 대체 엔진(메모리). 못 한 것을 된 것처럼 적지 않는 것도 재는 일의 일부입니다.</p></div>
+
+<div class="band">한 줄로 — 같은 에이전트를 층대로 올려 보니, 비용은 성능이 아니라 <b>메모리 예산 · 첫 시작 시간 · 상태가 어디 있는가</b>에서 나왔다
+<span class="small">장마다 예상을 먼저 적고 쟀습니다 — docs/클라우드_실습_워크북.md · reports/cloud_w8.md · 문제해결 이력 C9 · C10 · C11 · D45</span></div>
+</div></body></html>

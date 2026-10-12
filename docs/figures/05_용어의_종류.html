@@ -1,0 +1,26 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>그림 5 · 용어의 종류</title><link rel="stylesheet" href="style.css"></head><body><div class="page">
+<h1>용어의 «종류» — 무엇이 모델이고 무엇이 도구인가</h1>
+<p class="sub">이름이 많아 보이지만 종류는 아홉 가지뿐입니다. 종류가 다르면 서로 «대신» 쓸 수 없고, 같은 종류끼리만 재서 고릅니다</p>
+
+<div class="cols3">
+<div class="box orange"><h3>글 쓰는 모델 (LLM)</h3><p class="small">질문을 읽고 답을 쓰는 AI. 가중치 파일 하나</p><p><span class="chip on">Qwen3-4B(FP8)</span><span class="chip">Qwen3-1.7B</span></p><p class="small">4·5주차에 같은 26과업으로 재서 4B + 생각 모드를 골랐습니다(92%). FP8 은 숫자 하나를 8비트로 저장한 판</p></div>
+<div class="box orange"><h3>실행 도구 (추론 엔진)</h3><p class="small">모델을 GPU 에 올려 «돌리는» 프로그램 — 모델이 아닙니다</p><p><span class="chip on">SGLang</span><span class="chip">vLLM</span><span class="chip">llama.cpp(CPU)</span></p><p class="small">3주차: 접두사 캐시 덕에 처리량 2~3배, 엔진 선택보다 캐시가 중요했습니다. 1순위가 죽으면 CPU 의 llama.cpp 로</p></div>
+<div class="box orange"><h3>게이트웨이</h3><p class="small">엔진 앞의 문지기 — 이름 하나로 부르고, 키 검사, 죽으면 대체 엔진으로</p><p><span class="chip on">LiteLLM</span></p><p class="small">5주차: 1순위를 강제로 죽여도 요청 손실 0 (60개). 8주차엔 Pod 로 올려 틀린 키 거부 확인</p></div>
+
+<div class="box teal"><h3>찾는 모델 (임베더)</h3><p class="small">글을 «뜻의 숫자»로 바꿔 비슷한 문서를 찾게 하는 모델 — 답은 쓰지 않습니다</p><p><span class="chip on">bge-m3</span><span class="chip">해시 임베더(시험용)</span></p><p class="small">1주차에 골라 2주차부터 기본. 노트북에선 CPU 로 돌아 색인에 시간이 듭니다</p></div>
+<div class="box teal"><h3>검색 기술</h3><p class="small">문서를 어떻게 찾을지의 방법</p><p><span class="chip on">BM25(글자)</span><span class="chip on">벡터(뜻)</span><span class="chip on">라우팅</span><span class="chip">하이브리드(RRF)</span><span class="chip">리랭커</span></p><p class="small">2주차: 코드가 있는 질문 → BM25, 나머지 → 벡터로 <b>나눠 보내기</b>. 하이브리드가 늘 낫지는 않았고, 리랭커 없이 날짜 표기만 맞춰 만점</p></div>
+<div class="box teal"><h3>저장소 (벡터 DB)</h3><p class="small">찾는 모델이 만든 숫자를 담아 두고 가까운 것을 꺼내 주는 곳</p><p><span class="chip on">메모리</span><span class="chip on">pgvector</span><span class="chip">Chroma</span><span class="chip">Qdrant</span><span class="chip">Milvus</span><span class="chip">Elasticsearch</span><span class="chip">Weaviate</span></p><p class="small">2~3주차에 같은 틀로 여섯을 비교. 8주차엔 «이미 쓰는 PostgreSQL 에 확장 하나»인 pgvector 로 대화 저장까지 한 DB 에</p></div>
+
+<div class="box green"><h3>조립 도구 (프레임워크)</h3><p class="small">찾기 → 묻기 → 쓰기를 어떤 순서로 잇고, 되돌아가게 할지</p><p><span class="chip on">LangGraph</span><span class="chip">LangChain</span><span class="chip">직접 Python</span></p><p class="small">되돌림 · 승인에서 멈추기 · 체크포인터가 필요해 LangGraph. 마디(agent · gate · tools · finalize)와 화살표를 직접 그립니다 (그림 3)</p></div>
+<div class="box green"><h3>연결 규약</h3><p class="small">그래프가 창구 서버의 업무 기능(도구)을 부르는 «약속»</p><p><span class="chip on">MCP (Model Context Protocol)</span></p><p class="small">창구 서버는 FastMCP 로 함수에 <code>@mcp.tool()</code> 만 붙이면 되고, 그래프는 이름 · 설명 · 인자 형식을 자동으로 받습니다. 그래서 창구를 폴더 하나로 붙일 수 있습니다</p></div>
+<div class="box green"><h3>모델 창고 · 시험 도구</h3><p class="small">모델을 «구하는» 곳과, 바뀐 코드가 전과 같은지 «재는» 것</p><p><span class="chip on">Hugging Face</span><span class="chip on">pytest</span><span class="chip on">빨간불 검사(gate.py)</span><span class="chip on">규칙 모델</span></p><p class="small">규칙 모델 = GPU 없이 도는 가짜 AI. 같은 질문에 늘 같은 답을 내서 «코드가 동작을 바꿨나»를 기대 파일로 잡습니다 (그림 6)</p></div>
+</div>
+
+<div class="cols2" style="margin-top:6px">
+<div class="box red"><h3>★ 꼭 구분하세요</h3><p class="no">bge-m3 는 답을 쓰는 AI 가 아닙니다.</p><p>글을 숫자로 바꿔 <b>찾기만</b> 합니다. 답은 Qwen3 가 씁니다. 둘은 역할이 달라 하나를 키운다고 다른 쪽이 좋아지지 않습니다 — 그래서 따로 잽니다(검색은 R@3, 에이전트는 과업 성공).</p></div>
+<div class="box red"><h3>★ 하나 더</h3><p class="no">SGLang 은 모델이 아닙니다.</p><p>Qwen3 를 GPU 에 올려 돌리는 <b>실행 도구</b>입니다. 엔진을 vLLM 으로 바꿔도 모델은 같고 답도 같아야 하며, 다른 건 속도(첫 글자 시간 · 처리량)뿐 — 3주차가 그걸 쟀습니다.</p></div>
+</div>
+
+<div class="band purple">외울 것은 하나입니다 — 「무엇으로 <span style="color:var(--teal)">찾는가</span>」 「무엇으로 <span style="color:var(--orange)">쓰는가</span>」 「무엇으로 <span style="color:var(--green)">조립하는가</span>」는 서로 다른 질문이고, 셋을 «각각» 재서 고르는 것입니다
+<span class="small">이 저장소의 「지금 기본값」 표(README)가 그 세 답입니다: 찾기 = 라우팅(BM25 · bge-m3), 쓰기 = SGLang + Qwen3-4B(FP8) 생각 모드, 조립 = LangGraph + MCP + 안전 기능 여섯 + 보호 기능 셋</span></div>
+</div></body></html>

@@ -1,0 +1,55 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>그림 1 · 전체 시스템</title><link rel="stylesheet" href="style.css"></head><body><div class="page">
+<h1>전체 시스템 — 누가 무슨 일을 하는가</h1>
+<p class="sub">이 장에서는 네 줄만 기억하시면 됩니다. 에이전트 안쪽이 어떻게 생겼는지는 «그림 3» 에서 따로 열어 봅니다 — 여기서는 「상자 하나」 로 둡니다</p>
+
+<div class="cols">
+<div>
+<h2>이것만 기억하세요</h2><p class="h2sub">네 줄이면 이 장은 끝입니다</p>
+<div class="box blue"><h3><span class="num">1</span>상담 화면 <span class="eq">= 화면</span></h3><p>보여 주고 묻는 곳입니다. 답을 만들지 않습니다</p></div>
+<div class="box green"><h3><span class="num">2</span>에이전트 그래프 <span class="eq">= 정하는 사람</span></h3><p>무엇을 찾을지, 사람에게 물을지, 언제 답할지를 정합니다</p></div>
+<div class="box teal"><h3><span class="num">3</span>창구 서버 <span class="eq">= 업무 기능(도구)</span></h3><p>매뉴얼 검색 · 조회 · 요청 등록. 창구마다 폴더 하나</p></div>
+<div class="box orange"><h3><span class="num">4</span>모델 서버 <span class="eq">= 글 쓰는 AI</span></h3><p>Qwen3-4B(FP8) 가 생각하고 씁니다. 실행은 하지 않습니다</p></div>
+</div>
+
+<div class="flow">
+<div class="pill">사용자 (현장 작업자 · 상담원 · 직원)</div>
+<div class="arrow" style="--c:#8a93a1">질문 입력</div>
+<div class="box blue"><h3>상담 화면 <span class="tag">화면</span></h3><p>브라우저에서 열고, 답이 오는 과정을 한 칸씩 보여 줍니다 · 승인 카드</p><p class="mono">src/onprem_agent/web · :8080 · /admin</p></div>
+<div class="arrow" style="--c:#1b6fb8">질문 · 승인 (SSE 로 흘러옴)</div>
+<div class="box green"><h3>에이전트 그래프 <span class="tag">정하는 사람</span></h3><p>LangGraph — 찾기 → 사람에게 묻기 → 답 쓰기 → 지키기. 여기에 안전 기능이 코드로 들어 있습니다</p><p class="mono">src/onprem_agent/agent/graph.py</p></div>
+<div class="arrow" style="--c:#1f8a4c">업무 기능(도구) 호출 (MCP · 표준 입출력)</div>
+<div class="box teal"><h3>창구 서버 <span class="tag">업무 기능(도구)</span></h3><p>설비 정비 · 고객 상담 · IT 헬프데스크 — 각자 검색 · 조회 · 요청 등록을 가짐</p><p class="mono">examples/desks/&lt;창구&gt;/server.py · desk.yaml</p></div>
+<div class="arrow" style="--c:#0f8b8d">찾은 자료 [절 번호] 와 함께</div>
+<div class="box orange"><h3>모델 서버 <span class="tag">글 쓰는 AI</span></h3><p>★ 그래프가 "다음 할 일"과 "답"을 물을 때마다 부릅니다 (HTTP, OpenAI 호환)</p><p class="mono">SGLang · Qwen3-4B(FP8) · :30000 &nbsp;(앞에 LiteLLM 게이트웨이 :4000 을 둘 수 있음)</p>
+<hr style="border:0;border-top:1px dashed #d97a06;margin:8px 0"><p class="small">이 자리에 들어갈 수 있는 엔진 — 셋 중 <b>하나만</b> 켭니다: <span class="chip on">SGLang</span><span class="chip">vLLM</span><span class="chip">llama.cpp(CPU 예비)</span> 3주차에 재서 SGLang 을 골랐습니다</p></div>
+<div class="arrow" style="--c:#d97a06">글 (생각 + 답)</div>
+<div class="pill green">답 + 근거 번호 [OPS-…] · 가린 개인정보</div>
+</div>
+
+<div>
+<h2>왜 굳이 넷으로 나눴나</h2><p class="h2sub">한 프로그램으로 몰아도 되지만, 이유가 있습니다</p>
+<div class="box green"><h3>창구를 바꿔도 핵심은 그대로</h3><p>IT 헬프데스크는 핵심 코드를 한 줄도 고치지 않고 폴더 하나로 붙였습니다 — 「창구 하나 = 폴더 하나」(그림 6)</p></div>
+<div class="box orange"><h3>모델을 바꿔도 그래프는 그대로</h3><p>Qwen3-1.7B → Qwen3-4B(FP8), 생각 모드 끔 → 켬. 설정 한 줄이고, 같은 시험지로 재서 골랐습니다</p></div>
+<div class="box red"><h3>AI 가 하면 안 되는 일은 코드가 막습니다</h3><p>요청 등록은 사람이 승인해야 실행되고, 출처는 실제로 찾아본 번호만 붙습니다. 모델에게 「부탁」하지 않습니다 (그림 4)</p></div>
+<div class="box teal"><h3>전부 내 컴퓨터 안입니다</h3><p>매뉴얼 · 검색 색인 · 언어모델이 모두 사내에 있어 랜선을 뽑아도 동작합니다 — 질문이 밖으로 안 나갑니다</p></div>
+<div class="box gray"><h3>지금은 아직 몰라도 됩니다</h3><p class="small">이 장에서는 이름조차 나오지 않습니다</p>
+<div class="kv"><b>BM25 · bge-m3 · pgvector</b><span>→ 그림 5 (용어의 종류)</span><b>LangGraph · MCP</b><span>→ 그림 5</span><b>검색 되돌림 · 말로만 실행 막기</b><span>→ 그림 4 (안전 기능)</span><b>Pod · HPA · Ingress</b><span>→ 그림 7 (클라우드 지도)</span></div>
+<p><b>한꺼번에 보면 섞입니다. 한 장에 하나씩만 보세요.</b></p></div>
+</div>
+</div>
+
+<div class="band">한 줄로 — <span style="color:var(--blue)">화면</span>이 받고, <span style="color:var(--green)">그래프</span>가 정하고, <span style="color:var(--teal)">창구 서버</span>가 찾고, <span style="color:var(--orange)">모델</span>이 쓰고, <span style="color:var(--red)">코드</span>가 지킵니다
+<span class="small">네 상자가 각자 자기 일만 합니다. 그래서 하나를 바꿔도 나머지는 그대로이고, 어디가 틀렸는지 재서 찾을 수 있습니다.</span></div>
+
+<div class="band purple" style="font-size:18px">다음은 이 순서로 보세요</div>
+<div class="nav">
+<div class="box now"><b>그림 1 · 전체 시스템</b>지금 이 장</div>
+<div class="box blue"><b>그림 2 · 개발할 때</b>내 컴퓨터에서 벌어지는 일</div>
+<div class="box green"><b>그림 3 · 그래프 안쪽</b>질문 하나가 답이 되기까지</div>
+<div class="box red"><b>그림 4 · 안전 기능</b>코드가 지키는 아홉 가지</div>
+<div class="box teal"><b>그림 5 · 용어의 종류</b>무엇이 모델이고 무엇이 도구인가</div>
+<div class="box purple"><b>그림 6 · 창구와 시험</b>폴더 하나 · 시험 세 단계</div>
+<div class="box orange"><b>그림 7 · 클라우드 지도</b>층마다 무엇을 올렸나</div>
+<div class="box gray"><b>그림 8 · 흔한 오해</b>재 보니 틀렸던 것</div>
+</div>
+</div></body></html>

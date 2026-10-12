@@ -32,6 +32,9 @@
 | [serving/README.md](serving/README.md) | 서빙 결과 읽는 법, 결과표 전체와 해석, 장애 대체 시험 |
 | [agent/README.md](agent/README.md) | 에이전트 설계(승인·개인정보·업무 기능(도구)), 실행·데모, 과업 평가 읽는 법과 결과 |
 | [docs/쉽게_풀어쓴_개념.md](docs/쉽게_풀어쓴_개념.md) | 용어를 비유로 풀어 둔 설명 (도서관 · 상담 창구 · 레시피 카드 · 교환기) |
+| [docs/온프레미스_에이전트_그림.pdf](docs/온프레미스_에이전트_그림.pdf) | 한 장에 그림 하나씩 8장 — 전체 시스템 · 개발할 때 · 그래프 안쪽 · 안전 기능 · 용어의 종류 · 창구와 시험 · 클라우드 지도 · 흔한 오해 (원본 `docs/figures/`, `python scripts/build_figures.py`) |
+| [docs/설계서.md](docs/설계서.md) | 시스템 설계서 — 목적 · 구조 · 화면 API · 그래프 · 데이터 · 흐름 · 시험 · 배포 · 보안 · 한계 (PDF 는 `python scripts/build_workbook.py docs/설계서.md`) |
+| [docs/클라우드_실습_워크북.pdf](docs/클라우드_실습_워크북.pdf) | 8주차 워크북의 책 모양 PDF (`python scripts/build_workbook.py`) |
 | [docs/문제해결_이력.md](docs/문제해결_이력.md) | 부딪힌 문제: 증상 → 원인 → 해결 → 교훈 |
 | [docs/노트북_환경_구축.md](docs/노트북_환경_구축.md) | Windows 노트북(WSL2 · Docker · GPU)에서 돌리기까지, 결과 읽는 법 |
 | [data/README.md](data/README.md) | 가상 데이터 구성: 설비 매뉴얼 45절·작업 이력 2,400건, 통신사 요금제·약관·고객 60명, 평가셋 |
