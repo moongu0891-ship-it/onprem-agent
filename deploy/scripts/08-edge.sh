@@ -11,8 +11,8 @@ IP=$(minikube -p agent ip)
   [ -f var/console.key ] || openssl req -x509 -nodes -newkey rsa:2048 -days 365 -subj "/CN=console.local" \
       -keyout var/console.key -out var/console.crt >/dev/null 2>&1
   kubectl -n lab create secret tls console-tls --key var/console.key --cert var/console.crt --dry-run=client -o yaml | kubectl apply -f -
-  kubectl apply -f deploy/manifests/08-ingress.yaml
-  kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s
+  kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s   # 검증 웹훅이 뜬 뒤에 Ingress 를 넣는다(안 그러면 connection refused)
+  for i in $(seq 1 12); do kubectl apply -f deploy/manifests/08-ingress.yaml && break; echo "웹훅 준비 기다림 ($i)"; sleep 5; done
   sleep 5
   echo "-- http → https 되돌림 (308 이어야 한다)"
   curl -s -o /dev/null -w 'http  %{http_code} → %{redirect_url}\n' --resolve console.local:80:$IP  http://console.local/healthz
