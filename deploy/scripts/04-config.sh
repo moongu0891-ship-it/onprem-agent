@@ -6,4 +6,4 @@ DESK=${1:-examples/desks/it/desk.yaml}
 kubectl -n lab create configmap desk-it --from-file=desk.yaml="$DESK" --dry-run=client -o yaml | kubectl apply -f -
 # 키 값은 Git 에 두지 않는다 — 환경 변수 GATEWAY_KEY 가 있으면 그것, 없으면 5주차 개발용 키
 kubectl -n lab create secret generic model-keys --from-literal=gateway="${GATEWAY_KEY:-sk-local-dev}" --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n lab get configmap desk-it secret model-keys
+kubectl -n lab get configmap desk-it; kubectl -n lab get secret model-keys
