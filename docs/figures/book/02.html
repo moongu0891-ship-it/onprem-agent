@@ -1,0 +1,24 @@
+<div class="r st2" style="gap:0">
+ <div class="n gray" style="flex:0 0 22mm;align-self:center"><b>kubectl</b><small>내 터미널<br><code>-n lab</code></small></div>
+ <div class="a" style="flex:0 0 12mm;align-self:center"><i>HTTPS</i></div>
+ <div class="grp" style="flex:1"><span class="gl">minikube 프로필 agent = Docker 컨테이너 하나 (CPU 4 · 6GB → 07장에서 12GB)</span>
+  <div class="r st2" style="gap:0">
+   <div class="grp blue" style="flex:1.1"><span class="gl">제어부 (control plane)</span>
+    <div class="r" style="gap:0">
+     <div class="c" style="flex:1"><div class="n blue"><b>API 서버</b><small>모든 요청의 창구 · 인증</small></div><div class="va" style="height:5mm"></div><div class="n blue"><svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/><path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg><b style="display:inline">etcd</b><small>원하는 상태 저장</small></div></div>
+     <div class="a" style="flex:0 0 8mm"></div>
+     <div class="n blue" style="flex:1"><b>스케줄러</b><small>Pod 를 어느 노드에 둘지</small><b style="margin-top:1mm">컨트롤러</b><small>원하는 수 ↔ 실제 수 맞춤</small></div>
+    </div>
+   </div>
+   <div class="a" style="flex:0 0 9mm;align-self:center"><i>배치</i></div>
+   <div class="grp purple" style="flex:1"><span class="gl">노드 agent (kubelet)</span>
+    <div class="grp" style="background:#fff"><span class="gl">네임스페이스 lab</span>
+     <div class="r" style="gap:1.4mm"><div class="n orange" style="flex:1"><b>Pod hello</b><small>python:3.12-slim<br>print('lab ok')</small></div></div>
+    </div>
+    <div style="height:2mm"></div>
+    <div class="grp" style="background:#fff"><span class="gl">kube-system</span><small style="font-size:6.4pt;color:#4a5361">장치 플러그인 · metrics-server · CoreDNS · …</small></div>
+   </div>
+  </div>
+ </div>
+</div>
+<div class="foot"><span class="k">사건 순서</span>Scheduled → Pulling → Pulled → Created → Started — 클라우드의 모든 배포가 이 다섯 단계다. <span class="k">EKS 라면</span>제어부는 AWS 가 관리하고(돈 내는 부분), 노드는 EC2 노드 그룹이다.</div>

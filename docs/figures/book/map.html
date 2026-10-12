@@ -1,0 +1,18 @@
+<div class="r st2">
+ <div class="n gray" style="flex:0 0 17mm"><b>사용자</b><small>브라우저</small></div>
+ <div class="a" style="flex:0 0 5mm;min-width:5mm;align-self:center"></div>
+ <div class="n red" style="flex:1"><span class="ch">08</span><b>① 엣지</b><small>TLS · 방화벽</small><small><code>Ingress</code> <code>NetworkPolicy</code></small></div>
+ <div class="a" style="flex:0 0 5mm;min-width:5mm;align-self:center"></div>
+ <div class="n blue" style="flex:1"><span class="ch">05·06</span><b>② 나눠 주기</b><small>로드 밸런서 · 오토스케일링</small><small><code>Service</code> <code>HPA</code></small></div>
+ <div class="a" style="flex:0 0 5mm;min-width:5mm;align-self:center"></div>
+ <div class="n purple" style="flex:1"><span class="ch">09</span><b>③ 관문</b><small>인증 · 속도 제한 · 게이트웨이</small><small><code>Basic Auth</code> <code>LiteLLM</code></small></div>
+ <div class="a" style="flex:0 0 5mm;min-width:5mm;align-self:center"></div>
+ <div class="n green" style="flex:1"><span class="ch">03~05</span><b>④ 앱 계층</b><small>상담 화면 ×N · 에이전트 그래프</small><small><code>Deployment</code></small></div>
+ <div class="a" style="flex:0 0 5mm;min-width:5mm;align-self:center"></div>
+ <div class="n orange" style="flex:1"><span class="ch">01·07</span><b>⑤ 무거운 일</b><small>모델 서버(GPU) · 작업</small><small><code>GPU Pod</code> <code>Job</code></small></div>
+ <div class="a" style="flex:0 0 5mm;min-width:5mm;align-self:center"></div>
+ <div class="n teal" style="flex:1"><span class="ch">10</span><b>⑥ 데이터</b><small>색인 · 업무 DB · 대화 저장</small><small><code>StatefulSet</code> <code>PVC</code></small></div>
+</div>
+<div class="sp"></div>
+<div class="n ink" style="border-style:dashed"><b>⑦ 옆단 — 모든 층에 걸쳐서</b><small><span class="chip">설정 · 비밀 ConfigMap / Secret — 04</span><span class="chip">관측 Prometheus · Grafana — 11</span><span class="chip">CI/CD Jenkins · 노트북 GPU 일꾼 — 12</span><span class="chip">IaC make cloud-up — 13</span><span class="chip">클러스터 자체 minikube — 02</span></small></div>
+<div class="foot"><span class="k">읽는 법</span>왼쪽에서 오른쪽이 요청이 들어가는 길이다. 모서리 숫자가 그 층을 채우는 장. 실제 클라우드라면 ① CloudFront·WAF·ACM ② ALB·HPA·Karpenter ③ API Gateway·Cognito ④ EKS·ECS ⑤ GPU 노드 그룹·SageMaker ⑥ RDS·S3 ⑦ CloudWatch·CodePipeline·Terraform 자리다.</div>

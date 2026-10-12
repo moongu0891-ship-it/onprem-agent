@@ -1,0 +1,20 @@
+<div class="r" style="gap:0">
+ <div class="n gray pill" style="flex:0 0 28mm"><b>사용자</b><small>브라우저</small></div>
+ <div class="a" style="flex:0 0 10mm"><i>http</i></div>
+ <div class="grp" style="flex:1"><span class="gl">파이썬 프로세스 하나 — 이미지 onprem-agent</span>
+  <div class="r" style="gap:0">
+   <div class="n blue" style="flex:1"><b>① 상담 화면</b><small>FastAPI · :8080 · SSE · 승인 카드</small></div>
+   <div class="a" style="flex:0 0 10mm"><i>함수</i></div>
+   <div class="n green" style="flex:1.1"><b>② 에이전트 그래프</b><small>LangGraph · 안전 기능 · 보호 기능(가드레일)</small></div>
+  </div></div>
+ <div class="a both" style="flex:0 0 12mm"><i class="h"></i><i>상태</i></div>
+ <div class="n gray" style="flex:0 0 34mm"><b><svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/><path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg>체크포인터</b><small>SQLite 파일 / PostgreSQL<br>대화 · 승인 대기</small></div>
+</div>
+<div class="r" style="gap:0"><div style="flex:0 0 38mm"></div><div class="va" style="flex:1;width:auto"><i>MCP 표준 입출력 (포트 없음)</i></div><div class="va" style="flex:1;width:auto"><i>HTTP · OpenAI 호환</i></div><div style="flex:0 0 46mm"></div></div>
+<div class="r st2" style="gap:2mm">
+ <div style="flex:0 0 36mm"></div>
+ <div class="n teal" style="flex:1"><b>③ 창구 서버 ×3 (FastMCP)</b><small>설비 정비 · 고객 상담 · IT 헬프데스크</small><small><svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/><path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg>검색 색인 · 업무 DB</small></div>
+ <div class="n orange" style="flex:1"><b>④ 모델 서버 <span class="gpu">GPU</span></b><small>SGLang · Qwen3-4B(FP8) · :30000</small><small>(선택) 앞에 LiteLLM :4000 → 예비 CPU 엔진</small></div>
+ <div style="flex:0 0 44mm"></div>
+</div>
+<div class="foot"><span class="k">경계</span>네 상자 모두 사내 장비 — 외부 호출 없음. 브라우저는 ④ 와 직접 대화하지 않는다. 창구 서버는 ① 이 자식 프로세스로 띄운다.</div>

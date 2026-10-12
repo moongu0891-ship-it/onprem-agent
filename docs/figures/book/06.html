@@ -1,0 +1,19 @@
+<div class="g" style="grid-template-columns:27mm 9mm 22mm 9mm 1fr;row-gap:0">
+ <div class="n gray"><b>부하 Pod</b><small>curl 동시 8 · /api/chat<br>150초 · 9,376 요청</small></div>
+ <div class="a"></div>
+ <div class="n blue"><b>Service</b><small>console</small></div>
+ <div class="a"></div>
+ <div class="grp green"><span class="gl">Deployment console — replicas 1 → 4 → 1</span>
+  <div class="r" style="gap:1.4mm"><div class="n green" style="flex:1"><b>Pod 1</b><small>평소</small></div><div class="n green fade" style="flex:1"><b>Pod 2</b><small>+15초</small></div><div class="n green fade" style="flex:1"><b>Pod 3</b><small>+15초</small></div><div class="n green fade" style="flex:1"><b>Pod 4</b><small>상한</small></div></div>
+ </div>
+ <div></div><div></div><div></div><div></div>
+ <div class="r" style="gap:0"><div class="va up" style="flex:1;width:auto"><i>replicas 바꿈</i></div><div class="va" style="flex:1;width:auto"><i>Pod CPU 읽기 (15초)</i></div></div>
+ <div class="n gray" style="grid-column:1 / 4;align-self:stretch"><b>잰 것 (06장)</b><small>부하 시작 60초 뒤 지표가 2% → <b style="display:inline;color:#1d2433">315%</b> 로 한 번에 · 그 순간 1 → 3 → 4</small><small>부하 끝 → <b style="display:inline;color:#1d2433">106초</b> 뒤 4 → 1 (지표 지연 60초 + 안정 창 60초)</small></div>
+ <div></div>
+ <div class="r st2" style="gap:0">
+  <div class="n purple" style="flex:1.35"><b>HPA console</b><small>목표: 평균 CPU <b style="display:inline;color:#6b3fd1">50%</b> of requests.cpu 200m (= Pod 당 100m)</small><small>넘으면 15초마다 +2 (최대 4) · 밑돌면 60초 안정 뒤 줄임</small></div>
+  <div class="a l" style="flex:0 0 9mm;align-self:center"><i>지표</i></div>
+  <div class="n teal" style="flex:1"><b>metrics-server</b><small>Pod CPU · 메모리를 모은다 — HPA 는 직접 재지 않고 이 숫자를 읽는다</small></div>
+ </div>
+</div>
+<div class="foot"><span class="k">없는 것</span>노드 자동 확장 — 노트북 한 대. <span class="k">EKS 라면</span>Pod 가 Pending 이 되면 Cluster Autoscaler / Karpenter 가 같은 원리로 EC2 노드를 더한다(HPA = 가로로 Pod, Karpenter = 노드).</div>

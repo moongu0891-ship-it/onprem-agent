@@ -1,0 +1,19 @@
+<div class="r st2" style="gap:0">
+ <div class="c" style="flex:0 0 52mm;justify-content:center;gap:1.6mm">
+  <div class="r" style="gap:0"><div class="n gray" style="flex:1"><b>① 질문</b><small>"E1063 계정 잠금 해제 요청해 줘"</small></div><div class="a" style="flex:0 0 8mm"></div></div>
+  <div class="r" style="gap:0"><div class="n gray" style="flex:1"><b>② 승인 (같은 상담 번호)</b><small>/api/approve</small></div><div class="a" style="flex:0 0 8mm"></div></div>
+ </div>
+ <div class="n blue" style="flex:0 0 34mm;align-self:center"><b>Service console</b><small>http://console.lab<br>세 Pod 에 무작위에 가깝게</small><small>30회 → <b style="display:inline;color:#1b6fb8">9 · 8 · 10</b></small></div>
+ <div class="a" style="flex:0 0 6mm;align-self:center"></div>
+ <div class="fan">
+  <div class="r" style="gap:0"><div class="a"></div><div class="n green" style="flex:1"><b>console-…-a</b><small><svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/><path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg>web_state.db — <span class="bad">상담 A 승인 대기 ●</span></small></div></div>
+  <div class="r" style="gap:0"><div class="a"></div><div class="n green" style="flex:1"><b>console-…-b</b><small><svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/><path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg>web_state.db — 비어 있음</small></div></div>
+  <div class="r" style="gap:0"><div class="a"></div><div class="n green" style="flex:1"><b>console-…-c</b><small><svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/><path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg>web_state.db — 비어 있음</small></div></div>
+ </div>
+</div>
+<div class="sp"></div>
+<div class="r st2" style="gap:2mm">
+ <div class="n red" style="flex:1"><b>②가 b·c 로 가거나 a 가 죽으면 → 409 "확인을 기다리는 일이 없다"</b><small>측정: 질문은 a(f77qv) 가 받아 멈춤 → a 삭제 → 승인은 새 Pod(4xtcm) 가 받아 모른다고 답함</small></div>
+ <div class="n green" style="flex:1"><b>고치는 법 → 10장: 상태를 공용 DB 로</b><small>PostgreSQL 체크포인터 — 같은 시험이 <b style="display:inline;color:#1f8a4c">200</b>, 다른 Pod 가 이어서 RQ-0001 실행</small></div>
+</div>
+<div class="foot"><span class="k">임시 처방</span><code>sessionAffinity: ClientIP</code> — 같은 사람을 같은 Pod 로. 그 Pod 가 죽으면 역시 잃는다. <span class="k">EKS 라면</span>ALB 의 sticky session 이 같은 처방이고 같은 한계를 가진다.</div>

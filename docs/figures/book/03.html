@@ -1,0 +1,15 @@
+<div class="r" style="gap:0">
+ <div class="n gray" style="flex:0 0 30mm"><b>저장소</b><small><code>src</code> <code>scripts</code> <code>examples</code><br><code>data</code> <code>eval</code> <code>configs</code> <code>tests</code></small></div>
+ <div class="a"><i>docker build</i><i class="u">43초 · 다시 1초</i></div>
+ <div class="stack orange"><div class="ly" style="--c:#0f8b8d;--t:#ebf8f8">코드 · 자료 층 ~2MB</div><div class="ly" style="--c:#c96f05;--t:#fff6ea">pip install 383MB</div><div class="ly" style="--c:#6b7482;--t:#f4f6f8">python:3.12-slim</div><div class="cap">onprem-agent:v1 · 208MB</div></div>
+ <div class="a"><i>minikube image load</i><i class="u">11초</i></div>
+ <div class="n purple" style="flex:0 0 28mm"><b>노드의 이미지 창고</b><small><code>imagePullPolicy: Never</code></small></div>
+ <div class="a" style="flex:0 0 8mm"></div>
+ <div class="n green" style="flex:0 0 17mm"><b>Pod</b><small>04장</small></div>
+</div>
+<div class="sp"></div>
+<div class="r st2" style="gap:2mm">
+ <div class="n red dash" style="flex:1.3"><b>✗ 이미지에 넣지 않는다</b><small>모델 가중치 Qwen3-4B(FP8) 4.4GB · 검색 임베더 bge-m3 + torch 2GB → 07 · 10장에서 PVC 로 따로. 넣으면 3GB 가 넘어 올리기 · 되돌리기가 다 느려진다.</small></div>
+ <div class="n teal" style="flex:1"><b>층 순서가 캐시를 정한다</b><small>잘 안 바뀌는 것(의존성) 먼저, 자주 바뀌는 것(코드) 나중 → 코드만 고치면 설치 층은 캐시에서.</small></div>
+</div>
+<div class="foot"><span class="k">한 이미지 두 역할</span>실행 명령만 바꿔 상담 화면(<code>python scripts/web.py</code>)과 전체 시험(<code>make test-full</code>, 12장)을 함께 한다. <span class="k">EKS 라면</span>ECR 에 push 하고 노드가 pull.</div>

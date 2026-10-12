@@ -1,0 +1,20 @@
+<div class="g" style="grid-template-columns:24mm 14mm 1.2fr 10mm 1fr 14mm 1fr;row-gap:0">
+ <div class="n gray"><b>브라우저</b><small>console.local</small></div>
+ <div class="a"><i>https</i><i class="u">http → 308</i></div>
+ <div class="n red"><b>Ingress-NGINX</b><small>인증서 <code>console-tls</code> (자체 서명 · 1년)</small><small>http→https 308 · SSE 버퍼링 끔 · 600초</small></div>
+ <div class="a"></div>
+ <div class="n blue"><b>Service console</b><small>ClusterIP</small></div>
+ <div class="a"></div>
+ <div class="n green"><b>Pod console</b><small>정적 파일 ETag → 304</small></div>
+ <div></div><div></div><div></div><div></div><div></div><div></div><div class="va"><i class="ok">✔ 허용 200</i></div>
+ <div></div><div></div><div></div><div></div>
+ <div class="n gray dash"><b>다른 Pod (라벨 없음)</b><small>np-probe</small></div>
+ <div class="a x"><b class="xx">✗</b><i class="u">막혀야</i></div>
+ <div class="n orange"><b>sglang :30000</b><small>NetworkPolicy: app=console · litellm 만</small></div>
+</div>
+<div class="sp"></div>
+<div class="r st2" style="gap:2mm">
+ <div class="n green" style="flex:1"><b>잰 것 ✔</b><small>308 → https · 200 · CN=console.local · 정적 파일 두 번째 304</small></div>
+ <div class="n orange" style="flex:1"><b>잰 것 — 예상한 쪽의 한계</b><small>라벨 없는 Pod → sglang <b style="display:inline;color:#c96f05">200</b>: 정책은 들어갔지만 minikube 기본 CNI 가 집행하지 않는다</small></div>
+</div>
+<div class="foot"><span class="k">EKS 라면</span>ACM 인증서 + ALB(되돌림) · WAF · 보안 그룹, NetworkPolicy 는 VPC CNI 의 정책 기능이나 Calico/Cilium 이 집행. CDN 은 CloudFront — 여기선 Cache-Control 머리말만.</div>

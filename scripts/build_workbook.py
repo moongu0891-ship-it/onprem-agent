@@ -1,87 +1,114 @@
-"""docs/클라우드_실습_워크북.md → 책 모양 PDF (docs/클라우드_실습_워크북.pdf). 'Minikube에서 AWS EKS까지' 워크북과 같은 꼴 —
-장마다 완료 목표 → 그림 → 실행(명령 상자, 행 번호) → 관찰 → 장애·복구 → 정리 → 성공 확인. 표지와 차례를 앞에 붙인다.
+"""마크다운 문서 → 책 모양 PDF. 워크북과 설계서가 쓴다.
 
-    python scripts/build_workbook.py [docs/클라우드_실습_워크북.md] [출력 .pdf]
+    python scripts/build_workbook.py                          → docs/클라우드_실습_워크북.pdf
+    python scripts/build_workbook.py docs/설계서.md            → docs/설계서.pdf
+    python scripts/build_workbook.py … --html                 → 같은 이름 .html 도 남김(미리보기)
+
+- 글자 그림(```` ``` ```` 안의 '그림 NN | 제목')은 docs/figures/book/NN.html 의 도식으로 바꿔 넣는다.
+- 'Ubuntu Bash | NN-NNN' 상자는 행 번호가 있는 명령 상자로, 'N행 …' 해설은 번호 표로.
+- **완료 목표** · **관찰** · **장애·복구** · **정리** · **성공 확인** · **예상/잰다** 문단은 색 상자로.
+- ### 실제 클라우드에서는 / 연습 / 이해 확인 / 면접 절은 각자의 상자로.
+- 모양은 docs/figures/book/book.css.
 """
 from __future__ import annotations
 
 import html
 import re
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
 import markdown
+from bs4 import BeautifulSoup, NavigableString
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "docs/클라우드_실습_워크북.md"
-DST = Path(sys.argv[2]) if len(sys.argv) > 2 else SRC.with_suffix(".pdf")
-SUBTITLE = {"클라우드_실습_워크북": "8주차 · 환경: Windows 11 · WSL2 Ubuntu · Docker · minikube(docker 드라이버) · RTX 5070 Laptop 8GB<br>형식: 장마다 완료 목표 → 그림 → 실행(명령 상자 · 행별 해설) → 관찰 → 장애·복구 → 정리 → 성공 확인 — 그리고 잰다",
-            "설계서": "시스템 설계서 · 목적 → 전체 구조 → 상담 화면 → 에이전트 그래프 → 데이터 → 흐름 → 시험 → 배포 → 보안 → 한계<br>숫자는 모두 노트북(RTX 5070 Laptop 8GB)에서 잰 것 · 측정 원본 reports/"}.get(SRC.stem, "")
+args = [a for a in sys.argv[1:] if not a.startswith("--")]
+SRC = Path(args[0]) if args else ROOT / "docs/클라우드_실습_워크북.md"
+DST = Path(args[1]) if len(args) > 1 else SRC.with_suffix(".pdf")
+FIG = ROOT / "docs/figures/book"
+DB = ('<svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/>'
+      '<path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg>')
 
-CSS = """
-@page { size: A4; margin: 18mm 16mm 20mm 16mm; }
-*{box-sizing:border-box}
-body{font-family:"Noto Sans CJK KR","Noto Sans KR",sans-serif;font-size:10.5pt;line-height:1.55;color:#1d2433;margin:0}
-.cover{height:257mm;display:flex;flex-direction:column;justify-content:center;page-break-after:always;border-left:14px solid #1b6fb8;padding-left:28px}
-.cover h1{font-size:30pt;margin:0 0 10px;line-height:1.25}
-.cover .sub{font-size:14pt;color:#5b6472;margin:0 0 30px}
-.cover .meta{font-size:10.5pt;color:#5b6472;line-height:1.9}
-.toc{page-break-after:always}
-.toc h2{font-size:18pt;border-bottom:2px solid #1b6fb8;padding-bottom:4px}
-.toc ol{list-style:none;padding:0;margin:0;columns:1}
-.toc li{padding:3px 0;border-bottom:1px dotted #c9d0da;font-size:11pt}
-.toc li span{color:#5b6472;font-size:9.5pt;margin-left:8px}
-h1{font-size:20pt;margin:0 0 8px;color:#1d2433}
-h2{font-size:16pt;color:#1b6fb8;margin:0 0 10px;padding:6px 0 6px 12px;border-left:6px solid #1b6fb8;background:#f3f8fe;page-break-before:always;page-break-after:avoid}
-h2.first{page-break-before:auto}
-h3{font-size:12.5pt;color:#0f8b8d;margin:16px 0 6px;page-break-after:avoid}
-p{margin:6px 0}
-strong{color:#1d2433}
-code{font-family:"DejaVu Sans Mono","Noto Sans Mono CJK KR",monospace;font-size:9pt;background:#eef1f5;padding:1px 4px;border-radius:3px}
-pre{background:#13202e;color:#d8e2ee;border-radius:8px;padding:10px 12px;font-family:"DejaVu Sans Mono","Noto Sans Mono CJK KR",monospace;font-size:9pt;line-height:1.6;white-space:pre-wrap;page-break-inside:avoid;margin:8px 0}
-pre code{background:none;color:inherit;padding:0;font-size:inherit}
-pre.fig{background:#f5f6f8;color:#1d2433;border:1px solid #c9d0da;white-space:pre;font-size:7.6pt;line-height:1.45;overflow:hidden}
-del{color:#9aa3b2}
-pre.fig.wide{font-size:6pt;line-height:1.4}
-pre .lead{color:#8fd3ff;font-weight:700;display:block;border-bottom:1px solid #2b3d52;margin-bottom:6px;padding-bottom:4px}
-pre .ln{color:#ffd166;display:inline-block;width:2.2em;text-align:right;margin-right:10px}
-table{border-collapse:collapse;width:100%;font-size:9.3pt;margin:8px 0;page-break-inside:auto}
-th,td{border:1px solid #c9d0da;padding:4px 6px;vertical-align:top;text-align:left}
-th{background:#eef1f5;font-weight:700}
-tr{page-break-inside:avoid}
-blockquote{border-left:4px solid #d97a06;margin:8px 0;padding:4px 10px;background:#fff8ee}
-hr{border:0;border-top:1px solid #c9d0da;margin:14px 0}
-em{font-style:normal;color:#5b6472}
-a{color:#1b6fb8;text-decoration:none}
-ul,ol{margin:4px 0 4px 20px;padding:0}
-li{margin:2px 0}
-.step{font-weight:700;color:#1b6fb8}
-"""
+# 문서별 표지
+META = {
+    "클라우드_실습_워크북": dict(
+        kicker="8주차 · 실습 워크북",
+        lead="클라우드의 층 — 엣지 · 로드 밸런서 · 오토스케일링 · 게이트웨이 · GPU 모델 서빙 · DB · 관측 · CI/CD · IaC — 을 "
+             "노트북 한 대의 minikube 위에 하나씩 설정하고, 망가뜨려 보고, 재면서 익힌다.",
+        meta=[("환경", "Windows 11 · WSL2 Ubuntu · Docker · minikube(docker 드라이버) · RTX 5070 Laptop 8GB"),
+              ("장마다", "완료 목표 → 그림 → 실행(명령 · 행별 해설) → 관찰 → 장애·복구 → 정리 → 성공 확인"),
+              ("익히기", "실제 클라우드(AWS)에서는 · 연습(바꿔 보고 관찰) · 이해 확인 문제 · 면접 질문 — 정답은 부록"),
+              ("원본", "docs/클라우드_실습_워크북.md · 측정 원본 reports/cloud_w8.md")],
+        stats=[("13장", "클러스터 하나에 층마다 한 장"), ("58초", "GPU 모델 서버 두 번째 시작 (첫 시작 2시간 40분)"),
+               ("409 → 200", "Pod 를 죽여도 승인이 이어지게"), ("1분 30초", "make cloud-up 다시 올리기")]),
+    "설계서": dict(
+        kicker="시스템 설계서",
+        lead="회사 안에서만 도는 업무 상담 AI 에이전트 — 무엇을 만들었고, 어떻게 나뉘어 있고, 어디서 무엇을 막고, 어떻게 재는가.",
+        meta=[("범위", "설비 정비 · 고객 상담 · IT 헬프데스크 세 창구, 노트북 개발부터 minikube 배포까지"),
+              ("근거", "숫자는 모두 노트북(RTX 5070 Laptop 8GB)에서 잰 것 — agent/README · reports/"),
+              ("함께", "그림 묶음(온프레미스_에이전트_그림.pdf) · 클라우드 실습 워크북 · 쉽게 풀어쓴 개념")],
+        stats=[("92%", "생각 모드 켬, 기존 26과업 (끔 54%)"), ("25/26", "처음 보는 확인용 과업, 두 번"),
+               ("0", "위험 행동 · 개인정보 노출 · 거짓 실행 보고"), ("폴더 하나", "새 창구 — 핵심 코드 수정 0줄")]),
+}
 
-BOX = re.compile(r"^ (Ubuntu Bash) \| (\d\d-\d\d\d)\s*(.*)$")
+CALLOUT = [  # (머리말이 이렇게 시작하면, 상자 종류)
+    ("완료 목표", "goal"), ("관찰", "obs"), ("장애·복구", "trb"), ("정리", "cln"), ("성공 확인", "ok"),
+    ("잰다", "pre"), ("예상", "pre"),
+]
+SECTION = [  # ### 제목이 이렇게 시작하면, 절 상자 종류
+    ("실제 클라우드", "aws"), ("연습", "prac"), ("이해 확인", "quiz"), ("면접", "intv"),
+]
+
+
+def disp_width(s: str) -> int:
+    return sum(2 if ord(ch) > 0x2E80 else 1 for ch in s)
 
 
 def render_code(block: str) -> str:
     lines = block.split("\n")
-    m = BOX.match(lines[0]) if lines else None
+    first = lines[0].strip() if lines else ""
+    m = re.match(r"^(Ubuntu Bash)\s*\|\s*(\d\d-\d\d\d)\s*(.*)$", first)
     if m:
-        out = [f'<span class="lead">{html.escape(lines[0].strip())}</span>']
+        rows = []
         for ln in lines[1:]:
             mm = re.match(r"^\s*(\d+)\s{2}(.*)$", ln)
-            if mm:
-                out.append(f'<span class="ln">{mm.group(1)}</span>{html.escape(mm.group(2))}')
-            else:
-                out.append(html.escape(ln))
-        return "<pre>" + "\n".join(out) + "</pre>"
-    # 그림(글자 그림)과 그 밖의 출력 — 줄을 꺾지 않고 작게, 밝은 바탕
-    wide = max((len(ln) for ln in lines), default=0) > 100
-    return f'<pre class="fig{" wide" if wide else ""}">' + html.escape(block) + "</pre>"
+            no, cmd = (mm.group(1), mm.group(2)) if mm else ("", ln)
+            if not cmd.strip() and not no:
+                continue
+            cmd_h = html.escape(cmd)
+            cmd_h = re.sub(r"(\s#\s.*)$", r'<span style="color:#8fa3b8">\1</span>', cmd_h)
+            rows.append(f'<tr><td class="ln">{no}</td><td>{cmd_h}</td></tr>')
+        note = f'<span class="nt">{html.escape(m.group(3))}</span>' if m.group(3) else ""
+        return (f'<div class="term"><div class="hd"><span><b>{m.group(1)}</b>{note}</span>'
+                f'<span class="id">{m.group(2)}</span></div><table>{"".join(rows)}</table></div>')
+    key, no, title = figure_key(first, block)
+    if key and (FIG / f"{key}.html").exists():
+        body = (FIG / f"{key}.html").read_text(encoding="utf-8").replace("{DB}", DB)
+        return (f'<figure class="dg"><figcaption><span class="fno">{html.escape(no)}</span>{html.escape(title)}</figcaption>'
+                f'<div class="dgb">{body}</div></figure>')
+    w = max((disp_width(x) for x in lines), default=0)
+    size = min(7.3, 640 / max(w, 1) / 0.62 * 0.75)
+    return f'<pre class="out" style="font-size:{size:.2f}pt">' + html.escape(block) + "</pre>"
+
+
+def figure_key(first: str, block: str):
+    m = re.match(r"^그림\s*(\d+)\s*\|\s*(.*)$", first)
+    if m:
+        return m.group(1), f"그림 {m.group(1)}", m.group(2)
+    if first.startswith("사용자 ─▶ ① 엣지"):
+        return "map", "실습 지도", "사용자에서 데이터까지 — 층마다 몇 장에서 채우나"
+    if first.startswith("사용자(브라우저)"):
+        return "ds-arch", "그림 A", "전체 구조 — 네 상자와 상태 저장"
+    if first.startswith("START →"):
+        return "ds-graph", "그림 B", "에이전트 그래프의 마디와 흐름"
+    if first.startswith("src/onprem_agent/"):
+        return "ds-tree", "그림 C", "저장소 구조"
+    return None, "", ""
 
 
 def main():
     text = SRC.read_text(encoding="utf-8")
-    # 코드 상자를 먼저 떼어 두고(마크다운 변환이 건드리지 않게) 자리표로 바꾼다
     blocks: list[str] = []
 
     def stash(m):
@@ -89,30 +116,125 @@ def main():
         return f"\n\n@@CODE{len(blocks) - 1}@@\n\n"
 
     text = re.sub(r"```[a-z]*\n(.*?)```", stash, text, flags=re.S)
-    # 'N행 …' 해설 줄 앞머리를 굵게
-    text = re.sub(r"^(\d+(?:~\d+)?행)\s", r"<span class=\"step\">\1</span> ", text, flags=re.M)
+    text = re.sub(r"^(\d+(?:~\d+)?행)\s", r'<span class="stepno">\1</span> ', text, flags=re.M)
     body = markdown.markdown(text, extensions=["tables", "sane_lists", "pymdownx.tilde"])
     for i, b in enumerate(blocks):
-        body = body.replace(f"<p>@@CODE{i}@@</p>", render_code(b)).replace(f"@@CODE{i}@@", render_code(b))
-    # 차례: ## 제목들
-    heads = re.findall(r"<h2>(.*?)</h2>", body)
-    body = body.replace("<h2>", '<h2 class="first">', 1)
-    title = re.search(r"<h1>(.*?)</h1>", body)
-    title_text = re.sub(r"<.*?>", "", title.group(1)) if title else SRC.stem
-    body = body.replace(title.group(0), "", 1) if title else body
-    toc = "".join(f"<li>{re.sub(r'<.*?>', '', h)}</li>" for h in heads)
-    commit = ""
-    try:
-        import subprocess
-        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
-    except Exception:
-        pass
-    page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>{html.escape(title_text)}</title><style>{CSS}</style></head><body>
-<div class="cover"><h1>{html.escape(title_text)}</h1><p class="sub">온프레미스 에이전트를 안전하게 만들고, 재서 고르는 프레임워크</p>
-<p class="meta">{SUBTITLE}<br>
-저장소: github.com/moongu0891-ship-it/onprem-agent · 커밋 {commit} · {date.today().isoformat()}</p></div>
-<div class="toc"><h2>차례</h2><ol>{toc}</ol></div>
-{body}</body></html>"""
+        r = render_code(b)
+        body = body.replace(f"<p>@@CODE{i}@@</p>", r).replace(f"@@CODE{i}@@", r)
+
+    soup = BeautifulSoup(body, "html.parser")
+    title_el = soup.find("h1")
+    title = title_el.get_text() if title_el else SRC.stem
+    if title_el:
+        title_el.decompose()
+    for hr in soup.find_all("hr"):
+        hr.decompose()
+
+    # 행별 해설
+    for p in soup.find_all("p"):
+        first = p.find(True)
+        if first is not None and first.name == "span" and "stepno" in (first.get("class") or []) and p.contents and p.contents[0] is first:
+            parts = re.split(r'\n?(?=<span class="stepno">)', p.decode_contents())
+            out = ['<div class="steps">']
+            for part in parts:
+                mm = re.match(r'<span class="stepno">(.*?)행</span>\s*(.*)$', part.strip(), re.S)
+                if mm:
+                    out.append(f'<div class="st"><span class="bd">{mm.group(1)}</span><div>{mm.group(2)}</div></div>')
+            out.append("</div>")
+            p.replace_with(BeautifulSoup("".join(out), "html.parser"))
+
+    # 이름 붙은 문단 → 색 상자, '실행' → 작은 머리
+    for p in soup.find_all("p"):
+        if not p.contents or getattr(p.contents[0], "name", None) != "strong":
+            continue
+        label = p.contents[0].get_text().strip()
+        rest = p.decode_contents()[len(str(p.contents[0])):].lstrip()
+        if label == "실행" and not rest.strip():
+            p.replace_with(BeautifulSoup('<h4 class="lbl">실행</h4>', "html.parser"))
+            continue
+        kind = next((k for pre, k in CALLOUT if label.startswith(pre)), "note")
+        rest = re.sub(r"^[·:]\s*", "", rest)
+        if not BeautifulSoup(rest, "html.parser").get_text().strip():   # 머리말만 있는 문단(뒤에 표가 옴) → 작은 머리
+            p.replace_with(BeautifulSoup(f'<h4 class="lbl k {kind}">{html.escape(label.rstrip(" .:"))}</h4>', "html.parser"))
+            continue
+        lab = label.rstrip(" .:")
+        p.replace_with(BeautifulSoup(f'<div class="co {kind}"><span class="lb">{lab}</span>{rest}</div>', "html.parser"))
+
+    # 결과 표
+    for t in soup.find_all("table"):
+        ths = [th.get_text() for th in t.find_all("th")]
+        if ths and "결과" in ths[-1]:
+            t["class"] = t.get("class", []) + ["result"]
+
+    # 장(h2)으로 나누고, ### 익히기 절은 상자로 묶는다
+    chapters, intro = [], []
+    cur = None
+    for el in list(soup.contents):
+        if getattr(el, "name", None) == "h2":
+            cur = {"h": el.get_text(), "els": []}
+            chapters.append(cur)
+        elif cur is None:
+            intro.append(el)
+        else:
+            cur["els"].append(el)
+
+    def wrap_sections(els):
+        out, box = [], None
+        for el in els:
+            if getattr(el, "name", None) == "h3":
+                t = el.get_text()
+                kind = next((k for pre, k in SECTION if t.startswith(pre)), None)
+                if kind:
+                    box = {"kind": kind, "title": t, "els": []}
+                    out.append(box)
+                    continue
+                box = None
+            (box["els"] if box else out).append(el)
+        res = []
+        for x in out:
+            if isinstance(x, dict):
+                inner = "".join(str(e) for e in x["els"])
+                res.append(f'<section class="sx {x["kind"]}"><div class="sxh"><span class="ic2"></span>{html.escape(x["title"])}</div>{inner}</section>')
+            else:
+                res.append(str(x))
+        return "".join(res)
+
+    toc_rows, chap_html = [], []
+    for i, ch in enumerate(chapters):
+        h = ch["h"].strip()
+        m = re.match(r"^(\d+)\.\s*(.*)$", h)
+        no, rest = (m.group(1), m.group(2)) if m else ("", h)
+        main_t, sub = (rest.split(" — ", 1) + [""])[:2]
+        if not no:
+            no, main_t, sub = main_t, sub or main_t, ""
+        goal = ""
+        for e in ch["els"]:
+            if getattr(e, "name", None) == "div" and "goal" in (e.get("class") or []):
+                g = e.get_text()[len("완료 목표"):].strip()
+                goal = g[:96] + ("…" if len(g) > 96 else "")
+                break
+        word = not no.isdigit()
+        toc_rows.append(f'<div class="row"><div class="no">{html.escape(no if not word else "·")}</div><div><div class="t">{html.escape(main_t if not word else (no if main_t == no else no + " — " + main_t))}</div>'
+                        + (f'<div class="s">{html.escape(sub)}</div>' if sub else "")
+                        + (f'<div class="g">{html.escape(goal)}</div>' if goal else "") + "</div></div>")
+        head = (f'<div class="chead"><div class="no{" word" if word else ""}">{html.escape(no)}</div>'
+                f'<div><div class="t">{html.escape(main_t)}</div>' + (f'<div class="s">{html.escape(sub)}</div>' if sub else "") + "</div></div>")
+        chap_html.append(f'<section class="chap{" first" if i == 0 else ""}">{head}{wrap_sections(ch["els"])}</section>')
+
+    meta = META.get(SRC.stem, dict(kicker="", lead="", meta=[], stats=[]))
+    commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    meta_rows = "".join(f"<div><b>{html.escape(k)}</b>{html.escape(v)}</div>" for k, v in meta["meta"])
+    meta_rows += f"<div><b>판</b>{date.today().isoformat()} · 커밋 {commit} · github.com/moongu0891-ship-it/onprem-agent</div>"
+    stats = "".join(f'<div class="stat"><b>{html.escape(a)}</b><span>{html.escape(b)}</span></div>' for a, b in meta["stats"])
+    cover = (f'<div class="cover"><div class="band"><div class="kicker">{html.escape(meta["kicker"])}</div>'
+             f'<h1>{html.escape(title)}</h1><div class="lead">{html.escape(meta["lead"])}</div></div>'
+             f'<div class="meta">{meta_rows}</div><div class="stats">{stats}</div></div>')
+    intro_html = "".join(str(e) for e in intro if str(e).strip())
+    toc = (f'<div class="toc">' + (f'<div class="intro">{intro_html}</div>' if intro_html else "")
+           + f'<h2 class="tt">차례</h2>{"".join(toc_rows)}</div>')
+    css = (FIG / "book.css").read_text(encoding="utf-8")
+    page = (f'<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>{html.escape(title)}</title>'
+            f'<style>{css}</style></head><body>{cover}{toc}{"".join(chap_html)}</body></html>')
     tmp = DST.with_suffix(".html")
     tmp.write_text(page, encoding="utf-8")
     from playwright.sync_api import sync_playwright
@@ -120,13 +242,15 @@ def main():
         b = pw.chromium.launch()
         pg = b.new_page()
         pg.goto(tmp.resolve().as_uri())
-        pg.wait_for_timeout(500)
+        pg.wait_for_timeout(600)
+        short = title.split(" — ")[0]
         pg.pdf(path=str(DST), format="A4", print_background=True, prefer_css_page_size=True,
                display_header_footer=True, header_template="<div></div>",
-               footer_template='<div style="font-size:8px;color:#5b6472;width:100%;text-align:center;font-family:sans-serif">'
-                               f'{html.escape(title_text)} · <span class="pageNumber"></span> / <span class="totalPages"></span></div>')
+               footer_template='<div style="font-size:7px;color:#8a93a1;width:100%;padding:0 14mm;display:flex;justify-content:space-between;font-family:sans-serif">'
+                               f'<span>{html.escape(short)}</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
         b.close()
-    tmp.unlink()
+    if "--html" not in sys.argv:
+        tmp.unlink()
     print("저장:", DST)
 
 

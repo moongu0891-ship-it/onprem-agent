@@ -1,0 +1,17 @@
+<div class="g" style="grid-template-columns:18mm 8mm 1fr 8mm 1fr 8mm 1fr;row-gap:0">
+ <div></div><div></div><div class="loop" style="grid-column:3 / 8"><i>자료가 모자라면 다시 — 최대 max_steps = 6 걸음</i></div>
+ <div class="n gray pill"><b>START</b></div>
+ <div class="a"></div>
+ <div class="n blue"><b>agent</b><small>모델에게 「다음 할 일」 또는 「답」</small><small>검색 되돌림 · 글 호출 살리기 · 말로만 실행 막기 · 빈 답 다시 쓰기</small></div>
+ <div class="a"><i>호출</i></div>
+ <div class="n red"><b>gate</b><small>approval_tools 면 <code>interrupt</code> → 승인 카드</small><small>승인 → tools · 취소 → 「실행 안 함」</small></div>
+ <div class="a"><i>승인됨</i></div>
+ <div class="n teal"><b>tools</b><small>창구 서버 실행 (MCP)</small><small>지시문 제거 · 자료 감싸기</small></div>
+ <div></div><div></div><div class="va"><i>호출 없이 글</i></div><div></div><div></div><div></div><div></div>
+ <div></div><div></div>
+ <div class="n green"><b>finalize</b><small>근거 자동 (cite_sources) · 답 검사 (guard_answer) · 예비 엔진 안내</small></div>
+ <div class="a"></div>
+ <div class="n gray pill"><b>END</b><small>→ 화면</small></div>
+ <div></div><div></div>
+</div>
+<div class="foot"><span class="k">왜 LangGraph</span>되돌아가는 화살표 · 사람 승인에서 멈췄다 이어가기 · 체크포인터 — 셋 다 필요해서. 모델은 agent 마디에서만 불리고, 실행은 tools 마디(코드)만 한다.</div>

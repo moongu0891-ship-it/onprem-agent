@@ -1,0 +1,22 @@
+<div class="g" style="grid-template-columns:1fr 11mm 1fr 9mm 1fr 11mm 1fr 9mm 1fr;row-gap:1mm">
+ <div class="n gray"><b>브라우저</b><small>사람</small></div>
+ <div class="a"><i>로그인</i></div>
+ <div class="n red"><b>Ingress</b><small>Basic Auth · 초당 5 요청</small></div>
+ <div class="a"></div>
+ <div class="n green"><b>console</b><small>상담 화면 · 그래프</small></div>
+ <div class="a"><i>Bearer 키</i></div>
+ <div class="n purple"><b>LiteLLM :4000</b><small>agent-llm-4b · 키 검사</small></div>
+ <div class="a"></div>
+ <div class="n orange"><b>SGLang :30000</b><small>Qwen3-4B(FP8)</small></div>
+ <div class="chip" style="text-align:center">Cognito · SSO</div><div></div>
+ <div class="chip" style="text-align:center">API Gateway · WAF</div><div></div>
+ <div class="chip" style="text-align:center">EKS 서비스</div><div></div>
+ <div class="chip" style="text-align:center">LLM 게이트웨이</div><div></div>
+ <div class="chip" style="text-align:center">GPU 노드 · SageMaker</div>
+</div>
+<div class="sp"></div>
+<div class="r st2" style="gap:2mm">
+ <div class="n red" style="flex:1"><b>사람은 로그인</b><small>없이 401 · 계정 200 · 40개 동시 → 4 통과 · <b style="display:inline;color:#c93636">36 차단(503)</b></small></div>
+ <div class="n purple" style="flex:1"><b>프로그램은 키</b><small>틀린 키 400 · 맞는 키 200 · "하늘 색은?" → "파랑"</small></div>
+</div>
+<div class="foot"><span class="k">빠진 것</span>5주차의 CPU 대체 엔진(llama.cpp) — 노트북 메모리가 모델 서버 하나로 찼다. 대체 경로는 5주차 측정(요청 손실 0/60)으로 갈음.</div>

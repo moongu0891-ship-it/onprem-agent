@@ -1,0 +1,14 @@
+<div class="r st2" style="gap:0">
+ <div class="n green" style="flex:0 0 36mm;align-self:center"><b>console Pod ×N</b><small><code>/metrics</code> — 앱이 글자로 직접</small><small>질문 수 · 상태 · 승인 · 처리 시간 히스토그램</small></div>
+ <div class="a" style="flex:0 0 14mm;align-self:center"><i>15초마다 긁기</i><i class="u">주석 scrape</i></div>
+ <div class="n orange" style="flex:0 0 34mm;align-self:center"><b>Prometheus</b><small>시계열 저장 · 2일<br>서버만(알림 · 익스포터 끔)</small></div>
+ <div class="a" style="flex:0 0 12mm;align-self:center"><i>PromQL</i></div>
+ <div class="n purple" style="flex:1"><b>Grafana — 사내 AI 상담 · 운영</b>
+  <div class="g" style="grid-template-columns:1fr 1fr;gap:1.2mm;margin-top:1mm">
+   <div class="tile"><b>0.27 /초</b>초당 질문 수 (Pod 별)</div>
+   <div class="tile"><b>18.6 초</b>처리 시간 p95</div>
+   <div class="tile"><b>확인 대기</b>누적 · 승인 처리</div>
+   <div class="tile"><b>Pod 수</b>up{console}</div>
+  </div></div>
+</div>
+<div class="foot"><span class="k">PromQL</span><code>histogram_quantile(0.95, sum by (le) (rate(agent_turn_seconds_bucket[5m])))</code> <span class="k">빠진 것</span>Langfuse(에이전트 추적) — ClickHouse · Redis 가 더 필요. 대신 시험 결과 JSON 이 과업마다 호출을 남긴다. <span class="k">EKS 라면</span>CloudWatch Container Insights · Amazon Managed Prometheus/Grafana.</div>
