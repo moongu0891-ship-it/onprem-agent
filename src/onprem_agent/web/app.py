@@ -24,7 +24,7 @@ from collections import deque
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -146,6 +146,17 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
     embedder = embedder or json.loads(os.environ.get("ONPREM_EMBEDDER", '{"kind": "hash"}'))
     recent: deque = deque(maxlen=50)
     state: dict = {}
+    # 8주차 11장: 관측 — Prometheus 가 긁어 가는 숫자(의존성 없이 글자로 만든다). 질문 수·답/확인 대기/오류 수·처리 시간 분포.
+    LAT_BUCKETS = (0.5, 1, 2, 5, 10, 20, 30, 60, 120)
+    metrics: dict = {"chat_total": 0, "status": {"답함": 0, "확인 대기": 0, "오류": 0}, "approve_total": 0,
+                     "lat_buckets": [0] * len(LAT_BUCKETS), "lat_sum": 0.0, "lat_count": 0, "http_total": {}}
+
+    def observe_latency(seconds: float):
+        for i, b in enumerate(LAT_BUCKETS):
+            if seconds <= b:
+                metrics["lat_buckets"][i] += 1
+        metrics["lat_sum"] += seconds
+        metrics["lat_count"] += 1
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -176,6 +187,24 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
     async def console():
         return FileResponse(STATIC / "console.html")
 
+    @app.get("/metrics")
+    async def prometheus_metrics():
+        """Prometheus 글자 형식. 11장의 Grafana 가 '초당 질문 수 · p95 처리 시간 · 확인 대기 수' 를 그린다."""
+        pod = os.environ.get("HOSTNAME", "local")
+        lines = ["# TYPE agent_chat_total counter", f'agent_chat_total{{pod="{pod}"}} {metrics["chat_total"]}',
+                 "# TYPE agent_chat_status_total counter",
+                 *[f'agent_chat_status_total{{pod="{pod}",status="{k}"}} {v}' for k, v in metrics["status"].items()],
+                 "# TYPE agent_approve_total counter", f'agent_approve_total{{pod="{pod}"}} {metrics["approve_total"]}',
+                 "# TYPE agent_turn_seconds histogram"]
+        acc = 0
+        for b, n in zip(LAT_BUCKETS, metrics["lat_buckets"]):
+            lines.append(f'agent_turn_seconds_bucket{{pod="{pod}",le="{b}"}} {n}')
+        lines += [f'agent_turn_seconds_bucket{{pod="{pod}",le="+Inf"}} {metrics["lat_count"]}',
+                  f'agent_turn_seconds_sum{{pod="{pod}"}} {metrics["lat_sum"]:.3f}', f'agent_turn_seconds_count{{pod="{pod}"}} {metrics["lat_count"]}',
+                  "# TYPE http_requests_total counter",
+                  *[f'http_requests_total{{pod="{pod}",path="{p}",code="{c}"}} {n}' for (p, c), n in metrics["http_total"].items()]]
+        return Response("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
+
     @app.get("/healthz")
     async def healthz():
         """살아 있나(liveness) — 서버 프로세스가 응답하면 200. 8주차 워크북의 Probe 가 쓴다."""
@@ -196,6 +225,9 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
         정적 파일에는 캐시 머리말(08장 'CDN 흉내') — 브라우저·앞단 캐시가 두 번째부터 304/캐시로 답하게."""
         resp = await call_next(request)
         resp.headers["X-Served-By"] = os.environ.get("HOSTNAME", "local")
+        if request.url.path.startswith("/api/") or request.url.path in ("/", "/admin"):
+            key = (request.url.path.split("/", 3)[2] if request.url.path.startswith("/api/") else request.url.path, resp.status_code)
+            metrics["http_total"][key] = metrics["http_total"].get(key, 0) + 1
         if request.url.path.startswith("/static/"):
             resp.headers["Cache-Control"] = "public, max-age=3600"
         return resp
@@ -225,6 +257,8 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
         desk_app = await state["pool"].get(desk_name)
         cfg = {"configurable": {"thread_id": thread}}
         status, answer = "답함", ""
+        t0 = time.perf_counter()
+        metrics["chat_total"] += 1
         yield _sse({"type": "thread", "thread": thread})
         for e in first:
             yield _sse(e)
@@ -241,6 +275,8 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
             status = "오류"
             yield _sse({"type": "error", "text": f"처리 중 문제가 생겼습니다: {type(e).__name__}"})
         log(desk_name, thread, question, status, answer)
+        metrics["status"][status] = metrics["status"].get(status, 0) + 1
+        observe_latency(time.perf_counter() - t0)
         yield _sse({"type": "done", "status": status})
 
     @app.post("/api/chat")
@@ -265,6 +301,7 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
         tracker = TurnTracker(desk)
         tracker.decisions = 1
         resume = Command(resume={"approved": body.approved, "reason": "" if body.approved else "담당자가 취소"})
+        metrics["approve_total"] += 1
         return StreamingResponse(run(body.desk, body.thread, resume, tracker, tracker.resumed(body.approved), None),
                                  media_type="text/event-stream")
 

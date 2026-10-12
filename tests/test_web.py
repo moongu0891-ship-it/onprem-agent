@@ -50,6 +50,8 @@ def test_console_ticket_flow_and_admin(tmp_path):
         h = c.get("/healthz")
         assert h.status_code == 200 and h.json()["ok"] and h.headers["X-Served-By"]
         assert c.get("/readyz").json()["ready"] is True
+        m = c.get("/metrics").text
+        assert "agent_chat_total{" in m and "agent_turn_seconds_bucket{" in m and 'http_requests_total{pod="' in m
         desks = {d["name"]: d for d in c.get("/api/desks").json()}
         assert {"ops", "cs", "it"} <= set(desks) and desks["ops"]["title"] == "설비 정비 상담"
 

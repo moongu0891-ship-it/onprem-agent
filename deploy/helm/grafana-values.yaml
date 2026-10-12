@@ -1,0 +1,14 @@
+# 11장: grafana/grafana — 데이터 원본(Prometheus)과 대시보드(ConfigMap)를 파일로 심는다. 로그인 admin / lab-admin.
+adminPassword: lab-admin
+resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {memory: 384Mi}}
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - {name: Prometheus, type: prometheus, url: "http://prometheus-server.lab.svc", access: proxy, isDefault: true}
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - {name: lab, orgId: 1, folder: "", type: file, disableDeletion: false, options: {path: /var/lib/grafana/dashboards/lab}}
+dashboardsConfigMaps: {lab: agent-dashboard}

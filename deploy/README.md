@@ -13,6 +13,9 @@
 - `manifests/08-ingress.yaml` · `scripts/08-edge.sh` — 08장: Ingress(https·되돌림) + NetworkPolicy, 측정
 - `manifests/09-ingress-auth.yaml` · `09-litellm.yaml` · `scripts/09-gateway.sh` — 09장: 기본 인증·요청 제한, LiteLLM 게이트웨이
 - `manifests/10-postgres.yaml` · `scripts/10-db.sh` — 10장: PostgreSQL+pgvector StatefulSet, 색인 Job, 상담 화면을 공용 DB 로
+- `helm/prometheus-values.yaml` · `grafana-values.yaml` · `manifests/11-dashboard.yaml` · `scripts/11-observe.sh` — 11장: 관측(앱 `/metrics`, 이미지 v3)
+- `helm/jenkins-values.yaml` · `scripts/12-jenkins.sh` · `12-quiet.sh` · 저장소의 `Jenkinsfile` — 12장: Jenkins 제어부 + 노트북 일꾼, 밤 전체 시험
+- `scripts/cloud-up.sh` (= `make cloud-up`) — 13장: 01~11장을 한 줄로(멱등). `make cloud-down` / `cloud-destroy`
 - 컨테이너에서 쓰는 환경 변수: `ONPREM_MODEL`(rule/sglang-4b/gateway) · `ONPREM_MODEL_URL`(모델 서버 주소) · `ONPREM_MODEL_KEY`(게이트웨이 키) · `ONPREM_EMBEDDER` · `ONPREM_DESKS` · `ONPREM_WEB_STORE`(sqlite/postgres) · `ONPREM_PG_DSN` · `ONPREM_STORE`(벡터 저장소 JSON) · `ONPREM_INDEX`(reuse)
 
 `results/cloud/` 는 Git 에 올리지 않는다. 확정본은 `reports/cloud_*.md`.

@@ -27,8 +27,9 @@ spec:
       hostIPC: true                          # compose 의 ipc: host — SGLang 의 프로세스 간 공유 메모리
       containers:
         - name: sglang
-          image: lmsysorg/sglang:latest
-          imagePullPolicy: IfNotPresent      # 03장처럼 minikube image load 로 넣어 두면 받지 않는다(10GB 급)
+          # 13장: 태그 latest 는 날마다 다른 것(C11) — 07장에서 노드가 실제로 받은 digest 로 고정한다. 바꾸려면 digest 를 바꾸고 결과를 다시 잰다.
+          image: lmsysorg/sglang@sha256:b1259f3ea3275f66237c498ea388919729018bc9f01c3d638391e06e2cf3f469
+          imagePullPolicy: IfNotPresent
           command: ["python3", "-m", "sglang.launch_server"]
           args: ["--model-path", "Qwen/Qwen3-4B-FP8", "--served-model-name", "qwen3-4b",
                  "--host", "0.0.0.0", "--port", "30000", "--context-length", "8192", "--mem-fraction-static", "0.80",

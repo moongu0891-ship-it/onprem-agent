@@ -15,7 +15,7 @@ BASE ?=
 REF ?=
 NAME = $(shell $(PY) -c "import yaml; print(yaml.safe_load(open('$(CONFIG)', encoding='utf-8'))['name'])")
 
-.PHONY: test-unit test-module test-full accept check-docs test web
+.PHONY: test-unit test-module test-full accept check-docs test web cloud-up cloud-down cloud-destroy
 
 test-unit:
 	$(PY) -m pytest -q -m "not module"
@@ -49,3 +49,12 @@ test: test-unit test-module check-docs
 
 web:                                    ## 웹 화면 (MODEL=sglang-4b 처럼 바꿀 수 있다)
 	$(PY) scripts/web.py --model $(or $(MODEL),rule)
+
+cloud-up:                               ## 8주차 13장: minikube 위에 전부 올린다(01~11장 순서, 멱등). 처음부터면 20~40분
+	bash deploy/scripts/cloud-up.sh
+
+cloud-down:                             ## 클러스터를 멈춘다(내용은 남는다). 다시: make cloud-up
+	minikube -p agent stop
+
+cloud-destroy:                          ## 클러스터를 지운다(이미지·PVC·DB 전부). 처음부터 다시 재려면
+	minikube -p agent delete

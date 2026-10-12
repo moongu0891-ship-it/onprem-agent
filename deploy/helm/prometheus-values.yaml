@@ -1,0 +1,11 @@
+# 11장: prometheus-community/prometheus 를 가볍게 — 서버 하나만(알림·푸시게이트웨이·노드 익스포터·kube-state-metrics 끔). 노트북 메모리 몫.
+# 기본 스크레이프 설정이 'prometheus.io/scrape: true' 주석이 붙은 Pod 를 자동으로 긁는다(04-console.yaml 의 주석).
+alertmanager: {enabled: false}
+prometheus-pushgateway: {enabled: false}
+prometheus-node-exporter: {enabled: false}
+kube-state-metrics: {enabled: false}
+server:
+  persistentVolume: {enabled: false}      # 실습 — 재시작하면 지표가 사라진다(12장 밤 시험 지표는 reports/ 로 옮긴다)
+  retention: 2d
+  global: {scrape_interval: 15s}
+  resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {memory: 768Mi}}

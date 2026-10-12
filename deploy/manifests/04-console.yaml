@@ -13,6 +13,10 @@ spec:
   template:
     metadata:
       labels: {app: console}
+      annotations:                      # 11장: Prometheus 가 이 Pod 의 /metrics 를 긁어 간다
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
     spec:
       containers:
         - name: console

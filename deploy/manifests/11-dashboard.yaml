@@ -1,0 +1,24 @@
+# 11장: Grafana 대시보드 — 상담 화면 지표 세 장(초당 질문 수 · 처리 시간 p95 · 확인 대기 수)과 Pod 수. Grafana 가 ConfigMap 에서 읽는다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-dashboard
+  namespace: lab
+data:
+  agent.json: |
+    {"title": "사내 AI 상담 — 운영", "uid": "agent-ops", "timezone": "browser", "refresh": "10s", "schemaVersion": 39,
+     "time": {"from": "now-30m", "to": "now"},
+     "panels": [
+      {"id": 1, "type": "timeseries", "title": "초당 질문 수 (Pod 별)", "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+       "targets": [{"expr": "sum by (pod) (rate(agent_chat_total[1m]))", "legendFormat": "{{pod}}"}]},
+      {"id": 2, "type": "timeseries", "title": "처리 시간 p95 (초)", "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+       "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(agent_turn_seconds_bucket[5m])))", "legendFormat": "p95"}]},
+      {"id": 3, "type": "stat", "title": "담당자 확인 대기 (누적)", "gridPos": {"x": 0, "y": 8, "w": 6, "h": 6},
+       "targets": [{"expr": "sum(agent_chat_status_total{status=\"확인 대기\"})"}]},
+      {"id": 4, "type": "stat", "title": "승인 처리 (누적)", "gridPos": {"x": 6, "y": 8, "w": 6, "h": 6},
+       "targets": [{"expr": "sum(agent_approve_total)"}]},
+      {"id": 5, "type": "stat", "title": "오류 (누적)", "gridPos": {"x": 12, "y": 8, "w": 6, "h": 6},
+       "targets": [{"expr": "sum(agent_chat_status_total{status=\"오류\"})"}]},
+      {"id": 6, "type": "stat", "title": "상담 화면 Pod 수", "gridPos": {"x": 18, "y": 8, "w": 6, "h": 6},
+       "targets": [{"expr": "count(up{kubernetes_pod_name=~\"console.*\"} == 1)"}]}
+     ]}

@@ -1,0 +1,36 @@
+# 12장: jenkins/jenkins 차트 — 제어부는 클러스터 안, 일꾼은 노트북(인바운드 agent 'laptop', 라벨 gpu). 설정은 JCasC 로 파일에.
+controller:
+  admin: {username: admin, password: lab-admin}
+  resources: {requests: {cpu: 200m, memory: 768Mi}, limits: {memory: 1536Mi}}
+  javaOpts: "-Xmx768m"
+  serviceType: ClusterIP
+  installPlugins:
+    - kubernetes
+    - workflow-aggregator
+    - git
+    - configuration-as-code
+    - job-dsl
+    - timestamps
+  JCasC:
+    defaultConfig: true
+    configScripts:
+      lab: |
+        jenkins:
+          numExecutors: 0                      # 제어부에서는 일을 돌리지 않는다 — 전부 노트북 일꾼에서
+          nodes:
+            - permanent:
+                name: laptop
+                labelString: "laptop gpu"
+                remoteFS: "/home/jenkins-agent"
+                numExecutors: 1
+                launcher:
+                  inbound:
+                    webSocket: true            # 일꾼이 밖(노트북)에서 제어부로 연결 — 방화벽 안쪽에서도 된다
+        jobs:
+          - script: >
+              pipelineJob('onprem-agent') {
+                description('올릴 때 단위·모듈, 매일 밤 전체 — Jenkinsfile 이 정한다')
+                definition { cpsScm { scm { git { remote { url('https://github.com/moongu0891-ship-it/onprem-agent.git') } ; branch('*/main') } } ; scriptPath('Jenkinsfile') } }
+              }
+persistence: {enabled: true, size: 2Gi}
+agent: {enabled: false}                        # 쿠버네티스 Pod 일꾼은 쓰지 않는다(GPU 가 노트북에)
