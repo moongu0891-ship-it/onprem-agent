@@ -3,7 +3,7 @@ controller:
   admin: {username: admin, password: lab-admin}
   numExecutors: 0                              # 제어부에서는 일을 돌리지 않는다 — 전부 노트북 일꾼에서
   resources: {requests: {cpu: 200m, memory: 768Mi}, limits: {memory: 1536Mi}}
-  javaOpts: "-Xmx768m"
+  javaOpts: "-Xmx768m -Duser.timezone=Asia/Seoul"   # 화면 시각을 한국 시각으로(C12)
   serviceType: ClusterIP
   installPlugins:
     - kubernetes

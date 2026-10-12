@@ -3,7 +3,9 @@
 pipeline {
   agent { label 'laptop' }
   options { timestamps(); disableConcurrentBuilds(); buildDiscarder(logRotator(numToKeepStr: '20')) }
-  triggers { pollSCM('H/5 * * * *'); cron('H 2 * * *') }
+  // 컨트롤러 Pod 의 시계는 UTC — TZ 를 적지 않으면 'H 2' 가 한국 시각 오전 11시가 된다(C12)
+  triggers { pollSCM('H/5 * * * *'); cron('''TZ=Asia/Seoul
+H 2 * * *''') }
   environment { PY = "${env.HOME}/onprem-agent/.venv/bin/python"; PYTHONPATH = "${env.WORKSPACE}/src" }   // 노트북 가상환경의 파이썬, 코드는 이 작업 공간의 것
   stages {
     stage('단위 시험') { steps { sh 'make test-unit PY=$PY' } }
