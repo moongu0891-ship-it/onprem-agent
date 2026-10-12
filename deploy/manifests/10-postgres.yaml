@@ -48,6 +48,7 @@ spec:
         resources: {requests: {storage: 2Gi}}
 ---
 # 색인 Job: 창구 셋의 자료를 pgvector 에 한 번 넣는다(배치 파이프라인 자리). 앱은 ONPREM_INDEX=reuse 로 이걸 그대로 쓴다.
+# DB 가 Ready 되기 전에 만들면 'postgres' 이름이 아직 없어 첫 시도가 실패한다(backoffLimit 로 다시 뜸) — 10-db.sh 는 DB 를 기다린 뒤 만든다.
 apiVersion: batch/v1
 kind: Job
 metadata:

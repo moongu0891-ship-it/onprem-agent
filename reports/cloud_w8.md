@@ -150,3 +150,19 @@ LiteLLM: 틀린 키 → 400 / 맞는 키 → 200
 deployment "console" successfully rolled out   (ONPREM_MODEL=gateway)
 ```
 (첫 실행: `annotation nginx.ingress.kubernetes.io/auth-realm contains invalid value` — 한글 realm, ASCII 로 고침)
+
+## 10장 PostgreSQL + pgvector (2026-10-12)
+
+```
+onprem-agent:v2  build: 39s  size: 213920917  (pip 층 407MB)
+statefulset postgres: partitioned roll out complete
+index-corpus: 첫 Pod psycopg.OperationalError: failed to resolve host 'postgres' → 둘째 Pod 성공, Job 7초
+ public | chunks_ops | table | agent  (3 rows)      chunks_it count 12
+console: image v2, ONPREM_WEB_STORE=postgres, ONPREM_STORE=pgvector, ONPREM_INDEX=reuse → 3 replicas
+== 13:52:27  상담 번호 t-kill-1791780748  답한 Pod console-bbfd57c77-6rxnb (approval)
+-- 그 Pod 를 지운다 → 같은 번호로 승인:
+  step 담당자 확인 승인됨 → 잠금 해제 요청 RQ-0001 → answer "계정 잠금 해제 요청이 처리되었습니다. [RQ-0001] …"
+HTTP 200  Pod console-bbfd57c77-2tc27
+checkpoints 7 | threads 1
+postgres-0 삭제 → 다시 Ready → 7 / 12
+```

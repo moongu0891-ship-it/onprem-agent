@@ -7,7 +7,9 @@ OUT=results/cloud/10_db.txt; mkdir -p results/cloud
   echo "== $(date '+%F %T')"
   kubectl apply -f deploy/manifests/10-postgres.yaml
   kubectl -n lab rollout status sts/postgres --timeout=300s
-  echo "-- 색인 Job"
+  echo "-- 색인 Job (DB 가 Ready 된 뒤에 — 첫 측정에서 같이 만들자 DNS 가 없어 첫 Pod 가 실패했다)"
+  kubectl -n lab delete job index-corpus --ignore-not-found --wait=true >/dev/null
+  kubectl apply -f deploy/manifests/10-postgres.yaml >/dev/null
   t0=$(date +%s); kubectl -n lab wait --for=condition=complete job/index-corpus --timeout=600s; echo "Job $(( $(date +%s)-t0 ))초"
   kubectl -n lab logs job/index-corpus | tail -4
   kubectl -n lab exec sts/postgres -- psql -U agent -d agent -c "\dt" -c "SELECT count(*) FROM chunks_it;" 2>&1 | tail -8
