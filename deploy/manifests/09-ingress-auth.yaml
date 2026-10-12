@@ -10,7 +10,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
     nginx.ingress.kubernetes.io/auth-type: basic                 # 로그인 — 실제 클라우드의 Cognito·SSO 자리
     nginx.ingress.kubernetes.io/auth-secret: basic-auth
-    nginx.ingress.kubernetes.io/auth-realm: "사내 AI 상담"
+    nginx.ingress.kubernetes.io/auth-realm: "Internal AI Desk"   # 검증기가 ASCII 만 받는다(한글 realm 은 invalid value)
     nginx.ingress.kubernetes.io/limit-rps: "5"                   # 한 주소에서 초당 5 요청(순간 허용 5×5) 넘으면 503
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
 spec:
