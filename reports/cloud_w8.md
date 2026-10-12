@@ -196,6 +196,31 @@ helm install: 1차 context deadline exceeded (init: Plugin timestamps:latest has
   06:13:39 Archiving artifacts → Finished: SUCCESS
 ```
 
+### 밤 전체 시험 — 빌드 #10 (2026-10-13, Started by timer)
+
+측정 장소: 노트북 agent `laptop`(RTX 5070 Laptop 8GB) · 설정 `configs/agent_laptop_w7_split.yaml` · 커밋 `8b1a15a` · Jenkins 시각은 UTC(한국 시각 = +9시간).
+
+```
+02:43:03 단위 시험   39 passed, 3 skipped (12.15s)
+02:43:16 모듈 시험   4 passed, 1 skipped · 규칙 모델 평가 셋 · 빨간불 검사: 초록불 ×3
+02:43:57 12-quiet.sh down → 내림: sglang · console · litellm (GPU 비움)   (15초)
+02:44:13 make test-full … --run-tag r1   (모델 서버 준비 192s)
+         Qwen3-4B · 지금 기본값 · 보호 20   과업 성공 100%  0·0·0  되돌림 10  p50 14.2s
+         Qwen3-4B · 지금 기본값 · 경계 6    과업 성공 100%  0·0·0  되돌림 1   p50 12.3s
+         Qwen3-4B · 지금 기본값 · 기존 26   과업 성공 92%   0·0·0  되돌림 5   p50 11.7s   실패 cs-u3, cs-s1
+03:04:30 … --run-tag r2   (같은 숫자, p50 12.7 / 10.7 / 10.8s, 실패 cs-u3, cs-s1 — 답 글자까지 같음)
+03:21:51 gate.py results/agent_laptop_w7_split_r1.json results/agent_laptop_w7_split_r2.json --reference
+         gate.py: error: argument --reference: expected at least one argument
+         make: *** [Makefile:36: test-full] Error 2
+         + true                                   ← '|| true' 가 삼킴
+03:21:52 12-quiet.sh up → 올림: sglang · console · litellm
+03:21:52 grep 빨간불 검사: → 초록불 ×3 (모듈 시험의 보고서만)
+03:21:53 Finished: SUCCESS   (38.9분)
+(시험 중 huggingface.co 에 HEAD 요청 360줄 — 임베더 bge-m3 를 불러올 때마다)
+```
+
+빨간불 검사를 나중에 같은 두 파일로 다시 돌림(바탕 없음): **초록불** — 0 이어야 하는 칸 전부 0(두 번 모두). 처음 '밤 시험 초록불(SUCCESS)'로 읽을 뻔했으나, 전체 시험의 검사는 돌지 않았었다(C13).
+
 ## 13장 make cloud-up (2026-10-12)
 
 ```

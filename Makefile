@@ -13,7 +13,8 @@ PY ?= python3
 CONFIG ?=
 BASE ?=
 REF ?=
-NAME = $(if $(CONFIG),$(shell $(PY) -c "import yaml; print(yaml.safe_load(open('$(CONFIG)', encoding='utf-8'))['name'])"))   # CONFIG 없으면 계산하지 않는다(Jenkins 로그의 FileNotFoundError '' 가 이것)
+# CONFIG 없으면 계산하지 않는다(Jenkins 로그의 FileNotFoundError '' 가 이것). 줄 끝 주석은 값 뒤에 빈칸을 남기므로 위에 둔다(C13)
+NAME = $(strip $(if $(CONFIG),$(shell $(PY) -c "import yaml; print(yaml.safe_load(open('$(CONFIG)', encoding='utf-8'))['name'])")))
 
 .PHONY: test-unit test-module test-full accept check-docs test web cloud-up cloud-down cloud-destroy
 
@@ -33,9 +34,10 @@ test-full:
 	@test -n "$(CONFIG)" || { echo "CONFIG=configs/… 를 주세요"; exit 2; }
 	$(PY) scripts/eval_agent.py $(CONFIG) --manage --run-tag r1
 	$(PY) scripts/eval_agent.py $(CONFIG) --manage --run-tag r2
+	@$(if $(REF),$(if $(wildcard $(REF)/$(NAME)_r*.json),,echo "받아들인 결과가 없다($(REF)/$(NAME)_r*.json) — 바탕 없이 0 칸·두 번 사이만 검사한다(C13)"))
 	$(PY) scripts/gate.py results/$(NAME)_r1.json results/$(NAME)_r2.json \
 		$(if $(BASE),--baseline "$(BASE)") \
-		$(if $(REF),--reference $(wildcard $(REF)/$(NAME)_r*.json))
+		$(if $(wildcard $(REF)/$(NAME)_r*.json),--reference $(wildcard $(REF)/$(NAME)_r*.json))
 
 accept:
 	@test -n "$(CONFIG)" || { echo "CONFIG=configs/… 를 주세요"; exit 2; }
