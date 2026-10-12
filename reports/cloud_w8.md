@@ -40,7 +40,16 @@ deployment "console" successfully rolled out
 real    0m5.860s
 ```
 
-`port-forward 8080:80` 은 `address already in use` 로 실패(8080 을 다른 프로그램이 씀) — 화면 확인과 04-002 는 다음에.
+`port-forward 8080:80` 은 `address already in use` 로 실패(8080 을 다른 프로그램이 씀) → `18080:80` 으로 열어 브라우저에서 확인(연결 6건).
+
+04-002 (설정만 바꾸기):
+```
+configmap/desk-it configured
+deployment.apps/console restarted … successfully rolled out
+"placeholder": "(ConfigMap 에서 바꾼 문구) 무엇이든 물어보세요"     ← IT 창구(세 창구 중 셋째)
+configmap/desk-it configured                                    ← 되돌림
+```
+(`python3 -m json.tool` 이 한글을 `\uXXXX` 로 찍었는데 풀면 위 문구. `NotFound` 두 줄은 `04-config.sh` 의 확인 명령 오류로, d23e093 에서 고침 — 만들기는 성공)
 
 ## 05장 나눠 주기 · Pod 죽이기 (2026-10-12)
 
