@@ -47,10 +47,10 @@ spec:
             - {name: models, mountPath: /models}
             - {name: models, mountPath: /root/.cache/sglang, subPath: jit-cache}   # 즉석 컴파일 결과 보관 — 두 번째 시작부터는 컴파일 없음
             - {name: shm, mountPath: /dev/shm}
-          startupProbe:                            # 모델 읽기·CUDA 그래프 준비에 1~3분 — 그동안은 죽이지 않는다
+          startupProbe:                            # 첫 시작은 FP8 커널 즉석 컴파일(sm120 용)이 10분을 넘긴다 — 60회(10분)로 두자 컴파일 중에 죽여 되풀이됐다(C11). 캐시가 PVC 에 남으면 1~3분
             httpGet: {path: /health, port: http}
             periodSeconds: 10
-            failureThreshold: 60
+            failureThreshold: 180                  # 30분
           readinessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 10
