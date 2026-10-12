@@ -10,7 +10,7 @@ controller:
     - git
     - configuration-as-code
     - job-dsl
-    - timestamps
+    - timestamper
   JCasC:
     defaultConfig: true
     configScripts:
