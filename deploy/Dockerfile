@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends make curl && rm
 COPY pyproject.toml ./
 COPY src ./src
 # st(sentence-transformers, torch 2GB)는 넣지 않는다 — 03~09장은 해시 임베더, 검색 임베더는 10장에서 따로.
-RUN pip install -e ".[agent,web,dev]"
+RUN pip install -e ".[agent,agent-pg,web,dev]"   # agent-pg: 10장 PostgreSQL 체크포인터 + pgvector
 
 # 코드·창구·데이터·과업·설정 — 상담 화면과 시험이 읽는 것 전부
 COPY scripts ./scripts

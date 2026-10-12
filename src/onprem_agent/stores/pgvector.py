@@ -51,6 +51,13 @@ class PgvectorStore:
             except Exception as e:
                 raise RuntimeError("iterative_scan 은 pgvector 0.8 이상에서만 된다") from e
 
+    def count(self) -> int:
+        """표에 든 행 수(표가 없으면 0). 8주차 10장: 색인 Job 이 넣어 둔 것을 앱이 다시 만들지 않고 쓰기(ONPREM_INDEX=reuse) 위해."""
+        try:
+            return int(self.conn.execute(f"SELECT count(*) FROM {self.table}").fetchone()[0])
+        except Exception:
+            return 0
+
     def search(self, vector, k, filter=None):
         where, params = "", []
         if filter:

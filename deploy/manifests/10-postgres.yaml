@@ -1,0 +1,76 @@
+# 10장: PostgreSQL + pgvector 하나로 둘 다 — 대화·승인 대기(체크포인터)와 검색 색인. StatefulSet + PVC 라 Pod 가 죽어도 데이터가 남는다.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres
+  namespace: lab
+type: Opaque
+stringData:
+  POSTGRES_USER: agent
+  POSTGRES_PASSWORD: agent            # 실습용. 실제로는 10-db.sh 가 임의 값으로 만든다
+  POSTGRES_DB: agent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: lab
+spec:
+  selector: {app: postgres}
+  ports: [{port: 5432, targetPort: 5432}]
+  clusterIP: None                     # StatefulSet 의 고정 이름(postgres-0.postgres)
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: lab
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector: {matchLabels: {app: postgres}}
+  template:
+    metadata: {labels: {app: postgres}}
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg16
+          envFrom: [{secretRef: {name: postgres}}]
+          env: [{name: PGDATA, value: /var/lib/postgresql/data/pgdata}]
+          ports: [{containerPort: 5432}]
+          volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
+          resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {memory: 1Gi}}
+          readinessProbe: {exec: {command: [pg_isready, -U, agent]}, periodSeconds: 5}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 2Gi}}
+---
+# 색인 Job: 창구 셋의 자료를 pgvector 에 한 번 넣는다(배치 파이프라인 자리). 앱은 ONPREM_INDEX=reuse 로 이걸 그대로 쓴다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: index-corpus
+  namespace: lab
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: index
+          image: onprem-agent:v2            # 10장에서 다시 만든 이미지(agent-pg 포함) — bash deploy/scripts/03-build.sh v2
+          imagePullPolicy: Never
+          command: ["python", "-c"]
+          args:
+            - |
+              import time
+              from onprem_agent.agent.tool_server import build_search
+              for folders in (["data/ops"], ["data/cs"], ["examples/desks/it/data"]):   # 표 이름 chunks_ops · chunks_cs · chunks_it
+                  t = time.time(); r, by_id = build_search(folders)
+                  print(f"{folders[0]}: 청크 {len(by_id)} 색인 {time.time()-t:.1f}초")
+          env:
+            - {name: ONPREM_STORE, value: '{"kind":"pgvector","dsn":"postgresql://agent:agent@postgres:5432/agent"}'}
+            - {name: ONPREM_EMBEDDER, value: '{"kind":"hash"}'}     # 10-002 에서 bge-m3 로 바꿔 다시 잰다(st 이미지 필요)

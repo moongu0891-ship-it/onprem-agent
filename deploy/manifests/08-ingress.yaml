@@ -1,0 +1,38 @@
+# 08장: 엣지 — Ingress-NGINX(minikube 애드온) 뒤에 상담 화면. https(자체 서명 인증서, Secret console-tls 는 08-edge.sh 가 만든다), http 는 https 로 되돌림.
+# 09장은 여기에 기본 인증·요청 제한 주석을 더한다(09-ingress-auth.yaml 이 이 파일을 덮어쓴다).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: console
+  namespace: lab
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"          # http → 308 → https
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"      # 답이 SSE 로 수 분 흐른다(생각 모드)
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"         # SSE 는 버퍼링하면 안 된다
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [console.local]
+      secretName: console-tls
+  rules:
+    - host: console.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: console, port: {number: 80}}}
+---
+# 방화벽: 모델 서버(sglang)는 상담 화면(app=console)과 게이트웨이(app=litellm, 09장)에서만 부를 수 있다. 다른 Pod 는 막힌다.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sglang-only-from-apps
+  namespace: lab
+spec:
+  podSelector: {matchLabels: {app: sglang}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app: console}}
+        - podSelector: {matchLabels: {app: litellm}}
+      ports: [{port: 30000}]

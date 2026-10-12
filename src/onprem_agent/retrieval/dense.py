@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import time
 
 import numpy as np
@@ -40,6 +41,12 @@ class DenseRetriever:
 
     def index(self, chunks: list[Chunk]) -> None:
         self.by_id = {c.chunk_id: c for c in chunks}
+        # 8주차 10장: 색인은 Job 이 한 번 하고, 앱은 저장소에 이미 든 것을 쓴다(ONPREM_INDEX=reuse). 문서 임베딩을 건너뛰므로 앱 시작이 빠르다.
+        if os.environ.get("ONPREM_INDEX") == "reuse" and hasattr(self.store, "count") and self.store.count() > 0:
+            self._vecs, self._ids, self._doc_types = None, [c.chunk_id for c in chunks], None
+            self.store_latencies_ms, self.ann_recalls = [], []
+            self.timings = {"embed_s": 0.0, "store_add_s": 0.0, "reused": True}
+            return
         key = (self.embedder.name, _corpus_key(chunks))
         t0 = time.perf_counter()
         if key not in _vec_cache:
@@ -61,7 +68,7 @@ class DenseRetriever:
         t = time.perf_counter()
         found = self.store.search(q, k, filter) if filter else self.store.search(q, k)
         self.store_latencies_ms.append((time.perf_counter() - t) * 1000)
-        if k >= 10:  # 시간 측정 밖에서, 전수 비교 상위 10개와 겹치는 비율을 잰다
+        if k >= 10 and self._vecs is not None:  # 시간 측정 밖에서, 전수 비교 상위 10개와 겹치는 비율을 잰다(재사용 모드엔 벡터가 없어 건너뜀)
             sims = self._vecs @ q
             if filter and "doc_type" in filter:  # 필터를 건 검색은 같은 필터를 건 전수 비교와 비교한다
                 sims = np.where(self._doc_types == filter["doc_type"], sims, -np.inf)

@@ -10,6 +10,9 @@
 - `scripts/05-lb.sh` · `scripts/05-kill.sh` — 05장: 로드 밸런서 횟수 세기 · 승인 대기 중 Pod 죽이기
 - `manifests/06-hpa.yaml` · `scripts/06-load.sh` — 06장: HPA(1→4, CPU 50%) · 부하 걸고 10초마다 Pod 수 기록
 - `manifests/07-sglang.yaml` · `07-download.yaml` — 07장: SGLang GPU Pod + PVC(가중치) + Service · 가중치 내려받기 Job. 벤치마크 설정 `configs/serving_cloud_pod.yaml`(Pod) · `serving_cloud_host.yaml`(바탕: 호스트 Docker)
-- 컨테이너에서 쓰는 환경 변수: `ONPREM_MODEL`(rule/sglang-4b/gateway) · `ONPREM_MODEL_URL`(모델 서버 주소) · `ONPREM_MODEL_KEY`(게이트웨이 키) · `ONPREM_EMBEDDER` · `ONPREM_DESKS`
+- `manifests/08-ingress.yaml` · `scripts/08-edge.sh` — 08장: Ingress(https·되돌림) + NetworkPolicy, 측정
+- `manifests/09-ingress-auth.yaml` · `09-litellm.yaml` · `scripts/09-gateway.sh` — 09장: 기본 인증·요청 제한, LiteLLM 게이트웨이
+- `manifests/10-postgres.yaml` · `scripts/10-db.sh` — 10장: PostgreSQL+pgvector StatefulSet, 색인 Job, 상담 화면을 공용 DB 로
+- 컨테이너에서 쓰는 환경 변수: `ONPREM_MODEL`(rule/sglang-4b/gateway) · `ONPREM_MODEL_URL`(모델 서버 주소) · `ONPREM_MODEL_KEY`(게이트웨이 키) · `ONPREM_EMBEDDER` · `ONPREM_DESKS` · `ONPREM_WEB_STORE`(sqlite/postgres) · `ONPREM_PG_DSN` · `ONPREM_STORE`(벡터 저장소 JSON) · `ONPREM_INDEX`(reuse)
 
 `results/cloud/` 는 Git 에 올리지 않는다. 확정본은 `reports/cloud_*.md`.

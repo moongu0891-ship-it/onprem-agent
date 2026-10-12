@@ -154,6 +154,11 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
                 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
                 (ROOT / "var").mkdir(exist_ok=True)
                 saver = await stack.enter_async_context(AsyncSqliteSaver.from_conn_string(str(ROOT / "var/web_state.db")))
+            elif store == "postgres":   # 8주차 10장: 대화·승인 대기를 공용 DB 에 — 어느 Pod 가 받아도 같은 상담을 잇는다(05장의 409 를 고침)
+                from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+                dsn = os.environ.get("ONPREM_PG_DSN", "postgresql://agent:agent@localhost:5432/agent")
+                saver = await stack.enter_async_context(AsyncPostgresSaver.from_conn_string(dsn))
+                await saver.setup()
             else:
                 from langgraph.checkpoint.memory import InMemorySaver
                 saver = InMemorySaver()
@@ -187,9 +192,12 @@ def create_app(model_key: str = "rule", store: str = "sqlite", results_dir: Path
 
     @app.middleware("http")
     async def pod_header(request, call_next):
-        """어느 Pod 가 답했는지(05장 로드 밸런서 관찰). HOSTNAME 은 Kubernetes 가 Pod 이름으로 채운다."""
+        """어느 Pod 가 답했는지(05장 로드 밸런서 관찰). HOSTNAME 은 Kubernetes 가 Pod 이름으로 채운다.
+        정적 파일에는 캐시 머리말(08장 'CDN 흉내') — 브라우저·앞단 캐시가 두 번째부터 304/캐시로 답하게."""
         resp = await call_next(request)
         resp.headers["X-Served-By"] = os.environ.get("HOSTNAME", "local")
+        if request.url.path.startswith("/static/"):
+            resp.headers["Cache-Control"] = "public, max-age=3600"
         return resp
 
     @app.get("/admin")

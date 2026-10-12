@@ -1,0 +1,51 @@
+# 09장: LiteLLM 게이트웨이를 모델 서버 앞에(5주차 구성의 클러스터판). 키는 Secret model-keys/gateway(04장) — 틀린 키는 401.
+# 5주차의 CPU 대체 엔진(llama.cpp)은 노트북 메모리 때문에 클러스터에 넣지 않는다 — 대체 경로는 설명으로(워크북 09장).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-config
+  namespace: lab
+data:
+  config.yaml: |
+    model_list:
+      - model_name: agent-llm-4b
+        litellm_params: {model: openai/qwen3-4b, api_base: "http://sglang:30000/v1", api_key: none, timeout: 300}
+    router_settings: {num_retries: 0, timeout: 300}
+    litellm_settings: {drop_params: false}
+    general_settings: {master_key: "os.environ/LITELLM_MASTER_KEY"}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+  namespace: lab
+  labels: {app: litellm}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: litellm}}
+  template:
+    metadata: {labels: {app: litellm}}
+    spec:
+      containers:
+        - name: litellm
+          image: ghcr.io/berriai/litellm:main-stable
+          args: ["--config", "/app/config.yaml", "--port", "4000"]
+          env:
+            - name: LITELLM_MASTER_KEY
+              valueFrom: {secretKeyRef: {name: model-keys, key: gateway}}
+          ports: [{containerPort: 4000, name: http}]
+          volumeMounts: [{name: cfg, mountPath: /app/config.yaml, subPath: config.yaml}]
+          resources: {requests: {cpu: 100m, memory: 512Mi}, limits: {memory: 1Gi}}
+          readinessProbe: {httpGet: {path: /health/liveliness, port: http}, periodSeconds: 10}
+      volumes:
+        - name: cfg
+          configMap: {name: litellm-config}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm
+  namespace: lab
+spec:
+  selector: {app: litellm}
+  ports: [{port: 4000, targetPort: http}]

@@ -7,6 +7,8 @@
 환경 변수
 - ONPREM_ROOT          저장소 루트 (데이터 폴더의 기준)
 - ONPREM_EMBEDDER      검색 임베더 설정 JSON. 기본 {"kind":"hash"} (모델 없이 CI 에서 돈다).
+- ONPREM_STORE         벡터 저장소 설정 JSON. 기본 {"kind":"memory"}. 8주차 10장: {"kind":"pgvector","dsn":"postgresql://…"} —
+                       table 을 안 주면 창구 폴더 이름으로 chunks_<이름>. ONPREM_INDEX=reuse 면 저장소에 이미 든 색인을 그대로 쓴다.
 - ONPREM_TOOL_EXAMPLES 0 이면 업무 기능(도구) 설명에 구체 예시 값 대신 형식만 적는다.
 """
 
@@ -14,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 
 ROOT = Path(os.environ.get("ONPREM_ROOT", Path(__file__).resolve().parents[3]))
@@ -29,8 +32,12 @@ def build_search(folders: list[str]):
     from ..corpus import load_corpus
     from ..retrieval import build_retriever
     emb = json.loads(os.environ.get("ONPREM_EMBEDDER", '{"kind": "hash"}'))
+    store = json.loads(os.environ.get("ONPREM_STORE", '{"kind": "memory"}'))
+    if store.get("kind") != "memory" and "table" not in store:
+        p = Path(folders[0])
+        store["table"] = "chunks_" + re.sub(r"\W", "_", p.parent.name if p.name == "data" else p.name)
     r = build_retriever({"kind": "routed", "code_route": {"kind": "bm25"},
-                         "default_route": {"kind": "dense", "store": {"kind": "memory"}, "embedder": emb}})
+                         "default_route": {"kind": "dense", "store": store, "embedder": emb}})
     chunks = [c for f in folders for c in load_corpus(ROOT / f)]
     r.index(chunks)
     return r, {c.chunk_id: c for c in chunks}

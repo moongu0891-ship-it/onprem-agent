@@ -26,7 +26,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--model", default=os.environ.get("ONPREM_MODEL", "rule"), choices=list(MODELS),
                     help="기본 rule. 컨테이너에서는 환경 변수 ONPREM_MODEL 로도 정한다(8주차)")
-    ap.add_argument("--store", default="sqlite", choices=["sqlite", "memory"], help="대화·승인 대기 저장 (sqlite: var/web_state.db)")
+    ap.add_argument("--store", default=os.environ.get("ONPREM_WEB_STORE", "sqlite"), choices=["sqlite", "memory", "postgres"],
+                    help="대화·승인 대기 저장 (sqlite: var/web_state.db · postgres: ONPREM_PG_DSN, 8주차 10장). 환경 변수 ONPREM_WEB_STORE 로도")
     ap.add_argument("--host", default="127.0.0.1", help="기본은 이 컴퓨터에서만. 다른 컴퓨터에서 보려면 0.0.0.0 (인증이 없으니 사내망 안에서만)")
     ap.add_argument("--port", type=int, default=8080)
     ap.add_argument("--embedder", default=None, help='검색 임베더 JSON (기본: 해시 임베더)')
