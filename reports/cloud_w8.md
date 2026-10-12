@@ -126,3 +126,16 @@ docker stats agent: 7.862GiB/12GiB (모델 서버만, 상담 화면 0)  → 11.1
 상담 화면: ONPREM_MODEL=sglang-4b → 관리자 화면 모델 qwen3-4b, http://sglang:30000/v1, 생각 모드 켬
 "E1063 계정 잠금 해제 요청해 줘…" → 질문 이해: 잠금 해제 요청 → 담당자 확인 카드(사번 E1063 · 사유 '비밀번호 5회 오류로 잠김, 본인 확인 완료')
 ```
+
+## 08장 엣지 (2026-10-12)
+
+```
+== 2026-10-12 13:35:28  minikube ip 192.168.49.2
+http  308 → https://console.local/healthz
+https 200  서버 console-554cbf97-zfqn4
+subject=CN = console.local   notBefore=Oct 12 04:35:01 2026 GMT  notAfter=Oct 12 04:35:01 2027 GMT
+HTTP/2 200  etag: "b107963e…"   두 번째(If-None-Match): 304
+라벨 없음 → sglang: 200 (exit 0)      ← NetworkPolicy 미집행(기본 CNI)
+console → sglang: 200
+```
+(첫 실행: `failed calling webhook "validate.nginx.ingress.kubernetes.io" … connection refused` — 컨트롤러 준비 전 apply, 스크립트 고침)
