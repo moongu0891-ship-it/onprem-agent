@@ -1,5 +1,5 @@
 # 07장: 모델 서버(SGLang · Qwen3-4B(FP8))를 GPU Pod 로. 가중치는 PVC(models)에 — 07-download.yaml 의 Job 이 한 번 받아 둔다.
-# 3주차 serving/compose.yml 의 sglang-4b 프로필과 같은 실행 인자(접두사 캐시 켬, CUDA 그래프 상한 16, 생각 모드는 요청이 정함).
+# 3주차 serving/compose.yml 의 sglang-4b 프로필과 같은 실행 인자(접두사 캐시 켬, CUDA 그래프 상한 16, 생각 모드는 요청이 정함) + attention 백엔드 triton(C11).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -32,14 +32,15 @@ spec:
           command: ["python3", "-m", "sglang.launch_server"]
           args: ["--model-path", "Qwen/Qwen3-4B-FP8", "--served-model-name", "qwen3-4b",
                  "--host", "0.0.0.0", "--port", "30000", "--context-length", "8192", "--mem-fraction-static", "0.80",
-                 "--tool-call-parser", "qwen25", "--enable-cache-report", "--cuda-graph-max-bs-decode", "16"]
+                 "--tool-call-parser", "qwen", "--enable-cache-report", "--cuda-graph-max-bs-decode", "16",
+                 "--attention-backend", "triton"]   # flashinfer 는 RTX 5070 용 커널을 즉석 컴파일하며 RAM 을 다 먹었다(C11) — triton 은 컴파일 없음
           env:
             - {name: HF_HOME, value: /models/hf}
             - {name: HF_HUB_OFFLINE, value: "1"}    # 가중치는 PVC 에 있다 — 인터넷을 보지 않는다
           ports: [{containerPort: 30000, name: http}]
           resources:
             requests: {cpu: "1", memory: 3Gi, nvidia.com/gpu: 1}
-            limits: {nvidia.com/gpu: 1}            # 메모리 상한은 두지 않는다 — 노드(docker 컨테이너)의 상한이 진짜 상한(07장 실행 1행)
+            limits: {nvidia.com/gpu: 1, memory: 7Gi}   # 모자라면 노드가 아니라 이 컨테이너만 죽게(C11: 상한 없이 두자 노드 12GB 를 다 먹어 제어부가 멈췄다)
           volumeMounts:
             - {name: models, mountPath: /models}
             - {name: shm, mountPath: /dev/shm}
