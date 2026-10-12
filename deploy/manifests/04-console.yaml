@@ -30,7 +30,7 @@ spec:
               subPath: desk.yaml
             - {name: var, mountPath: /app/var}            # 대화·승인 대기(SQLite) — Pod 와 함께 사라진다(05장에서 확인, 10장에서 DB 로)
           resources:
-            requests: {cpu: 200m, memory: 384Mi}
+            requests: {cpu: 200m, memory: 768Mi}     # 06장 측정: 평시 670~764Mi (처음 384Mi 로 적었다가 올림)
             limits: {cpu: "1", memory: 1Gi}
           livenessProbe:                    # 살아 있나 — 안 되면 컨테이너를 다시 띄운다
             httpGet: {path: /healthz, port: http}
