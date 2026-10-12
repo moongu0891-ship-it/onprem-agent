@@ -94,3 +94,20 @@ console-…-wtrqb   4m   670Mi
 console-…-xjtrp   4m   764Mi
 Events: FailedGetResourceMetric(처음 1분, metrics-server 가 아직) → SuccessfulRescale 3 → 4
 ```
+
+06-002 (부하 90초 + 240초 관찰, 메모리 requests 768Mi 적용 뒤):
+```
+== 2026-10-12 09:48:51  부하 90초 · 동시 8
+09:48:51  2/50     1  1
+09:49:12  /50      1  1      ← apply 로 새로 뜬 Pod, 지표 아직(pods might be unready) … 09:50:14 까지
+09:50:24  339/50   3  2
+09:50:45  339/50   4  4
+09:51:26  38/50    4  4      ← 부하는 09:50:21 에 끝남
+09:52:07  38/50    1  1      ← 4 → 1 (All metrics below target)
+09:52:27  2/50     1  1 … 09:54:21
+-- 부하 Pod 출력: 요청 4152 개
+console-559b967cd4-gxbc8   4m   746Mi
+== 2026-10-12 09:54:32  replicas=1  요청 30 회
+     30 200 console-559b967cd4-gxbc8
+합계: 30 줄
+```
