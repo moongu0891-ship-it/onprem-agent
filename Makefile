@@ -13,7 +13,7 @@ PY ?= python3
 CONFIG ?=
 BASE ?=
 REF ?=
-NAME = $(shell $(PY) -c "import yaml; print(yaml.safe_load(open('$(CONFIG)', encoding='utf-8'))['name'])")
+NAME = $(if $(CONFIG),$(shell $(PY) -c "import yaml; print(yaml.safe_load(open('$(CONFIG)', encoding='utf-8'))['name'])"))   # CONFIG 없으면 계산하지 않는다(Jenkins 로그의 FileNotFoundError '' 가 이것)
 
 .PHONY: test-unit test-module test-full accept check-docs test web cloud-up cloud-down cloud-destroy
 

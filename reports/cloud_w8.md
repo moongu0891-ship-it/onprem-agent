@@ -179,3 +179,19 @@ console 대상 1 ['up']
 질문 누적:                     20.000
 확인 대기 / 오류 누적:         (KeyError 'data' — PromQL 따옴표 깨짐, 스크립트 고침)
 ```
+
+## 12장 Jenkins (2026-10-12)
+
+```
+helm install: 1차 context deadline exceeded (init: Plugin timestamps:latest has unresolvable dependencies)
+2차: jenkins 컨테이너 CrashLoop — io.jenkins.plugins.casc.ConfiguratorConflictException … lab.yaml line 2 (numExecutors)
+3차: 2/2 Running 82s. 빌드 #1 3.8초 FAILURE — AccessDeniedException: /home/jenkins-agent (remoteFS)
+4차(remoteFS 고침): 일꾼 Connected → 빌드 #2
+  Running on laptop in /home/mgoh/jenkins-agent/workspace/onprem-agent
+  06:12:40 make test-unit → 39 passed, 3 skipped (11.81s)
+  06:12:54 make test-module → 4 passed … eval agent_ci / agent_ci_guard / agent_ci_default
+  06:13:05 laptop seems to be removed or offline … 06:13:14 laptop is back online
+  06:13:38 # 빨간불 검사: 초록불 ×3
+  Stage "전체 시험 (밤)" skipped due to when conditional
+  06:13:39 Archiving artifacts → Finished: SUCCESS
+```
