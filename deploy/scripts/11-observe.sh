@@ -29,7 +29,7 @@ SECS=${1:-60}; PAR=${2:-4}; OUT=results/cloud/11_observe.txt; mkdir -p results/c
   echo "초당 질문 수(1분 평균, Pod 별): $(q 'sum by (pod) (rate(agent_chat_total[1m]))')"
   echo "처리 시간 p95(초):            $(q 'histogram_quantile(0.95, sum by (le) (rate(agent_turn_seconds_bucket[5m])))')"
   echo "질문 누적:                    $(q 'sum(agent_chat_total)')"
-  echo "확인 대기 / 오류 누적:        $(q 'sum(agent_chat_status_total{status=\"확인 대기\"})') / $(q 'sum(agent_chat_status_total{status=\"오류\"})')"
+  echo "확인 대기 / 오류 누적:        $(q "sum(agent_chat_status_total{status='확인 대기'})") / $(q "sum(agent_chat_status_total{status='오류'})")"   # PromQL 은 작은따옴표도 받는다(첫 측정에서 \" 가 그대로 들어가 깨짐)
   kill $PF; kubectl -n lab delete pod load --ignore-not-found --wait=false >/dev/null
   echo "Grafana: kubectl -n lab port-forward svc/grafana 3000:80 → http://127.0.0.1:3000 (admin / lab-admin) → 대시보드 '사내 AI 상담 — 운영'"
 } 2>&1 | tee -a "$OUT"

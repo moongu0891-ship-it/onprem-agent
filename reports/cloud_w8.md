@@ -166,3 +166,16 @@ HTTP 200  Pod console-bbfd57c77-2tc27
 checkpoints 7 | threads 1
 postgres-0 삭제 → 다시 Ready → 7 / 12
 ```
+
+## 11장 관측 (2026-10-12)
+
+```
+onprem-agent:v3  load into minikube: 12s
+prometheus deployed 14:12:49 · grafana deployed 14:13:34 (chart deprecated 경고)
+console 대상 1 ['up']
+부하 60초 · 동시 4 (gateway)
+초당 질문 수(1분 평균, Pod 별): console-7d89cb6c85-2zr94 0.267
+처리 시간 p95(초):             18.571
+질문 누적:                     20.000
+확인 대기 / 오류 누적:         (KeyError 'data' — PromQL 따옴표 깨짐, 스크립트 고침)
+```
