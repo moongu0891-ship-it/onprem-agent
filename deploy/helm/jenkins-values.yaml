@@ -21,7 +21,7 @@ controller:
             - permanent:
                 name: laptop
                 labelString: "laptop gpu"
-                remoteFS: "/home/jenkins-agent"
+                remoteFS: "/home/mgoh/jenkins-agent"   # 노트북의 실제 작업 폴더(12-jenkins.sh agent 의 -workDir 와 같게) — 없는 경로면 AccessDenied
                 numExecutors: 1
                 launcher:
                   inbound:
