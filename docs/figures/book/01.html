@@ -5,7 +5,7 @@
     <div class="nest teal"><span class="nl">Docker <em>✔ --gpus all · 런타임 nvidia (3주차 서빙)</em></span>
      <div class="nest purple"><span class="nl">minikube 노드 = Docker 컨테이너 하나 <code>--gpus=all</code></span>
       <div class="r" style="gap:2mm">
-       <div class="n gray" style="flex:1"><b>장치 플러그인 (DaemonSet)</b><small>노드의 GPU 를 <code>nvidia.com/gpu: 1</code> 자원으로 광고</small></div>
+       <div class="n gray" style="flex:1"><b>device plugin (DaemonSet)</b><small>노드의 GPU 를 <code>nvidia.com/gpu: 1</code> 자원으로 광고</small></div>
        <div class="nest orange" style="flex:1.1;margin-top:0"><span class="nl">Pod gpu-probe</span><div style="padding-top:.4mm"><span class="q">?</span><code>nvidia-smi -L</code><br><small style="color:#4a5361">limits: nvidia.com/gpu: 1</small></div></div>
       </div>
      </div>
@@ -14,9 +14,9 @@
   </div>
  </div>
  <div class="c" style="flex:0 0 52mm;gap:1.6mm">
-  <div class="n green"><b>A. 보인다 → 07장: 모델 서버를 Pod 로</b><small>GPU 0: NVIDIA GeForce RTX 5070 Laptop GPU · 노드 gpu=1 · 10초</small></div>
-  <div class="n gray fade"><b>B. 안 보인다 → 호스트 Docker 에 두고 붙음</b><small><code>host.minikube.internal:30000</code> — 'GPU 노드 풀을 따로 둔' 모양</small></div>
-  <div class="n ink"><b>판정 <span class="ok">A</span> (2026-10-12)</b><small>첫 시도는 <code>serviceaccount "default" not found</code> — 새 네임스페이스의 서비스 계정이 생기기 전 (C9)</small></div>
+  <div class="n green"><b>A. 보인다 → 07장: 모델 서버를 Pod 로</b><small>GPU 0: NVIDIA GeForce RTX 5070 Laptop GPU ·</small><small>노드 gpu=1 · 10초</small></div>
+  <div class="n gray fade"><b>B. 안 보인다 → 호스트 Docker 에 두고 붙음</b><small><code>host.minikube.internal:30000</code> —</small><small>'GPU 노드 풀을 따로 둔' 모양</small></div>
+  <div class="n ink"><b>판정 <span class="ok">A</span> (2026-10-12)</b><small>첫 시도는 <code>serviceaccount "default" not found</code> —</small><small>새 네임스페이스의 서비스 계정이 생기기 전 (C9)</small></div>
  </div>
 </div>
 <div class="foot"><span class="k">핵심</span>GPU 는 네 겹(WSL2 → Docker → 노드 컨테이너 → Pod)을 통과해야 한다. 앞 두 겹은 3주차에 확인했고, 이 장은 뒤 두 겹만 잰다.</div>

@@ -9,7 +9,7 @@
 </div>
 <div class="sp"></div>
 <div class="r st2" style="gap:2mm">
- <div class="n red dash" style="flex:1.3"><b>✗ 이미지에 넣지 않는다</b><small>모델 가중치 Qwen3-4B(FP8) 4.4GB · 검색 임베더 bge-m3 + torch 2GB → 07 · 10장에서 PVC 로 따로. 넣으면 3GB 가 넘어 올리기 · 되돌리기가 다 느려진다.</small></div>
- <div class="n teal" style="flex:1"><b>층 순서가 캐시를 정한다</b><small>잘 안 바뀌는 것(의존성) 먼저, 자주 바뀌는 것(코드) 나중 → 코드만 고치면 설치 층은 캐시에서.</small></div>
+ <div class="n red dash" style="flex:1.3"><b>✗ 이미지에 넣지 않는다</b><small>model weights Qwen3-4B(FP8) 4.4GB ·</small><small>검색 임베더 bge-m3 + torch 2GB → 07 ·</small><small>10장에서 PVC 로 따로.</small><small>넣으면 3GB 가 넘어 올리기 ·</small><small>되돌리기가 다 느려진다.</small></div>
+ <div class="n teal" style="flex:1"><b>층 순서가 캐시를 정한다</b><small>잘 안 바뀌는 것(의존성) 먼저, 자주 바뀌는 것(코드) 나중</small><small>→ 코드만 고치면 설치 층은 캐시에서.</small></div>
 </div>
 <div class="foot"><span class="k">한 이미지 두 역할</span>실행 명령만 바꿔 상담 화면(<code>python scripts/web.py</code>)과 전체 시험(<code>make test-full</code>, 12장)을 함께 한다. <span class="k">EKS 라면</span>ECR 에 push 하고 노드가 pull.</div>

@@ -7,14 +7,14 @@
   <div class="n green"><b>04 설정 · 화면</b><small>4초 · apply</small></div>
   <div class="n orange"><b>07 모델 서버</b><small>5초 · digest 고정</small></div>
   <div class="n teal"><b>10 DB · 색인</b><small>13초 · Job</small></div>
-  <div class="n red"><b>08·09 엣지 · 관문</b><small>14초 · 인증서 · 인증</small></div>
-  <div class="n purple"><b>11 관측</b><small>15초 · helm</small></div>
+  <div class="n red"><b>08·09 Edge · API Gateway</b><small>14초 · 인증서 · 인증</small></div>
+  <div class="n purple"><b>11 Observability</b><small>15초 · helm</small></div>
   <div class="n blue"><b>기다림 → 확인</b><small>19→90초 · https 200</small></div>
  </div>
 </div>
 <div class="sp"></div>
 <div class="r st2" style="gap:2mm">
  <div class="n gray" style="flex:1"><b>make cloud-down → minikube stop</b><small>내용 유지 — 다시 cloud-up 하면 1분 30초</small></div>
- <div class="n red" style="flex:1"><b>make cloud-destroy → minikube delete</b><small>36GB 이미지 · 가중치 · 컴파일 캐시 · DB 전부 삭제 — 처음부터는 수십 분</small></div>
+ <div class="n red" style="flex:1"><b>make cloud-destroy → minikube delete</b><small>36GB 이미지 · weights · 컴파일 캐시 ·</small><small>DB 전부 삭제 — 처음부터는 수십 분</small></div>
 </div>
 <div class="foot"><span class="k">멱등</span>'다시 안 함'이 아니라 '다시 해도 같은 결과'. kubectl apply · helm upgrade --install · --dry-run=client | apply. <span class="k">실제라면</span>Terraform(클러스터·노드·RDS) + Helm 차트(앱) + ArgoCD.</div>

@@ -3,17 +3,17 @@
  <div class="a"><i>:30000/v1</i></div>
  <div class="n blue"><b>Service sglang</b><small>http://sglang:30000</small></div>
  <div class="a"></div>
- <div class="n orange"><b>Deployment sglang ×1 <span class="gpu">GPU</span></b><small>Qwen3-4B(FP8) · 이미지 digest 고정 · Recreate</small><small>triton 백엔드 · 상한 9Gi · startupProbe 30분 · timeout 5초</small></div>
+ <div class="n orange"><b>Deployment sglang ×1 <span class="gpu">GPU</span></b><small>Qwen3-4B(FP8) · 이미지 digest 고정 ·</small><small>Recreate</small><small>triton 백엔드 · 상한 9Gi ·</small><small>startupProbe 30분 · timeout 5초</small></div>
  <div></div><div></div><div></div><div></div><div class="va up"><i>마운트</i></div>
- <div class="n gray"><b>벤치마크 (호스트)</b><small>port-forward 30000 → 같은 Pod<br>바탕: 3주차 compose</small></div>
+ <div class="n gray"><b>벤치마크 (호스트)</b><small>port-forward 30000</small><small>→ 같은 Pod<br>바탕: 3주차 compose</small></div>
  <div></div>
  <div class="n gray"><b>Job download-qwen3-4b</b><small>hf download · 한 번 · 2분 47초</small></div>
  <div class="a"><i>저장</i></div>
- <div class="n teal"><b><svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/><path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg>PVC models · 20Gi</b><small><code>/models/hf/hub</code> 가중치 4.4GB<br><code>/root/.cache/sglang</code> 컴파일 캐시 — 두 번째 시작 58초의 비밀</small></div>
+ <div class="n teal"><b><svg class="ic" viewBox="0 0 16 18"><ellipse cx="8" cy="3.5" rx="6.5" ry="2.5"/><path d="M1.5 3.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/></svg>PVC models · 20Gi</b><small><code>/models/hf/hub</code> weights 4.4GB<br><code>/root/.cache/sglang</code> 컴파일 캐시 —</small><small>두 번째 시작 58초의 비밀</small></div>
 </div>
 <div class="sp"></div>
 <div class="r st2" style="gap:2mm">
- <div class="n red" style="flex:1"><b>첫 시작 2시간 40분 (C11)</b><small>RTX 5070 용 FP8 커널 즉석 컴파일 → 노드 12GB 다 먹음 · 10분 Probe 가 컴파일 중인 서버를 죽임 · /health 가 1초를 넘김</small></div>
- <div class="n green" style="flex:1"><b>고친 뒤</b><small>두 번째 시작 <b style="display:inline;color:#1f8a4c">58초</b> · 안정 메모리 <b style="display:inline;color:#1f8a4c">7.9GB</b> (예산 4~5GB 는 틀림) · 실제 모델로 승인 카드 확인</small></div>
+ <div class="n red" style="flex:1"><b>첫 시작 2시간 40분 (C11)</b><small>RTX 5070 용 FP8 커널 JIT 컴파일</small><small>→ 노드 12GB 다 먹음 ·</small><small>10분 Probe 가 컴파일 중인 서버를 죽임 ·</small><small>/health 가 1초를 넘김</small></div>
+ <div class="n green" style="flex:1"><b>고친 뒤</b><small>두 번째 시작 <b style="display:inline;color:#1f8a4c">58초</b> ·</small><small>안정 메모리 <b style="display:inline;color:#1f8a4c">7.9GB</b> (예산 4~5GB 는 틀림) ·</small><small>실제 모델로 승인 카드 확인</small></div>
 </div>
-<div class="foot"><span class="k">EKS 라면</span>GPU 노드 그룹(g5/g6) + NVIDIA 장치 플러그인, 가중치는 S3 → 노드 로컬 NVMe 또는 FSx, 이미지는 미리 굽거나(AMI) 노드가 캐시.</div>
+<div class="foot"><span class="k">EKS 라면</span>GPU 노드 그룹(g5/g6) + NVIDIA device plugin, weights 는 S3 → 노드 로컬 NVMe 또는 FSx, 이미지는 미리 굽거나(AMI) 노드가 캐시.</div>

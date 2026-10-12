@@ -2,7 +2,7 @@
 <h1>개발할 때 내 노트북에서 실제로 벌어지는 일</h1>
 <p class="sub">프로그램 2개(+모델 서버)를 켜 두고 브라우저로 8080번 문을 엽니다 — 상담 화면은 창구 서버를 스스로 띄우고, 모델 서버 30000번 문에 묻습니다</p>
 
-<div class="cols2" style="grid-template-columns:640px 1fr">
+<div class="cols2" style="grid-template-columns:760px minmax(0,1fr)">
 <div class="box plain" style="padding:18px 20px">
 <h3 style="font-size:22px">저장소의 폴더 구조</h3><p class="small">onprem-agent/ · ★ = 창구를 붙일 때 직접 고치는 파일</p>
 <div class="tree">onprem-agent/
@@ -41,7 +41,7 @@
 <p class="small">① 창구 고르기 · 질문 입력</p><p style="background:#eefbf3;border:1px solid #1f8a4c;border-radius:8px;padding:4px 8px;font-size:13px">AI가 처리한 순서: 위험 작업 확인 → 질문 이해 → 잠금 해제 요청 → <b>담당자 확인</b></p>
 <p class="small">② 승인 카드 → <b>승인하고 요청</b> → 답 + [RQ-0001]</p></div>
 <div><p style="margin:0 0 6px"><b>여기서 실행되는 것 = 정적 화면 코드</b></p>
-<p class="small">① 주소창 8080 → FastAPI 가 화면 파일(HTML/JS/CSS)을 배달<br>② 질문은 <code>/api/chat</code> 로 보내고 답은 <b>SSE</b> 로 한 사건씩 흘러옴(단계 · 자료 · 승인 카드 · 답)<br>③ 승인은 <code>/api/approve</code> — 그래프가 멈춰 둔 자리에서 이어감<br>④ 브라우저는 모델 서버와 직접 대화하지 않음</p></div>
+<p class="small"><span class="ln">① 주소창 8080 → FastAPI 가 화면 파일(HTML/JS/CSS)을 배달<br>② 질문은 <code>/api/chat</code> 로 보내고</span><span class="ln">답은 <b>SSE</b> 로 한 사건씩 흘러옴(단계 · 자료 · 승인 카드 · 답)<br>③ 승인은 <code>/api/approve</code></span><span class="ln">— 그래프가 멈춰 둔 자리에서 이어감<br>④ 브라우저는 모델 서버와 직접 대화하지 않음</span></p></div>
 </div></div>
 
 <div class="cols3" style="margin-top:14px">
@@ -69,8 +69,8 @@ $ docker compose --profile sglang-4b up
 </div>
 
 <div class="box orange" style="margin-top:14px"><h3>포트(port) = 한 컴퓨터 안의 '문 번호'</h3>
-<p><b style="color:var(--blue)">8080</b> = 상담 화면 &nbsp; <b style="color:var(--orange)">30000</b> = SGLang(모델) &nbsp; <b style="color:var(--teal)">4000</b> = LiteLLM 게이트웨이(켤 때) &nbsp; <b style="color:var(--purple)">5432</b> = PostgreSQL(8주차) — 모두 같은 노트북 안입니다.</p>
-<p>창구 서버는 문이 없습니다 — 상담 화면이 자식 프로세스로 띄우고 <b>표준 입출력(MCP stdio)</b> 으로 말합니다. 그래서 창구 폴더를 저장소 밖에 두어도(ONPREM_DESKS) 됩니다.</p>
-<p class="small">실제 서비스(8주차)에서는 상담 화면 · 모델 서버 · DB 가 서로 다른 Pod 에 있어도 원리는 똑같습니다 — 문 번호가 서비스 이름(console · sglang · postgres)으로 바뀔 뿐.</p></div>
+<p><span class="ln"><b style="color:var(--blue)">8080</b> = 상담 화면 &nbsp; <b style="color:var(--orange)">30000</b> = SGLang(모델) &nbsp; <b style="color:var(--teal)">4000</b> = LiteLLM gateway(켤 때) &nbsp; <b style="color:var(--purple)">5432</b> = PostgreSQL(8주차)</span><span class="ln">— 모두 같은 노트북 안입니다.</span></p>
+<p><span class="ln">창구 서버는 문이 없습니다</span><span class="ln">— 상담 화면이 자식 프로세스로 띄우고</span><span class="ln"><b>표준 입출력(MCP stdio)</b> 으로 말합니다.</span><span class="ln">그래서 창구 폴더를 저장소 밖에 두어도(ONPREM_DESKS) 됩니다.</span></p>
+<p class="small"><span class="ln">실제 서비스(8주차)에서는 상담 화면 · 모델 서버 · DB 가 서로 다른 Pod 에 있어도 원리는 똑같습니다</span><span class="ln">— 문 번호가 서비스 이름(console · sglang · postgres)으로 바뀔 뿐.</span></p></div>
 </div></div>
 </div></body></html>

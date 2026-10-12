@@ -14,24 +14,24 @@
 <div class="flow">
 <div class="pill">사용자 (현장 작업자 · 상담원 · 직원)</div>
 <div class="arrow" style="--c:#8a93a1">질문 입력</div>
-<div class="box blue"><h3>상담 화면 <span class="tag">화면</span></h3><p>브라우저에서 열고, 답이 오는 과정을 한 칸씩 보여 줍니다 · 승인 카드</p><p class="mono">src/onprem_agent/web · :8080 · /admin</p></div>
+<div class="box blue"><h3>상담 화면 <span class="tag">화면</span></h3><p><span class="ln">브라우저에서 열고,</span><span class="ln">답이 오는 과정을 한 칸씩 보여 줍니다 · 승인 카드</span></p><p class="mono">src/onprem_agent/web · :8080 · /admin</p></div>
 <div class="arrow" style="--c:#1b6fb8">질문 · 승인 (SSE 로 흘러옴)</div>
-<div class="box green"><h3>에이전트 그래프 <span class="tag">정하는 사람</span></h3><p>LangGraph — 찾기 → 사람에게 묻기 → 답 쓰기 → 지키기. 여기에 안전 기능이 코드로 들어 있습니다</p><p class="mono">src/onprem_agent/agent/graph.py</p></div>
+<div class="box green"><h3>에이전트 그래프 <span class="tag">정하는 사람</span></h3><p><span class="ln">LangGraph</span><span class="ln">— 찾기 → 사람에게 묻기 → 답 쓰기 → 지키기. 여기에 안전 기능이 코드로 들어 있습니다</span></p><p class="mono">src/onprem_agent/agent/graph.py</p></div>
 <div class="arrow" style="--c:#1f8a4c">업무 기능(도구) 호출 (MCP · 표준 입출력)</div>
-<div class="box teal"><h3>창구 서버 <span class="tag">업무 기능(도구)</span></h3><p>설비 정비 · 고객 상담 · IT 헬프데스크 — 각자 검색 · 조회 · 요청 등록을 가짐</p><p class="mono">examples/desks/&lt;창구&gt;/server.py · desk.yaml</p></div>
+<div class="box teal"><h3>창구 서버 <span class="tag">업무 기능(도구)</span></h3><p><span class="ln">설비 정비 · 고객 상담 · IT 헬프데스크</span><span class="ln">— 각자 검색 · 조회 · 요청 등록을 가짐</span></p><p class="mono">examples/desks/&lt;창구&gt;/server.py · desk.yaml</p></div>
 <div class="arrow" style="--c:#0f8b8d">찾은 자료 [절 번호] 와 함께</div>
-<div class="box orange"><h3>모델 서버 <span class="tag">글 쓰는 AI</span></h3><p>★ 그래프가 "다음 할 일"과 "답"을 물을 때마다 부릅니다 (HTTP, OpenAI 호환)</p><p class="mono">SGLang · Qwen3-4B(FP8) · :30000 &nbsp;(앞에 LiteLLM 게이트웨이 :4000 을 둘 수 있음)</p>
-<hr style="border:0;border-top:1px dashed #d97a06;margin:8px 0"><p class="small">이 자리에 들어갈 수 있는 엔진 — 셋 중 <b>하나만</b> 켭니다: <span class="chip on">SGLang</span><span class="chip">vLLM</span><span class="chip">llama.cpp(CPU 예비)</span> 3주차에 재서 SGLang 을 골랐습니다</p></div>
+<div class="box orange"><h3>모델 서버 <span class="tag">글 쓰는 AI</span></h3><p>★ 그래프가 "다음 할 일"과 "답"을 물을 때마다 부릅니다 (HTTP, OpenAI 호환)</p><p class="mono">SGLang · Qwen3-4B(FP8) · :30000 &nbsp;(앞에 LiteLLM gateway :4000 을 둘 수 있음)</p>
+<hr style="border:0;border-top:1px dashed #d97a06;margin:8px 0"><p class="small"><span class="ln">이 자리에 들어갈 수 있는 엔진</span><span class="ln">— 셋 중 <b>하나만</b> 켭니다: <span class="chip on">SGLang</span><span class="chip">vLLM</span><span class="chip">llama.cpp(CPU 예비)</span> 3주차에 재서 SGLang 을 골랐습니다</span></p></div>
 <div class="arrow" style="--c:#d97a06">글 (생각 + 답)</div>
 <div class="pill green">답 + 근거 번호 [OPS-…] · 가린 개인정보</div>
 </div>
 
 <div>
 <h2>왜 굳이 넷으로 나눴나</h2><p class="h2sub">한 프로그램으로 몰아도 되지만, 이유가 있습니다</p>
-<div class="box green"><h3>창구를 바꿔도 핵심은 그대로</h3><p>IT 헬프데스크는 핵심 코드를 한 줄도 고치지 않고 폴더 하나로 붙였습니다 — 「창구 하나 = 폴더 하나」(그림 6)</p></div>
-<div class="box orange"><h3>모델을 바꿔도 그래프는 그대로</h3><p>Qwen3-1.7B → Qwen3-4B(FP8), 생각 모드 끔 → 켬. 설정 한 줄이고, 같은 시험지로 재서 골랐습니다</p></div>
-<div class="box red"><h3>AI 가 하면 안 되는 일은 코드가 막습니다</h3><p>요청 등록은 사람이 승인해야 실행되고, 출처는 실제로 찾아본 번호만 붙습니다. 모델에게 「부탁」하지 않습니다 (그림 4)</p></div>
-<div class="box teal"><h3>전부 내 컴퓨터 안입니다</h3><p>매뉴얼 · 검색 색인 · 언어모델이 모두 사내에 있어 랜선을 뽑아도 동작합니다 — 질문이 밖으로 안 나갑니다</p></div>
+<div class="box green"><h3>창구를 바꿔도 핵심은 그대로</h3><p><span class="ln">IT 헬프데스크는 핵심 코드를 한 줄도 고치지 않고</span><span class="ln">폴더 하나로 붙였습니다 — 「창구 하나 = 폴더 하나」(그림 6)</span></p></div>
+<div class="box orange"><h3>모델을 바꿔도 그래프는 그대로</h3><p><span class="ln">Qwen3-1.7B → Qwen3-4B(FP8),</span><span class="ln">생각 모드 끔 → 켬. 설정 한 줄이고,</span><span class="ln">같은 시험지로 재서 골랐습니다</span></p></div>
+<div class="box red"><h3>AI 가 하면 안 되는 일은 코드가 막습니다</h3><p><span class="ln">요청 등록은 사람이 승인해야 실행되고,</span><span class="ln">출처는 실제로 찾아본 번호만 붙습니다.</span><span class="ln">모델에게 「부탁」하지 않습니다 (그림 4)</span></p></div>
+<div class="box teal"><h3>전부 내 컴퓨터 안입니다</h3><p><span class="ln">매뉴얼 · 검색 색인 · 언어모델이 모두 사내에 있어 랜선을 뽑아도 동작합니다</span><span class="ln">— 질문이 밖으로 안 나갑니다</span></p></div>
 <div class="box gray"><h3>지금은 아직 몰라도 됩니다</h3><p class="small">이 장에서는 이름조차 나오지 않습니다</p>
 <div class="kv"><b>BM25 · bge-m3 · pgvector</b><span>→ 그림 5 (용어의 종류)</span><b>LangGraph · MCP</b><span>→ 그림 5</span><b>검색 되돌림 · 말로만 실행 막기</b><span>→ 그림 4 (안전 기능)</span><b>Pod · HPA · Ingress</b><span>→ 그림 7 (클라우드 지도)</span></div>
 <p><b>한꺼번에 보면 섞입니다. 한 장에 하나씩만 보세요.</b></p></div>

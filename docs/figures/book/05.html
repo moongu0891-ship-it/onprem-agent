@@ -13,7 +13,7 @@
 </div>
 <div class="sp"></div>
 <div class="r st2" style="gap:2mm">
- <div class="n red" style="flex:1"><b>②가 b·c 로 가거나 a 가 죽으면 → 409 "확인을 기다리는 일이 없다"</b><small>측정: 질문은 a(f77qv) 가 받아 멈춤 → a 삭제 → 승인은 새 Pod(4xtcm) 가 받아 모른다고 답함</small></div>
- <div class="n green" style="flex:1"><b>고치는 법 → 10장: 상태를 공용 DB 로</b><small>PostgreSQL 체크포인터 — 같은 시험이 <b style="display:inline;color:#1f8a4c">200</b>, 다른 Pod 가 이어서 RQ-0001 실행</small></div>
+ <div class="n red" style="flex:1"><b>②가 b·c 로 가거나 a 가 죽으면 → 409 "확인을 기다리는 일이 없다"</b><small>측정: 질문은 a(f77qv) 가 받아 멈춤 → a 삭제</small><small>→ 승인은 새 Pod(4xtcm) 가 받아 모른다고 답함</small></div>
+ <div class="n green" style="flex:1"><b>고치는 법 → 10장: 상태를 공용 DB 로</b><small>PostgreSQL 체크포인터 —</small><small>같은 시험이 <b style="display:inline;color:#1f8a4c">200</b>, 다른 Pod 가 이어서 RQ-0001 실행</small></div>
 </div>
 <div class="foot"><span class="k">임시 처방</span><code>sessionAffinity: ClientIP</code> — 같은 사람을 같은 Pod 로. 그 Pod 가 죽으면 역시 잃는다. <span class="k">EKS 라면</span>ALB 의 sticky session 이 같은 처방이고 같은 한계를 가진다.</div>

@@ -2,10 +2,10 @@
  <div class="n gray" style="flex:0 0 26mm;align-self:center"><b>GitHub</b><small>main 브랜치</small></div>
  <div class="a l" style="flex:0 0 14mm;align-self:center"><i>5분마다 poll</i></div>
  <div class="grp blue" style="flex:1"><span class="gl">minikube 클러스터</span>
-  <div class="n blue"><b>Jenkins 제어부</b><small>helm · JCasC(설정 파일) · PVC 2Gi · 실행기 0</small><small>잡 onprem-agent ← Jenkinsfile</small></div></div>
- <div class="a l" style="flex:0 0 22mm;align-self:center"><i>웹소켓</i><i class="u">일꾼이 먼저 연결</i></div>
+  <div class="n blue"><b>Jenkins controller</b><small>helm · JCasC(설정 파일) · PVC 2Gi · 실행기 0</small><small>잡 onprem-agent ← Jenkinsfile</small></div></div>
+ <div class="a l" style="flex:0 0 22mm;align-self:center"><i>웹소켓</i><i class="u">agent 가 먼저 연결</i></div>
  <div class="grp green" style="flex:1"><span class="gl">노트북 WSL2 (GPU)</span>
-  <div class="n green"><b>일꾼 laptop</b><small>agent.jar · JDK 17 · .venv 파이썬</small><small>작업 공간 ~/jenkins-agent</small></div></div>
+  <div class="n green"><b>agent laptop</b><small>agent.jar · JDK 17 · .venv 파이썬</small><small>작업 공간 ~/jenkins-agent</small></div></div>
 </div>
 <div class="sp"></div>
 <div class="g" style="grid-template-columns:22mm 1fr 8mm 1fr 8mm 1fr 8mm 1fr;row-gap:1.6mm">
@@ -20,4 +20,4 @@
  <div class="n purple"><b>12-quiet up</b><small>다시 올림</small></div><div class="a"></div>
  <div class="n red"><b>빨간불이면 실패</b><small>빌드가 빨갛게 남는다</small></div>
 </div>
-<div class="foot"><span class="k">핵심 모양</span>일꾼이 GPU 를 가진 쪽에 있다. <span class="k">EKS 라면</span>GitHub Actions/CodeBuild + GPU 러너(셀프 호스트) · 배포는 ArgoCD(GitOps).</div>
+<div class="foot"><span class="k">핵심 모양</span>agent 가 GPU 를 가진 쪽에 있다. <span class="k">EKS 라면</span>GitHub Actions/CodeBuild + GPU 러너(셀프 호스트) · 배포는 ArgoCD(GitOps).</div>

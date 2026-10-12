@@ -5,7 +5,9 @@
     python scripts/build_workbook.py … --html                 → 같은 이름 .html 도 남김(미리보기)
 
 - 글자 그림(```` ``` ```` 안의 '그림 NN | 제목')은 docs/figures/book/NN.html 의 도식으로 바꿔 넣는다.
-- 'Ubuntu Bash | NN-NNN' 상자는 행 번호가 있는 명령 상자로, 'N행 …' 해설은 번호 표로.
+- 'Ubuntu Bash | NN-NNN' 상자는 행 번호가 있는 명령 상자(입력)로, 바로 뒤 '결과 | NN-NNN | 실제…/기대…' 상자는
+  그 밑에 붙는 결과 상자로(같은 행 번호 · 마지막 '✔ 확인:' 줄). 'N행 …' 해설은 번호 표로.
+- 명령 · 결과 · 표 · 그림 글자는 한 줄로 — 넘치면 인쇄 폭(182mm)에서 재서 글자를 줄인다(FIT_JS).
 - **완료 목표** · **관찰** · **장애·복구** · **정리** · **성공 확인** · **예상/잰다** 문단은 색 상자로.
 - ### 실제 클라우드에서는 / 연습 / 이해 확인 / 면접 절은 각자의 상자로.
 - 모양은 docs/figures/book/book.css.
@@ -68,8 +70,12 @@ def disp_width(s: str) -> int:
 def render_code(block: str) -> str:
     lines = block.split("\n")
     first = lines[0].strip() if lines else ""
+    m = re.match(r"^결과\s*\|\s*(\d\d-\d\d\d)\s*\|\s*(.*)$", first)
+    if m:
+        return render_result(m.group(1), m.group(2), lines[1:])
     m = re.match(r"^(Ubuntu Bash)\s*\|\s*(\d\d-\d\d\d)\s*(.*)$", first)
     if m:
+        size = fit_size([re.sub(r"^\s*\d+\s{2}", "", x) for x in lines[1:]], 7.5)
         rows = []
         for ln in lines[1:]:
             mm = re.match(r"^\s*(\d+)\s{2}(.*)$", ln)
@@ -81,22 +87,50 @@ def render_code(block: str) -> str:
             rows.append(f'<tr><td class="ln">{no}</td><td>{cmd_h}</td></tr>')
         note = f'<span class="nt">{html.escape(m.group(3))}</span>' if m.group(3) else ""
         return (f'<div class="term"><div class="hd"><span><b>{m.group(1)}</b>{note}</span>'
-                f'<span class="id">{m.group(2)}</span></div><table>{"".join(rows)}</table></div>')
+                f'<span class="id">{m.group(2)}</span></div><table style="font-size:{size:.2f}pt">{"".join(rows)}</table></div>')
     key, no, title = figure_key(first, block)
     if key and (FIG / f"{key}.html").exists():
         body = (FIG / f"{key}.html").read_text(encoding="utf-8").replace("{DB}", DB)
         return (f'<figure class="dg"><figcaption><span class="fno">{html.escape(no)}</span>{html.escape(title)}</figcaption>'
                 f'<div class="dgb">{body}</div></figure>')
-    w = max((disp_width(x) for x in lines), default=0)
-    size = min(7.3, 640 / max(w, 1) / 0.62 * 0.75)
+    size = fit_size(lines, 7.2, 490)
     return f'<pre class="out" style="font-size:{size:.2f}pt">' + html.escape(block) + "</pre>"
+
+
+def fit_size(lines: list[str], top: float, avail_pt: float = 470) -> float:
+    """한 줄로 보이게 — 가장 긴 줄이 상자 폭에 맞는 글자 크기(고정폭: 영문 0.5em, 한글 1em)."""
+    w = max((disp_width(x.rstrip()) for x in lines), default=1)
+    return max(4.6, min(top, avail_pt / (max(w, 1) * 0.5)))
+
+
+def render_result(no: str, label: str, lines: list[str]) -> str:
+    """'결과 | NN-NNN | 실제 …' 상자 — 명령 상자 바로 밑에 붙는 출력. 행 번호는 명령의 행 번호."""
+    check = ""
+    body = []
+    for ln in lines:
+        if ln.lstrip().startswith("✔"):
+            check = ln.strip().lstrip("✔").strip()
+            continue
+        body.append(ln)
+    size = fit_size([re.sub(r"^\s*(\d+|▷)\s{2}", "", x) for x in body], 7.2)
+    rows = []
+    for ln in body:
+        mm = re.match(r"^\s{0,3}(\d+|▷)\s{2}(.*)$", ln)
+        n, txt = (mm.group(1), mm.group(2)) if mm else ("", ln.strip())
+        t = html.escape(txt)
+        t = re.sub(r"(←.*)$", r'<span class="cm">\1</span>', t)
+        rows.append(f'<tr{" class=\"gr\"" if n else ""}><td class="ln">{n}</td><td>{t}</td></tr>')
+    kind = "plan" if label.startswith(("기대", "아직")) else "real"
+    ck = (f'<div class="ck"><b>✔ 확인</b>{html.escape(check.removeprefix("확인:").strip())}</div>') if check else ""
+    return (f'<div class="res {kind}"><div class="hd"><span><b>결과</b><span class="nt">{html.escape(label)}</span></span>'
+            f'<span class="id">{no}</span></div><table style="font-size:{size:.2f}pt">{"".join(rows)}</table>{ck}</div>')
 
 
 def figure_key(first: str, block: str):
     m = re.match(r"^그림\s*(\d+)\s*\|\s*(.*)$", first)
     if m:
         return m.group(1), f"그림 {m.group(1)}", m.group(2)
-    if first.startswith("사용자 ─▶ ① 엣지"):
+    if first.startswith("사용자 ─▶ ① "):
         return "map", "실습 지도", "사용자에서 데이터까지 — 층마다 몇 장에서 채우나"
     if first.startswith("사용자(브라우저)"):
         return "ds-arch", "그림 A", "전체 구조 — 네 상자와 상태 저장"
@@ -105,6 +139,34 @@ def figure_key(first: str, block: str):
     if first.startswith("src/onprem_agent/"):
         return "ds-tree", "그림 C", "저장소 구조"
     return None, "", ""
+
+
+# 한 줄로 보이게: 넘치는 상자는 글자를 조금씩 줄인다(실제 그린 폭으로 잰다).
+FIT_JS = """() => {
+  const shrink = (box, targets, min) => {
+    let guard = 60;
+    while (box.scrollWidth > box.clientWidth + 1 && guard--) {
+      let moved = false;
+      for (const t of targets) {
+        const fs = parseFloat(getComputedStyle(t).fontSize);
+        if (fs > min) { t.style.fontSize = (fs * 0.96) + 'px'; moved = true; }
+      }
+      if (!moved) break;
+    }
+  };
+  for (const b of document.querySelectorAll('.term, .res')) {
+    const t = b.querySelector('table'); if (t) shrink(b, [t], 6);
+    const ck = b.querySelector('.ck'); if (ck) shrink(ck, [ck], 6);
+  }
+  for (const b of document.querySelectorAll('pre.out')) shrink(b, [b], 6);
+  // 그림: 안쪽 상자부터 — 넘치는 상자의 글자를 줄인다
+  const boxes = [...document.querySelectorAll('figure.dg .n, figure.dg .tile, figure.dg .folder, figure.dg .nest, figure.dg .grp, figure.dg .dgb')];
+  boxes.sort((a, b) => a.querySelectorAll('*').length - b.querySelectorAll('*').length);
+  for (const b of boxes) shrink(b, [b, ...b.querySelectorAll('b, small, i, span, code, .ly')], 6.5);
+  for (const t of document.querySelectorAll('table:not(.term table):not(.res table)')) {
+    const p = t.parentElement; if (t.scrollWidth > p.clientWidth + 1) shrink(p, [t, ...t.querySelectorAll('td, th')], 7);
+  }
+}"""
 
 
 def main():
@@ -165,6 +227,17 @@ def main():
         ths = [th.get_text() for th in t.find_all("th")]
         if ths and "결과" in ths[-1]:
             t["class"] = t.get("class", []) + ["result"]
+
+    # 표: 칸 글이 짧은 열은 줄바꿈하지 않는다(한 줄로). 긴 열만 접힌다.
+    for t in soup.find_all("table"):
+        rows = [r.find_all(["td", "th"]) for r in t.find_all("tr")]
+        ncol = max((len(r) for r in rows), default=0)
+        for c in range(ncol):
+            cells = [r[c] for r in rows if len(r) > c]
+            longest = max((disp_width(x.get_text().strip()) for x in cells), default=0)
+            if longest <= 34:
+                for x in cells:
+                    x["class"] = x.get("class", []) + ["nw"]
 
     # 장(h2)으로 나누고, ### 익히기 절은 상자로 묶는다
     chapters, intro = [], []
@@ -240,9 +313,17 @@ def main():
     from playwright.sync_api import sync_playwright
     with sync_playwright() as pw:
         b = pw.chromium.launch()
-        pg = b.new_page()
+        pg = b.new_page(viewport={"width": 688, "height": 1000})   # A4 본문 폭 182mm — 이 폭에서 넘침을 잰다
         pg.goto(tmp.resolve().as_uri())
         pg.wait_for_timeout(600)
+        pg.emulate_media(media="print")
+        pg.evaluate(FIT_JS)
+        left = pg.evaluate("""() => [...document.querySelectorAll('.term, .res, pre.out, figure.dg, figure.dg .n')]
+            .filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.className + ' | ' + (e.innerText || '').slice(0, 40).replace(/\\n/g, ' '))""")
+        for x in left:
+            print("  넘침:", x)
+        if "--html" in sys.argv:
+            tmp.write_text("<!doctype html>" + pg.evaluate("document.documentElement.outerHTML"), encoding="utf-8")
         short = title.split(" — ")[0]
         pg.pdf(path=str(DST), format="A4", print_background=True, prefer_css_page_size=True,
                display_header_footer=True, header_template="<div></div>",

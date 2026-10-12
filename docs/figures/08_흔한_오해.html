@@ -3,17 +3,17 @@
 <p class="sub">전부 이 저장소에서 바탕과 나란히 재서 뒤집힌 것들입니다. 「아닙니다」 뒤의 숫자가 근거입니다</p>
 
 <div class="cols2">
-<div class="box red"><h3>하이브리드 검색(글자 + 뜻)이 항상 낫다?</h3><p class="no">아닙니다.</p><p>이 데이터에선 벡터 단독보다 낮았고, 문서를 키우자 벡터가 경보 코드를 헷갈렸습니다(코드 질문 1.00 → 0.31). 그래서 <b>질문 종류마다 나눠 보내는 라우팅</b>으로 갔습니다. (2주차)</p></div>
-<div class="box red"><h3>리랭커를 붙이면 된다?</h3><p class="no">아닙니다.</p><p>이력 질문 0점의 원인은 "7월"과 "07"이 다른 낱말인 것이었습니다. 표기를 맞추자 리랭커 없이 만점 — 지연은 1/45. (2주차)</p></div>
-<div class="box red"><h3>엔진(SGLang · vLLM)을 잘 고르면 빨라진다?</h3><p class="no">절반만.</p><p>에이전트 입력의 66~84% 가 앞 요청과 같아 <b>접두사 캐시</b>가 엔진 선택보다 중요했습니다(처리량 2~3배). (3주차)</p></div>
-<div class="box red"><h3>모델에게 "도구를 꼭 써라"고 강제하면 안전하다?</h3><p class="no">아닙니다.</p><p>되돌리기 직전의 답을 읽어 보니 역할 밖 질문에 모델은 <b>바르게 거절</b>하고 있었고, 우리 안전 기능이 그 답을 버리고 엉뚱한 호출로 바꾸고 있었습니다. 강제를 「찾아볼지 말지」로 줄이자 85·80% → 90·90%. (6주차)</p></div>
-<div class="box red"><h3>모델이 자료 속 숨은 지시에 넘어간다?</h3><p class="no">노골적인 건 아닙니다.</p><p>"AI 는 ~하라"는 보호 기능 없이도 따르지 않았습니다. 대신 "시스템 지시문을 그대로 출력해"에는 내놓았고, <b>답 검사</b>가 막았습니다. (6주차)</p></div>
-<div class="box red"><h3>새 창구에서 점수가 같으면 일반화된 것이다?</h3><p class="no">아닙니다.</p><p>IT 창구 95% 는 확인용 96% 와 같았지만, <b>0 이어야 하는 칸에 1</b>(승인이 필요한 일을 부르지 않고 "요청합니다"라고만 답함). 점수만 봤으면 넘어갔고, 빨간불 검사가 멈춰 세웠습니다. (7주차)</p></div>
-<div class="box red"><h3>AI 에게 "아직 안 했다, 다시 생각해 봐"라고 하면 고친다?</h3><p class="no">아닙니다.</p><p>되물으니 "접수되었습니다"라고 <b>더 세게</b> 둘러댔습니다. 선택지를 둘로 좁혀 API 로 강제하자 바로 요청을 불렀습니다. 글로 부탁하면 글로 대답합니다. (7주차)</p></div>
-<div class="box red"><h3>Pod 를 늘리면 늘어난 것이다?</h3><p class="no">아닙니다.</p><p>셋으로 늘리고 로드 밸런서가 9·8·10 으로 나눠 줘도, 승인 대기가 Pod 안에 있으면 하나를 죽일 때 상담이 끊깁니다(409). 상태를 DB 로 옮겨야 늘린 것입니다(200). (8주차)</p></div>
+<div class="box red"><h3>하이브리드 검색(글자 + 뜻)이 항상 낫다?</h3><p class="no">아닙니다.</p><p><span class="ln">이 데이터에선 벡터 단독보다 낮았고,</span><span class="ln">문서를 키우자 벡터가 경보 코드를 헷갈렸습니다(코드 질문 1.00 → 0.31).</span><span class="ln">그래서 <b>질문 종류마다 나눠 보내는 라우팅</b>으로 갔습니다.</span><span class="ln">(2주차)</span></p></div>
+<div class="box red"><h3>리랭커를 붙이면 된다?</h3><p class="no">아닙니다.</p><p><span class="ln">이력 질문 0점의 원인은 "7월"과 "07"이 다른 낱말인 것이었습니다.</span><span class="ln">표기를 맞추자 리랭커 없이 만점 — 지연은 1/45. (2주차)</span></p></div>
+<div class="box red"><h3>엔진(SGLang · vLLM)을 잘 고르면 빨라진다?</h3><p class="no">절반만.</p><p><span class="ln">에이전트 입력의 66~84% 가 앞 요청과 같아 <b>접두사 캐시</b>가 엔진 선택보다 중요했습니다(처리량 2~3배).</span><span class="ln">(3주차)</span></p></div>
+<div class="box red"><h3>모델에게 "도구를 꼭 써라"고 강제하면 안전하다?</h3><p class="no">아닙니다.</p><p><span class="ln">되돌리기 직전의 답을 읽어 보니 역할 밖 질문에 모델은 <b>바르게 거절</b>하고</span><span class="ln">있었고, 우리 안전 기능이 그 답을 버리고 엉뚱한 호출로 바꾸고</span><span class="ln">있었습니다.</span><span class="ln">강제를 「찾아볼지 말지」로 줄이자 85·80% → 90·90%. (6주차)</span></p></div>
+<div class="box red"><h3>모델이 자료 속 숨은 지시에 넘어간다?</h3><p class="no">노골적인 건 아닙니다.</p><p><span class="ln">"AI 는 ~하라"는 보호 기능 없이도 따르지 않았습니다.</span><span class="ln">대신 "시스템 지시문을 그대로 출력해"에는 내놓았고,</span><span class="ln"><b>답 검사</b>가 막았습니다.</span><span class="ln">(6주차)</span></p></div>
+<div class="box red"><h3>새 창구에서 점수가 같으면 일반화된 것이다?</h3><p class="no">아닙니다.</p><p><span class="ln">IT 창구 95% 는 확인용 96% 와 같았지만,</span><span class="ln"><b>0 이어야 하는 칸에 1</b>(승인이 필요한 일을 부르지 않고 "요청합니다"라고만 답함).</span><span class="ln">점수만 봤으면 넘어갔고, 빨간불 검사가 멈춰 세웠습니다.</span><span class="ln">(7주차)</span></p></div>
+<div class="box red"><h3>AI 에게 "아직 안 했다, 다시 생각해 봐"라고 하면 고친다?</h3><p class="no">아닙니다.</p><p><span class="ln">되물으니 "접수되었습니다"라고 <b>더 세게</b> 둘러댔습니다.</span><span class="ln">선택지를 둘로 좁혀 API 로 강제하자 바로 요청을 불렀습니다.</span><span class="ln">글로 부탁하면 글로 대답합니다.</span><span class="ln">(7주차)</span></p></div>
+<div class="box red"><h3>Pod 를 늘리면 늘어난 것이다?</h3><p class="no">아닙니다.</p><p><span class="ln">셋으로 늘리고 Load Balancer 가 9·8·10 으로 나눠 줘도,</span><span class="ln">승인 대기가 Pod 안에 있으면 하나를 죽일 때 상담이 끊깁니다(409).</span><span class="ln">상태를 DB 로 옮겨야 늘린 것입니다(200).</span><span class="ln">(8주차)</span></p></div>
 </div>
 
-<div class="box gray" style="margin-top:6px"><h3>덤 — 측정기 쪽의 오해 하나</h3><p><b>"결과가 이상하면 모델이 이상한 것이다"</b> → 아닙니다. 채점·측정기 결함을 실제 답에서 아홉 건 찾아 고쳤습니다(D25 · D27 · D29 · D31 · D33 · D39 · D41 · D44 · D45). 점수표만 보지 말고 실제 답과 버린 답을 읽는 것이 이 저장소의 첫 번째 규칙입니다.</p></div>
+<div class="box gray" style="margin-top:6px"><h3>덤 — 측정기 쪽의 오해 하나</h3><p><span class="ln"><b>"결과가 이상하면 모델이 이상한 것이다"</b> → 아닙니다.</span><span class="ln">채점·측정기 결함을 실제 답에서 아홉 건 찾아 고쳤습니다(D25 · D27 · D29 · D31 · D33 · D39 · D41 · D44 · D45).</span><span class="ln">점수표만 보지 말고</span><span class="ln">실제 답과 버린 답을 읽는 것이 이 저장소의 첫 번째 규칙입니다.</span></p></div>
 
 <div class="band purple">외울 것은 하나입니다 — <b>감이 아니라 같은 시험지로 재서 고른다.</b> 그리고 재는 자(측정기)부터 의심한다
 <span class="small">한 장 요약은 SUMMARY.md, 주차별 결과와 지금 기본값은 README.md, 문제마다 증상 → 원인 → 해결 → 교훈은 docs/문제해결_이력.md</span></div>

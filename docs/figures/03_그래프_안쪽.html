@@ -2,27 +2,27 @@
 <h1>에이전트 안쪽 — 질문 하나가 답이 되기까지 일곱 걸음</h1>
 <p class="sub">그림 1 의 「에이전트 그래프」 상자 하나를 열어 본 것입니다. 상담 화면의 「AI가 처리한 순서」 칸이 바로 이 걸음들입니다</p>
 
-<div class="cols" style="grid-template-columns:360px 1fr 400px">
+<div class="cols" style="grid-template-columns:500px minmax(0,1fr) 520px">
 <div>
-<div class="box orange"><h3>에이전트가 무엇인가요?</h3><p>AI 에게 그냥 물으면 회사 매뉴얼을 모르니 그럴듯하게 지어냅니다(환각). 그래서 <b>찾아보고 → 필요하면 사람에게 묻고 → 그것만 보고 답하게</b> 하는 절차를 코드로 둡니다. 그 절차가 그래프입니다.</p></div>
-<div class="box plain"><h3>그래서 이렇게 합니다</h3><p>① 질문에 맞는 업무 기능(도구)을 모델이 고르고<br>② 코드가 실행해 자료를 [절 번호] 와 함께 돌려주고<br>④ 기록이 남는 일은 사람이 승인해야 실행되고<br>⑥ 답에는 <b>실제로 찾아본 번호만</b> 붙습니다</p><p class="small">→ 지어내지 않고, 어느 매뉴얼 몇 절에서 왔는지까지 댈 수 있습니다</p></div>
-<div class="box gray"><h3>미리 한 번만</h3><p><b>자료 → 검색 색인</b></p><p class="small">창구 서버가 뜰 때 매뉴얼 · 규정을 600자씩 잘라(80자 겹침) 색인합니다. 코드가 있는 질문은 BM25(글자), 나머지는 bge-m3(뜻) — 2주차에 재서 정한 라우팅. 8주차에선 pgvector 에 한 번 넣어 두고 재사용(ONPREM_INDEX=reuse)</p></div>
+<div class="box orange"><h3>에이전트가 무엇인가요?</h3><p><span class="ln">AI 에게 그냥 물으면 회사 매뉴얼을 모르니 그럴듯하게 지어냅니다(환각).</span><span class="ln">그래서 <b>찾아보고</b> <b>→ 필요하면 사람에게 묻고</b> <b>→ 그것만 보고</b></span><span class="ln"><b>답하게</b> 하는 절차를 코드로 둡니다.</span><span class="ln">그 절차가 그래프입니다.</span></p></div>
+<div class="box plain"><h3>그래서 이렇게 합니다</h3><p>① 질문에 맞는 업무 기능(도구)을 모델이 고르고<br>② 코드가 실행해 자료를 [절 번호] 와 함께 돌려주고<br>④ 기록이 남는 일은 사람이 승인해야 실행되고<br>⑥ 답에는 <b>실제로 찾아본 번호만</b> 붙습니다</p><p class="small"><span class="ln">→ 지어내지 않고,</span><span class="ln">어느 매뉴얼 몇 절에서 왔는지까지 댈 수 있습니다</span></p></div>
+<div class="box gray"><h3>미리 한 번만</h3><p><b>자료 → 검색 색인</b></p><p class="small"><span class="ln">창구 서버가 뜰 때 매뉴얼 · 규정을 600자씩 잘라(80자 겹침) 색인합니다.</span><span class="ln">코드가 있는 질문은 BM25(글자), 나머지는 bge-m3(뜻)</span><span class="ln">— 2주차에 재서 정한 라우팅. 8주차에선 pgvector 에 한 번 넣어 두고</span><span class="ln">재사용(ONPREM_INDEX=reuse)</span></p></div>
 </div>
 
 <div class="flow">
 <div class="pill">작업자의 질문</div>
 <div class="arrow" style="--c:#8a93a1">질문 글자 그대로</div>
-<div class="box gray" style="border-style:solid"><h3><span class="num" style="background:#8a93a1">0</span>위험 작업 확인 <span class="tag">코드가 먼저</span></h3><p>감전 · 끼임처럼 다칠 수 있는 작업 질문이면(<code>safety_pattern</code>) 모델에게 묻기 전에 <b>매뉴얼부터 찾습니다</b> — 안전 질문 검색</p></div>
+<div class="box gray" style="border-style:solid"><h3><span class="num" style="background:#8a93a1">0</span>위험 작업 확인 <span class="tag">코드가 먼저</span></h3><p><span class="ln">감전 · 끼임처럼 다칠 수 있는 작업 질문이면(<code>safety_pattern</code>) 모델에게 묻기 전에 <b>매뉴얼부터 찾습니다</b></span><span class="ln">— 안전 질문 검색</span></p></div>
 <div class="arrow" style="--c:#1b6fb8">질문 + 창구 지시문 + 업무 기능(도구) 목록</div>
-<div class="box blue"><h3><span class="num">1</span>질문 이해 — 모델이 다음 할 일을 고름 <span class="tag">정하는 사람</span></h3><p>모델은 「어느 업무 기능을 어떤 인자로 부를지」만 냅니다. 찾아보지 않고 답하려 하면 <b>검색 되돌림</b>이 "먼저 찾아보라"는 쪽으로 돌립니다(글로 부탁하지 않고 선택지를 좁힘). 글자로 써 버린 호출은 <b>글 호출 살리기</b>가 진짜 호출로 바꿉니다</p><p class="mono">graph.py · agent 노드 · tool_choice</p></div>
+<div class="box blue"><h3><span class="num">1</span>질문 이해 — 모델이 다음 할 일을 고름 <span class="tag">정하는 사람</span></h3><p><span class="ln">모델은 「어느 업무 기능을 어떤 인자로 부를지」만 냅니다.</span><span class="ln">찾아보지 않고</span><span class="ln">답하려 하면 <b>검색 되돌림</b>이 "먼저 찾아보라"는 쪽으로 돌립니다(글로 부탁하지 않고 선택지를 좁힘).</span><span class="ln">글자로 써 버린 호출은 <b>글 호출 살리기</b>가 진짜 호출로 바꿉니다</span></p><p class="mono">graph.py · agent 노드 · tool_choice</p></div>
 <div class="arrow" style="--c:#0f8b8d">호출 (이름 + 인자)</div>
-<div class="box teal"><h3><span class="num">2</span>업무 기능(도구) 실행 — 창구 서버 <span class="tag">찾는 사람</span></h3><p>search_manual · get_work_orders · get_employee … 결과는 <b>[OPS-SAFE] 같은 절 번호</b>를 달고 돌아옵니다. 자료 속에 숨은 「AI 는 ~하라」 문장은 <b>지시문 제거</b>가 지웁니다</p><p class="mono">tools 노드 · MCP</p></div>
+<div class="box teal"><h3><span class="num">2</span>업무 기능(도구) 실행 — 창구 서버 <span class="tag">찾는 사람</span></h3><p><span class="ln">search_manual · get_work_orders · get_employee … 결과는 <b>[OPS-SAFE] 같은 절 번호</b>를 달고</span><span class="ln">돌아옵니다.</span><span class="ln">자료 속에 숨은 「AI 는 ~하라」 문장은 <b>지시문 제거</b>가 지웁니다</span></p><p class="mono">tools 노드 · MCP</p></div>
 <div class="arrow" style="--c:#6b3fd1">자료가 모자라면 ① 로 되돌아감 (최대 6걸음)</div>
-<div class="box red"><h3><span class="num" style="background:#d33a3a">3</span>담당자 확인 — 기록이 남는 일은 멈춤 <span class="tag">사람</span></h3><p>작업 요청 등록 · 잠금 해제 요청처럼 회사 시스템에 기록을 남기는 업무 기능(<code>approval_tools</code>)은 그래프가 <b>interrupt</b> 로 멈추고 승인 카드를 띄웁니다. 승인하면 그 자리에서 이어서 실행, 취소하면 실행 안 함. 멈춘 자리는 <b>체크포인터</b>(SQLite / PostgreSQL)에 남아 화면을 닫았다 열어도 이어집니다</p><p class="mono">gate 노드 · Command(resume=…)</p></div>
+<div class="box red"><h3><span class="num" style="background:#d33a3a">3</span>담당자 확인 — 기록이 남는 일은 멈춤 <span class="tag">사람</span></h3><p><span class="ln">작업 요청 등록 · 잠금 해제 요청처럼 회사 시스템에 기록을 남기는 업무 기능(<code>approval_tools</code>)은 그래프가 <b>interrupt</b> 로 멈추고</span><span class="ln">승인 카드를 띄웁니다.</span><span class="ln">승인하면 그 자리에서 이어서 실행, 취소하면 실행 안 함.</span><span class="ln">멈춘 자리는 <b>체크포인터</b>(SQLite / PostgreSQL)에 남아 화면을 닫았다 열어도 이어집니다</span></p><p class="mono">gate 노드 · Command(resume=…)</p></div>
 <div class="arrow" style="--c:#d97a06">찾은 자료만 보고</div>
-<div class="box orange"><h3><span class="num">4</span>답 쓰기 — 모델 <span class="tag">글 쓰는 사람</span></h3><p>받은 자료만 근거로 한국어 답을 씁니다(생각 모드 켬 — 4주차 측정 54% → 92%). 생각이 길어 답이 비면 <b>빈 답 다시 쓰기</b>. 실행하지 않은 일을 "했다"고 쓰면 <b>말로만 실행 막기</b>가 「요청 기능 / 실행 안 함」 둘 중 하나를 고르게 합니다</p></div>
+<div class="box orange"><h3><span class="num">4</span>답 쓰기 — 모델 <span class="tag">글 쓰는 사람</span></h3><p><span class="ln">받은 자료만 근거로 한국어 답을 씁니다(생각 모드 켬 — 4주차 측정 54% → 92%).</span><span class="ln">생각이 길어 답이 비면 <b>빈 답 다시 쓰기</b>.</span><span class="ln">실행하지 않은 일을 "했다"고 쓰면 <b>말로만 실행 막기</b>가 「요청 기능 / 실행 안 함」 둘 중 하나를 고르게 합니다</span></p></div>
 <div class="arrow" style="--c:#1f8a4c">답 글</div>
-<div class="box green"><h3><span class="num">5</span>출처 붙이기 · <span class="num">6</span>개인정보 가리기 <span class="tag">코드가 마지막</span></h3><p><b>근거 자동</b>: 이번 질문에서 실제로 돌아온 절 번호만 <code>[근거: OPS-SAFE, WO-01045]</code> 로 붙입니다 — 모델이 쓴 번호를 믿지 않습니다.<br><b>답 검사</b>: 전화번호 · 주민등록번호를 가리고, 창구 지시문이 그대로 새면 거절문으로 바꿉니다</p><p class="mono">finalize 노드 · cite_sources · guard_answer</p></div>
+<div class="box green"><h3><span class="num">5</span>출처 붙이기 · <span class="num">6</span>개인정보 가리기 <span class="tag">코드가 마지막</span></h3><p><span class="ln"><b>근거 자동</b>: 이번 질문에서 실제로 돌아온 절 번호만 <code>[근거: OPS-SAFE, WO-01045]</code> 로 붙입니다</span><span class="ln">— 모델이 쓴 번호를 믿지 않습니다.</span><span class="ln"><br><b>답 검사</b>: 전화번호 · 주민등록번호를 가리고,</span><span class="ln">창구 지시문이 그대로 새면 거절문으로 바꿉니다</span></p><p class="mono">finalize 노드 · cite_sources · guard_answer</p></div>
 <div class="arrow" style="--c:#1f8a4c">답변</div>
 <div class="pill green">답 + 근거 번호 → 상담 화면</div>
 </div>
@@ -30,10 +30,10 @@
 <div>
 <div class="box green"><h3>LangGraph 로 그리면 마디 넷</h3>
 <p class="mono" style="font-size:14px;line-height:1.9">START → <b>agent</b> ─┬→ <b>gate</b> → <b>tools</b> → agent …<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└→ <b>finalize</b> → END</p>
-<p class="small">agent = ①④ (모델에게 묻기), gate = ③ (승인이 필요한가), tools = ② (창구 서버 실행), finalize = ⑤⑥. 되돌아가는 화살표가 있어서 「조립 도구」로 LangChain 이 아니라 LangGraph 를 씁니다 (그림 5)</p></div>
-<div class="box red"><h3>★ 꼭 구분하세요</h3><p class="no">모델은 실행하지 않습니다.</p><p>모델은 「무엇을 부를지」와 「답 글」만 냅니다. 찾기 · 등록 · 승인 · 출처 · 가리기는 전부 <b>코드</b>가 합니다. 그래서 모델이 "티켓을 만들었습니다"라고 써도 코드가 만든 적이 없으면 거짓 보고로 잡힙니다(그림 4)</p></div>
-<div class="box plain"><h3>왜 ①과 ④를 나눴나</h3><p class="small">같은 모델을 두 번 부릅니다. ①은 <b>선택</b>(업무 기능 이름 하나)이라 틀 안에서만 답할 수 있게 API 로 강제할 수 있고, ④는 <b>글</b>이라 자유롭습니다. 6주차에 "강제를 글에까지 걸었더니 바른 거절을 버리고 엉뚱한 호출로 바꾸더라"를 재 보고 ①에만 걸었습니다(85% → 90%)</p></div>
-<div class="box plain"><h3>이 걸음들이 화면에 그대로</h3><p class="small">상담 화면의 「AI가 처리한 순서」 — 위험 작업 확인 · 질문 이해 · (업무 기능 이름) · 담당자 확인 · 출처 붙이기 · 개인정보 가리기 — 는 이 그림의 ⓪~⑥ 이고, 되돌림이 생기면 「다시 찾아보기」 칸이 더 생깁니다</p></div>
+<p class="small"><span class="ln">agent = ①④ (모델에게 묻기), gate = ③ (승인이 필요한가),</span><span class="ln">tools = ② (창구 서버 실행),</span><span class="ln">finalize = ⑤⑥. 되돌아가는 화살표가 있어서 「조립 도구」로 LangChain 이 아니라 LangGraph 를 씁니다 (그림 5)</span></p></div>
+<div class="box red"><h3>★ 꼭 구분하세요</h3><p class="no">모델은 실행하지 않습니다.</p><p><span class="ln">모델은 「무엇을 부를지」와 「답 글」만 냅니다.</span><span class="ln">찾기 · 등록 · 승인 · 출처 · 가리기는 전부 <b>코드</b>가 합니다.</span><span class="ln">그래서 모델이 "티켓을 만들었습니다"라고</span><span class="ln">써도 코드가 만든 적이 없으면 거짓 보고로 잡힙니다(그림 4)</span></p></div>
+<div class="box plain"><h3>왜 ①과 ④를 나눴나</h3><p class="small"><span class="ln">같은 모델을 두 번 부릅니다.</span><span class="ln">①은 <b>선택</b>(업무 기능 이름 하나)이라 틀 안에서만 답할 수 있게 API 로 강제할 수 있고,</span><span class="ln">④는 <b>글</b>이라 자유롭습니다.</span><span class="ln">6주차에 "강제를 글에까지 걸었더니 바른 거절을 버리고</span><span class="ln">엉뚱한 호출로 바꾸더라"를 재 보고</span><span class="ln">①에만 걸었습니다(85% → 90%)</span></p></div>
+<div class="box plain"><h3>이 걸음들이 화면에 그대로</h3><p class="small"><span class="ln">상담 화면의 「AI가 처리한 순서」</span><span class="ln">— 위험 작업 확인 · 질문 이해 · (업무 기능 이름) · 담당자 확인 · 출처 붙이기 · 개인정보 가리기</span><span class="ln">— 는 이 그림의 ⓪~⑥ 이고,</span><span class="ln">되돌림이 생기면 「다시 찾아보기」 칸이 더 생깁니다</span></p></div>
 </div>
 </div>
 

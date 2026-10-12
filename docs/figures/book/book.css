@@ -4,7 +4,7 @@
 :root{--ink:#1d2433;--sub:#5b6472;--line:#d5dbe4;--blue:#1b6fb8;--green:#1f8a4c;--teal:#0f8b8d;--purple:#6b3fd1;--orange:#c96f05;--red:#c93636;--gray:#6b7482}
 *{box-sizing:border-box}
 html{-webkit-print-color-adjust:exact}
-body{font-family:"Noto Sans CJK KR",sans-serif;font-size:8.6pt;line-height:1.62;color:var(--ink);margin:0;word-break:keep-all;overflow-wrap:anywhere}
+body{font-family:"Noto Sans CJK KR",sans-serif;font-size:8pt;line-height:1.58;color:var(--ink);margin:0;word-break:keep-all;overflow-wrap:anywhere}
 p{margin:5px 0}
 a{color:var(--blue);text-decoration:none}
 code{font-family:"Noto Sans Mono CJK KR",monospace;font-size:7.6pt;background:#eef1f5;border-radius:3px;padding:0 3px;color:#2b3442}
@@ -65,25 +65,26 @@ h4.lbl{font-size:8pt;letter-spacing:.06em;color:#fff;background:var(--ink);displ
 .steps{margin:1.5mm 0 3mm;border-left:2px solid #e3e8ef;padding-left:3mm}
 .st{display:grid;grid-template-columns:9mm 1fr;gap:2mm;padding:1mm 0;page-break-inside:avoid}
 .st .bd{font-family:"Noto Sans Mono CJK KR",monospace;font-size:7.2pt;font-weight:700;color:#fff;background:#3b4454;border-radius:3px;text-align:center;height:4.4mm;line-height:4.4mm;margin-top:.6mm}
-.st div{font-size:8.3pt}
+.st div{font-size:7.8pt}
 
 /* 명령 상자 */
 .term{border-radius:7px;overflow:hidden;margin:2.6mm 0;page-break-inside:avoid;border:1px solid #0d1724}
 .term .hd{display:flex;justify-content:space-between;align-items:center;background:#24364b;color:#cfe3f7;font-size:7.4pt;padding:1.2mm 3mm}
 .term .hd b{color:#fff;letter-spacing:.03em}.term .hd .id{font-family:"Noto Sans Mono CJK KR",monospace;background:#0f1b29;border-radius:3px;padding:0 6px}
 .term .hd .nt{opacity:.8;margin-left:8px}
-.term table{border:0;margin:0;width:100%;background:#13202e;border-collapse:collapse}
-.term td{border:0;padding:.5mm 2mm;font-family:"Noto Sans Mono CJK KR",monospace;font-size:7.5pt;line-height:1.55;color:#dbe6f2;vertical-align:top;white-space:pre-wrap;background:#13202e}
+.term table{border:0;margin:0;width:100%;background:#13202e;border-collapse:collapse;table-layout:auto}
+.term td{border:0;padding:.4mm 2mm;font-family:"Noto Sans Mono CJK KR",monospace;font-size:inherit;line-height:1.5;color:#dbe6f2;vertical-align:top;white-space:pre;background:#13202e}
 .term tbody tr:nth-child(even) td{background:#13202e}
 .term tbody tr td.ln,.term tbody tr:nth-child(even) td.ln{background:#101b27}
 .term td.ln{width:7mm;text-align:right;color:#ffd166;user-select:none;background:#101b27;border-right:1px solid #22344a}
 .term tr:first-child td{padding-top:2mm}.term tr:last-child td{padding-bottom:2mm}
-pre.out{background:#f5f6f8;border:1px solid var(--line);border-radius:6px;padding:2.4mm 3mm;font-family:"Noto Sans Mono CJK KR",monospace;font-size:7.3pt;line-height:1.5;white-space:pre-wrap;page-break-inside:avoid}
+pre.out{background:#f5f6f8;border:1px solid var(--line);border-radius:6px;padding:2.4mm 3mm;font-family:"Noto Sans Mono CJK KR",monospace;font-size:7.3pt;line-height:1.5;white-space:pre;overflow:hidden;page-break-inside:avoid}
 
 /* 표 */
-table{border-collapse:collapse;width:100%;margin:2.4mm 0 3mm;font-size:7.7pt;line-height:1.5}
-th{background:#24364b;color:#fff;font-weight:700;text-align:left;padding:1.4mm 2mm;border:1px solid #24364b}
-td{border:1px solid #dfe4eb;padding:1.2mm 2mm;vertical-align:top}
+table{border-collapse:collapse;width:100%;margin:2.4mm 0 3mm;font-size:7.2pt;line-height:1.45}
+td.nw,th.nw{white-space:nowrap}
+th{background:#24364b;color:#fff;font-weight:700;text-align:left;padding:1.1mm 1.8mm;border:1px solid #24364b}
+td{border:1px solid #dfe4eb;padding:.9mm 1.8mm;vertical-align:top}
 tbody tr:nth-child(even) td{background:#f7f9fb}
 tr{page-break-inside:avoid}
 table.result td:last-child{background:#f0faf3 !important}
@@ -181,3 +182,24 @@ h4.lbl.obs{--kc:#0f8b8d}h4.lbl.pre{--kc:#6b3fd1}h4.lbl.trb{--kc:#c93636}h4.lbl.o
 .sx.intv .co.note,.sx.prac .co.note{background:#f5f8fc;border:1px solid #d5e2f1;border-radius:7px;padding:2.4mm 3.6mm;margin:2.6mm 0}
 .sx.prac .co.note{background:#f4fbfb;border-color:#cfe9e7}
 .sx.intv .co.note .lb,.sx.prac .co.note .lb{border-left:0;color:#fff;padding:.3mm 2mm;border-radius:4px}
+
+/* 결과 상자 — 명령 상자(입력) 바로 밑에 붙는 출력 */
+.term{margin-bottom:0;border-radius:7px 7px 0 0}
+.term + .res{margin-top:0;border-top:0;border-radius:0 0 7px 7px}
+.res{border:1px solid #9ccfaf;border-radius:7px;margin:2.6mm 0;background:#f7fcf9;page-break-inside:avoid;overflow:hidden}
+.res .hd{display:flex;justify-content:space-between;align-items:center;background:#1f8a4c;color:#e8f6ee;font-size:7.2pt;padding:.9mm 3mm}
+.res .hd b{color:#fff;letter-spacing:.04em}.res .hd .nt{margin-left:8px;opacity:.95}
+.res .hd .id{font-family:"Noto Sans Mono CJK KR",monospace;background:#16683a;border-radius:3px;padding:0 6px}
+.res table{margin:0;border:0;background:transparent}
+.res td{border:0;background:transparent !important;padding:.2mm 2mm;font-family:"Noto Sans Mono CJK KR",monospace;font-size:inherit;line-height:1.5;white-space:pre;color:#1f2a24}
+.res tr:first-child td{padding-top:1.6mm}.res tr:last-child td{padding-bottom:1.6mm}
+.res td.ln{width:7mm;text-align:right;color:#1f8a4c;font-weight:700;border-right:1px solid #cfe9d9}
+.res tr.gr:not(:first-child) td{border-top:1px dotted #cfe9d9}
+.res .cm{color:#8a6a2e}
+.res .ck{border-top:1px solid #bfe3cb;background:#e8f6ee;padding:1mm 3mm;font-size:7.4pt;color:#14532d;white-space:nowrap;overflow:hidden}
+.res .ck b{display:inline-block;background:#1f8a4c;color:#fff;border-radius:3px;padding:0 5px;margin-right:2mm;font-size:6.8pt}
+.res.plan{border-color:#d6c9f4;background:#faf8ff}.res.plan .hd{background:#6b3fd1}.res.plan .hd .id{background:#4f2aa8}
+.res.plan td.ln{color:#6b3fd1;border-right-color:#e2d9f7}.res.plan .ck{background:#f1ecfd;border-top-color:#d6c9f4;color:#3b237a}.res.plan .ck b{background:#6b3fd1}
+.term + .res .hd{border-top:1px dashed #0d1724}
+/* 그림 글자는 한 줄로 */
+.n b,.n small,.tile,.tile b,.chip,.stack .ly,.folder > small{white-space:nowrap}
