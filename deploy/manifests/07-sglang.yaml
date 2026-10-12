@@ -35,7 +35,7 @@ spec:
                  "--tool-call-parser", "qwen", "--enable-cache-report", "--cuda-graph-max-bs-decode", "16",
                  "--attention-backend", "triton",          # flashinfer 의 즉석 컴파일을 피한다(C11)
                  "--cuda-graph-backend-prefill", "disabled",   # 새 SGLang 이 더한 prefill 그래프 42종 녹화는 끈다 — 3주차 설정(디코드 그래프만)에 맞춤
-                 "--fp8-gemm-runner-backend", "triton"]        # FP8 행렬곱을 sgl-kernel JIT(즉석 컴파일, 9GB 넘겨 OOM 반복) 대신 triton 으로(C11)
+                 "--fp8-gemm-backend", "triton"]        # FP8 행렬곱을 sgl-kernel JIT(즉석 컴파일, 9GB 넘겨 OOM 반복) 대신 triton 으로(C11)
           env:
             - {name: HF_HOME, value: /models/hf}
             - {name: HF_HUB_OFFLINE, value: "1"}    # 가중치는 PVC 에 있다 — 인터넷을 보지 않는다
