@@ -195,3 +195,12 @@ helm install: 1차 context deadline exceeded (init: Plugin timestamps:latest has
   Stage "전체 시험 (밤)" skipped due to when conditional
   06:13:39 Archiving artifacts → Finished: SUCCESS
 ```
+
+## 13장 make cloud-up (2026-10-12)
+
+```
+== 2026-10-12 15:15:13  commit 766e684
+[0s] 01 클러스터 … [19s] 기다림 … [90s] 확인: https 200  Pod console-7d89cb6c85-bqrpc
+sglang-6dd87bd7d6-xrrmk 1/1 Running 73s (digest 고정으로 재시작) · download/index Job 다시 만들어져 Completed
+[90s] 끝 — 전체 1분
+```
